@@ -1,9 +1,9 @@
 import React from "react";
 
 interface  AvatarProps{
-    src?: string,
-    alt?: string,
-    size?: number,
+    src?: string;
+    alt?: string;
+    size?: number | "sm" | "md" | "lg";
 }
 
 export const Avatar = ({ src, alt = "User avatar", size = 40}: AvatarProps) => {
