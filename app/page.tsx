@@ -1,10 +1,24 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
-import { AlertCircle } from "lucide-react";
+import { RecentLetterList } from "@/components/organisms/RecentLetterList";
 
-export default function DashboardPage() {
+// Define the shape locally so we don't need any fragile type imports
+type LetterItem = {
+  id: string;
+  title: string;
+  recipient: string;
+  date: string;
+  status: "approved" | "pending" | "rejected";
+  authorUsername: string;
+};
+
+export default function OverviewPage() {
+  const router = useRouter();
+
   const navItems = [
     { label: "Overview", href: "/", isActive: true },
     { label: "New letter", href: "/new-letter", isActive: false },
@@ -16,153 +30,137 @@ export default function DashboardPage() {
     name: "Teacher",
     username: "teacher_dev",
     avatarUrl: "",
+    role: "teacher",
   };
 
-  const sampleLetters = [
+  const recentLetters: LetterItem[] = [
     {
       id: "1",
-      title: "Surat Izin kegiatan 07/20/2026",
-      username: "@UserUserUser",
-      statusText: "Pending (Need revision)",
-      statusColor: "bg-red-500",
-      type: "pending-revision",
+      title: "Surat Undangan Rapat Orang Tua",
+      recipient: "Wali Murid Kelas X",
+      date: "2026-07-28",
+      status: "approved",
+      authorUsername: "teacher_dev",
     },
     {
       id: "2",
-      title: "Surat Izin kegiatan 07/20/2026",
-      username: "@UserUserUser",
-      statusText: "Pending (Waiting approval)",
-      statusColor: "bg-orange-500",
-      type: "pending-approval",
+      title: "Surat Tugas Pendampingan Lomba",
+      recipient: "Bpk. Ahmad Suherman",
+      date: "2026-07-25",
+      status: "pending",
+      authorUsername: "teacher_dev",
     },
     {
       id: "3",
-      title: "Surat Izin kegiatan 07/20/2026",
-      username: "@UserUserUser",
-      statusText: "(Approved)",
-      statusColor: "bg-green-500",
-      type: "approved",
-    },
-    {
-      id: "4",
-      title: "Surat Izin kegiatan 07/20/2026",
-      username: "@UserUserUser",
-      statusText: "(Approved)",
-      statusColor: "bg-green-500",
-      type: "approved",
+      title: "Surat Keterangan Aktif Mengajar",
+      recipient: "Dinas Pendidikan",
+      date: "2026-07-20",
+      status: "approved",
+      authorUsername: "teacher_dev",
     },
   ];
 
   return (
-    <DashboardLayout
-      navItems={navItems}
-      currentUser={mockUser}
-      title="Welcome, Teacher"
-    >
-      <div className="flex flex-col gap-6">
-        {/* Top 3 Stat Cards + Pill Buttons */}
+    <DashboardLayout navItems={navItems} currentUser={mockUser}>
+      <div className="flex flex-col gap-8">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-serif text-stone-900">
+            Welcome back, <span className="italic">{mockUser.name}</span>
+          </h1>
+          <p className="text-stone-500 text-sm mt-1 font-sans">
+            Here is a summary of your letter activities today.
+          </p>
+        </div>
+
+        {/* Top Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1 */}
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-full bg-white border border-stone-300 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-sm">
-              <span className="font-serif text-6xl text-stone-900">243</span>
-              <span className="font-serif text-lg text-stone-700 mt-2">
-                Letters made
+          {/* Card 1: Create Letter */}
+          <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-4">
+            <div>
+              <span className="text-xs font-semibold uppercase text-stone-400 font-sans tracking-wider">
+                QUICK ACTION
               </span>
+              <h3 className="text-2xl font-serif font-semibold text-stone-900 mt-1">
+                Create New Letter
+              </h3>
+              <p className="text-xs text-stone-500 mt-1 font-sans">
+                Select a template and generate formal Kop Surat instantly.
+              </p>
             </div>
-            <button className="w-full max-w-50px py-2 px-4 rounded-full border border-stone-800 text-sm font-medium hover:bg-stone-100 transition-colors">
-              Create new letter
+
+            <Link
+              href="/new-letter"
+              className="w-full text-center py-2.5 px-4 rounded-2xl bg-[#0A4D3C] text-white font-medium text-sm hover:bg-[#07382c] transition-colors font-sans"
+            >
+              Start Creating →
+            </Link>
+          </div>
+
+          {/* Card 2: Pending Approvals */}
+          <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-4">
+            <div>
+              <span className="text-xs font-semibold uppercase text-stone-400 font-sans tracking-wider">
+                PENDING APPROVALS
+              </span>
+              <div className="text-3xl font-bold text-stone-900 mt-1 font-sans">
+                3
+              </div>
+              <p className="text-xs text-stone-500 mt-1 font-sans">
+                Letters waiting for signature or review.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => router.push("/pending")}
+              className="w-full text-center py-2.5 px-4 rounded-2xl border border-stone-300 text-stone-800 font-medium text-sm hover:bg-stone-50 transition-colors font-sans"
+            >
+              View Pending
             </button>
           </div>
 
-          {/* Card 2 */}
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-full bg-white border border-stone-300 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-sm">
-              <span className="font-serif text-6xl text-stone-900">241</span>
-              <span className="font-serif text-lg text-stone-700 mt-2">
-                Letters Approved
+          {/* Card 3: Total Generated */}
+          <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-4">
+            <div>
+              <span className="text-xs font-semibold uppercase text-stone-400 font-sans tracking-wider">
+                TOTAL GENERATED
               </span>
+              <div className="text-3xl font-bold text-stone-900 mt-1 font-sans">
+                24
+              </div>
+              <p className="text-xs text-stone-500 mt-1 font-sans">
+                Completed and saved letters in your archive.
+              </p>
             </div>
-            <button className="w-full max-w-50px py-2 px-4 rounded-full border border-stone-800 text-sm font-medium hover:bg-stone-100 transition-colors">
-              See history
-            </button>
-          </div>
 
-          {/* Card 3 */}
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-full bg-white border border-stone-300 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-sm">
-              <span className="font-serif text-6xl text-stone-900">2</span>
-              <span className="font-serif text-lg text-stone-700 mt-2">
-                Letters Pending
-              </span>
-            </div>
-            <button className="w-full max-w-50px py-2 px-4 rounded-full border border-stone-800 text-sm font-medium hover:bg-stone-100 transition-colors">
-              See status
+            <button
+              type="button"
+              onClick={() => router.push("/history")}
+              className="w-full text-center py-2.5 px-4 rounded-2xl border border-stone-300 text-stone-800 font-medium text-sm hover:bg-stone-50 transition-colors font-sans"
+            >
+              Open History
             </button>
           </div>
         </div>
 
         {/* Recent Letters Section */}
-        <div className="bg-white border border-stone-300 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
-          <h2 className="font-serif text-xl text-stone-800">Recent letters</h2>
-          
-          <div className="flex flex-col divide-y divide-stone-200">
-            {sampleLetters.map((letter) => (
-              <div
-                key={letter.id}
-                className="py-3 flex flex-wrap items-center justify-between gap-4"
-              >
-                <div className="flex flex-col">
-                  <span className="font-serif text-base text-stone-900">
-                    {letter.title}
-                  </span>
-                  <span className="text-sm text-stone-500">
-                    {letter.username}, {letter.statusText}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  {/* Status Indicator Dot */}
-                  <span
-                    className={`w-3.5 h-3.5 rounded-full ${letter.statusColor}`}
-                  />
-
-                  {/* Action Button Group */}
-                  <div className="inline-flex rounded-md shadow-sm border border-stone-800 divide-x divide-stone-800 overflow-hidden text-xs">
-                    <button className="px-3 py-1.5 hover:bg-stone-100 font-medium">
-                      See
-                    </button>
-                    {letter.type === "approved" ? (
-                      <button className="px-3 py-1.5 hover:bg-stone-100 font-medium">
-                        Download PDF/DOCX
-                      </button>
-                    ) : (
-                      <>
-                        <button className="px-3 py-1.5 hover:bg-stone-100 font-medium">
-                          Edit
-                        </button>
-                        <button className="px-3 py-1.5 hover:bg-stone-100 font-medium">
-                          Cancel
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+        <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-serif font-semibold text-stone-900">
+              Recent Letters
+            </h2>
+            <Link
+              href="/history"
+              className="text-xs text-stone-500 hover:text-stone-900 underline font-sans"
+            >
+              View All
+            </Link>
           </div>
-        </div>
 
-        {/* Admin Notification Banner */}
-        <div className="bg-white border border-stone-300 rounded-3xl p-4 shadow-sm flex items-start gap-3">
-          <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
-          <p className="text-sm text-stone-800">
-            <span className="font-bold">Admin:</span> Lorem ipsum dolor sit amet,
-            consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
-            labore et dolore magna aliqua.
-          </p>
+          <RecentLetterList letters={recentLetters} />
         </div>
       </div>
     </DashboardLayout>
   );
-}
+};

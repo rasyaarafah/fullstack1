@@ -14,13 +14,13 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ navItems = [], onLogout }: SidebarProps) => {
-  // Quick create links from Figma design
+  // Quick create items converted to objects with query links
   const quickCreateItems = [
-    "Surat undangan",
-    "Surat tugas",
-    "Surat keterangan",
-    "Surat keputusan",
-    "Surat pemberitahuan",
+    { label: "Surat undangan", href: "/new-letter?template=Surat%20undangan" },
+    { label: "Surat tugas", href: "/new-letter?template=Surat%20tugas" },
+    { label: "Surat keterangan", href: "/new-letter?template=Surat%20keterangan" },
+    { label: "Surat keputusan", href: "/new-letter?template=Surat%20keputusan" },
+    { label: "Surat pemberitahuan", href: "/new-letter?template=Surat%20pemberitahuan" },
   ];
 
   return (
@@ -59,13 +59,14 @@ export const Sidebar = ({ navItems = [], onLogout }: SidebarProps) => {
             Quick create
           </span>
           <div className="flex flex-col gap-1.5 pl-2">
-            {quickCreateItems.map((item, idx) => (
-              <button
-                key={idx}
+            {quickCreateItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
                 className="text-left text-sm text-stone-400 hover:text-stone-900 transition-colors"
               >
-                {item}
-              </button>
+                {item.label}
+              </Link>
             ))}
           </div>
         </div>
