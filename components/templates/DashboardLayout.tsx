@@ -8,7 +8,7 @@ interface NavItem {
     IsActive?: boolean;
 }
 
-interface DashBoardLAyoutProps {
+interface DashboardLayoutProps {
     children: React.ReactNode;
     navItems: NavItem[];
     currentUser?: {
@@ -21,14 +21,14 @@ interface DashBoardLAyoutProps {
     onNavigate?: (href: string) => void;
 }
 
-export const DashBoardLAyout = ({
+export const DashboardLayout = ({
     children,
     navItems,
     currentUser,
     title,
     description,
     onNavigate,
-}: DashBoardLAyoutProps) => {
+}: DashboardLayoutProps) => {
     return (    
         <div className="flex min-h-screen bg-gray-50 text-gray-900">
             {/* Sidebar Navigation */}

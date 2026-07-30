@@ -4,8 +4,9 @@ import { Button } from "../atoms/Button";
 interface StatCardProps {
     count: string | number;
     label: string;
-    buttonText: string;
+    buttonText?: string;
     onButtonClick?: () => void;
+    icon?: React.ReactNode; 
 }
 
 export const StatCard = ({
