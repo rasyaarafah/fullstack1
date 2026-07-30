@@ -2,51 +2,54 @@
 
 import React from "react";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
-import { StatCard } from "@/components/molecules/StatCard";
-import {
-  RecentLetterList,
-  LetterItemData,
-} from "@/components/organisms/RecentLetterList";
-import { FileText, Clock, CheckCircle, XCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 export default function DashboardPage() {
-  // Mock Navigation for testing
   const navItems = [
-    { label: "Dashboard", href: "/", icon: <FileText className="w-4 h-4" />, isActive: true },
-    { label: "Buat Surat", href: "/new-letter", icon: <FileText className="w-4 h-4" />, isActive: false },
-    { label: "Riwayat Surat", href: "/history", icon: <FileText className="w-4 h-4" />, isActive: false },
-    { label: "Manajemen User", href: "/users", icon: <FileText className="w-4 h-4" />, isActive: false },
+    { label: "Overview", href: "/", isActive: true },
+    { label: "New letter", href: "/new-letter", isActive: false },
+    { label: "History", href: "/history", isActive: false },
+    { label: "Pending", href: "/pending", isActive: false },
   ];
 
-  // Mock user
   const mockUser = {
-    name: "Rasya",
-    username: "rasya_dev",
-    avatarUrl: "", // Added avatarUrl
+    name: "Teacher",
+    username: "teacher_dev",
+    avatarUrl: "",
   };
 
-  // Mock sample letter data
-  const sampleLetters: LetterItemData[] = [
+  const sampleLetters = [
     {
       id: "1",
-      title: "Surat permohonan surat kegiatan sekolah",
-      authorUsername: "rasya_dev",
-      date: "2026-04-12",
-      status: "approved",
+      title: "Surat Izin kegiatan 07/20/2026",
+      username: "@UserUserUser",
+      statusText: "Pending (Need revision)",
+      statusColor: "bg-red-500",
+      type: "pending-revision",
     },
     {
       id: "2",
-      title: "Surat undangan rapat orang tua murid",
-      authorUsername: "admin-sekolah",
-      date: "2026-04-14",
-      status: "pending",
+      title: "Surat Izin kegiatan 07/20/2026",
+      username: "@UserUserUser",
+      statusText: "Pending (Waiting approval)",
+      statusColor: "bg-orange-500",
+      type: "pending-approval",
     },
     {
       id: "3",
-      title: "Surat pengajuan Kerjasama Sponsor",
-      authorUsername: "rasya-dev",
-      date: "2026-04-10",
-      status: "rejected",
+      title: "Surat Izin kegiatan 07/20/2026",
+      username: "@UserUserUser",
+      statusText: "(Approved)",
+      statusColor: "bg-green-500",
+      type: "approved",
+    },
+    {
+      id: "4",
+      title: "Surat Izin kegiatan 07/20/2026",
+      username: "@UserUserUser",
+      statusText: "(Approved)",
+      statusColor: "bg-green-500",
+      type: "approved",
     },
   ];
 
@@ -54,43 +57,110 @@ export default function DashboardPage() {
     <DashboardLayout
       navItems={navItems}
       currentUser={mockUser}
-      title="Dashboard Utama"
-      description="Kelola dan pantau pembuatan kop surat instansi dengan cepat."
+      title="Welcome, Teacher"
     >
-      <div className="flex flex-col gap-8">
-        {/* Statistics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Total Surat"
-            count="24"
-            icon={<FileText className="w-5 h-5 text-black" />}
-          />
-          <StatCard
-            label="Menunggu persetujuan"
-            count="5"
-            icon={<Clock className="w-5 h-5 text-yellow-600" />}
-          />
-          <StatCard
-            label="Surat Disetujui"
-            count="16"
-            icon={<CheckCircle className="w-5 h-5 text-green-600" />}
-          />
-          <StatCard
-            label="Surat Ditolak"
-            count="3"
-            icon={<XCircle className="w-5 h-5 text-red-600" />}
-          />
+      <div className="flex flex-col gap-6">
+        {/* Top 3 Stat Cards + Pill Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1 */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-full bg-white border border-stone-300 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-sm">
+              <span className="font-serif text-6xl text-stone-900">243</span>
+              <span className="font-serif text-lg text-stone-700 mt-2">
+                Letters made
+              </span>
+            </div>
+            <button className="w-full max-w-50px py-2 px-4 rounded-full border border-stone-800 text-sm font-medium hover:bg-stone-100 transition-colors">
+              Create new letter
+            </button>
+          </div>
+
+          {/* Card 2 */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-full bg-white border border-stone-300 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-sm">
+              <span className="font-serif text-6xl text-stone-900">241</span>
+              <span className="font-serif text-lg text-stone-700 mt-2">
+                Letters Approved
+              </span>
+            </div>
+            <button className="w-full max-w-50px py-2 px-4 rounded-full border border-stone-800 text-sm font-medium hover:bg-stone-100 transition-colors">
+              See history
+            </button>
+          </div>
+
+          {/* Card 3 */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-full bg-white border border-stone-300 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-sm">
+              <span className="font-serif text-6xl text-stone-900">2</span>
+              <span className="font-serif text-lg text-stone-700 mt-2">
+                Letters Pending
+              </span>
+            </div>
+            <button className="w-full max-w-50px py-2 px-4 rounded-full border border-stone-800 text-sm font-medium hover:bg-stone-100 transition-colors">
+              See status
+            </button>
+          </div>
         </div>
 
         {/* Recent Letters Section */}
-        <div className="bg-white p-6 rounded-2xl border border-black/10 shadow-sm flex flex-col gap-4">
-          <h2 className="text-lg font-bold text-black">Surat Terbaru</h2>
-          <RecentLetterList
-            letters={sampleLetters}
-            onViewLetter={(id) => alert(`Melihat surat ID: ${id}`)}
-            onEditLetter={(id) => alert(`Mengedit surat ID: ${id}`)}
-            onCancelLetter={(id) => alert(`Membatalkan surat ID: ${id}`)}
-          />
+        <div className="bg-white border border-stone-300 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+          <h2 className="font-serif text-xl text-stone-800">Recent letters</h2>
+          
+          <div className="flex flex-col divide-y divide-stone-200">
+            {sampleLetters.map((letter) => (
+              <div
+                key={letter.id}
+                className="py-3 flex flex-wrap items-center justify-between gap-4"
+              >
+                <div className="flex flex-col">
+                  <span className="font-serif text-base text-stone-900">
+                    {letter.title}
+                  </span>
+                  <span className="text-sm text-stone-500">
+                    {letter.username}, {letter.statusText}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {/* Status Indicator Dot */}
+                  <span
+                    className={`w-3.5 h-3.5 rounded-full ${letter.statusColor}`}
+                  />
+
+                  {/* Action Button Group */}
+                  <div className="inline-flex rounded-md shadow-sm border border-stone-800 divide-x divide-stone-800 overflow-hidden text-xs">
+                    <button className="px-3 py-1.5 hover:bg-stone-100 font-medium">
+                      See
+                    </button>
+                    {letter.type === "approved" ? (
+                      <button className="px-3 py-1.5 hover:bg-stone-100 font-medium">
+                        Download PDF/DOCX
+                      </button>
+                    ) : (
+                      <>
+                        <button className="px-3 py-1.5 hover:bg-stone-100 font-medium">
+                          Edit
+                        </button>
+                        <button className="px-3 py-1.5 hover:bg-stone-100 font-medium">
+                          Cancel
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Admin Notification Banner */}
+        <div className="bg-white border border-stone-300 rounded-3xl p-4 shadow-sm flex items-start gap-3">
+          <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
+          <p className="text-sm text-stone-800">
+            <span className="font-bold">Admin:</span> Lorem ipsum dolor sit amet,
+            consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+            labore et dolore magna aliqua.
+          </p>
         </div>
       </div>
     </DashboardLayout>
