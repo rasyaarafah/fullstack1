@@ -4,7 +4,7 @@ import React from "react";
 
 export interface LetterFormData {
   institutionName: string; // Data Pengirim
-  letterNumber: string;    // Nomor & Hal surat
+  letterNumber: string;    // Nomor & Hal surat (Optional/Auto-generated)
   date: string;            // Tanggal Surat
   recipient: string;       // Data Penerima
   body: string;            // Isi Surat
@@ -13,17 +13,15 @@ export interface LetterFormData {
 interface LetterFormEditorProps {
   formData: LetterFormData;
   onChange: (updatedData: LetterFormData) => void;
-  onSubmit?: () => void;
-  onGeneratePdf?: () => void;
-  onGenerateDocx?: () => void;
+  onSubmitForApproval: () => void;
+  onSaveDraft?: () => void;
 }
 
 export const LetterFormEditor = ({
   formData,
   onChange,
-  onSubmit,
-  onGeneratePdf,
-  onGenerateDocx,
+  onSubmitForApproval,
+  onSaveDraft,
 }: LetterFormEditorProps) => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -35,35 +33,42 @@ export const LetterFormEditor = ({
     });
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmitForApproval();
+  };
+
   return (
-    <div className="flex flex-col gap-4 max-w-lg w-full">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-lg w-full">
       {/* 1. Data Pengirim */}
       <div className="flex flex-col gap-1.5">
         <label className="font-serif text-sm font-semibold text-stone-900">
-          Data Pengirim
+          Data Pengirim / Unit Kerja
         </label>
         <input
           type="text"
           name="institutionName"
           value={formData.institutionName}
           onChange={handleChange}
-          placeholder="Enter..."
+          placeholder="e.g. Guru Mata Pelajaran Matematika"
           className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
+          required
         />
       </div>
 
       {/* 2. Nomor & Hal surat */}
       <div className="flex flex-col gap-1.5">
         <label className="font-serif text-sm font-semibold text-stone-900">
-          Nomor & Hal surat
+          Usulan Nomor / Hal Surat
         </label>
         <input
           type="text"
           name="letterNumber"
           value={formData.letterNumber}
           onChange={handleChange}
-          placeholder="Enter..."
+          placeholder="e.g. Undangan Rapat Orang Tua"
           className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
+          required
         />
       </div>
 
@@ -73,12 +78,12 @@ export const LetterFormEditor = ({
           Tanggal Surat
         </label>
         <input
-          type="text"
+          type="date"
           name="date"
           value={formData.date}
           onChange={handleChange}
-          placeholder="Enter..."
           className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
+          required
         />
       </div>
 
@@ -92,8 +97,9 @@ export const LetterFormEditor = ({
           name="recipient"
           value={formData.recipient}
           onChange={handleChange}
-          placeholder="Enter..."
+          placeholder="e.g. Orang Tua / Wali Murid Kelas X"
           className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
+          required
         />
       </div>
 
@@ -107,38 +113,32 @@ export const LetterFormEditor = ({
           rows={5}
           value={formData.body}
           onChange={handleChange}
-          placeholder="Enter..."
+          placeholder="Tuliskan rincian kegiatan atau permohonan surat di sini..."
           className="w-full px-4 py-3 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white resize-none"
+          required
         />
       </div>
 
       {/* Button Action Row */}
       <div className="flex flex-col gap-2.5 mt-2">
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={onGeneratePdf}
-            className="py-2.5 px-4 rounded-2xl bg-[#7CFF00] border border-black text-black font-semibold text-sm hover:brightness-95 transition-all shadow-sm"
-          >
-            Buat PDF
-          </button>
-          <button
-            type="button"
-            onClick={onGenerateDocx}
-            className="py-2.5 px-4 rounded-2xl bg-[#00B2FF] border border-black text-white font-semibold text-sm hover:brightness-95 transition-all shadow-sm"
-          >
-            Buat DOCX
-          </button>
-        </div>
-
         <button
-          type="button"
-          onClick={onSubmit}
-          className="w-full py-2.5 px-4 rounded-2xl bg-[#FDF8F5] border border-black text-black font-serif text-sm font-semibold hover:bg-stone-100 transition-colors shadow-sm"
+          type="submit"
+          className="w-full py-3 px-4 rounded-2xl bg-[#0A4D3C] border border-black text-white font-serif text-sm font-semibold hover:bg-[#07382c] transition-colors shadow-sm flex items-center justify-center gap-2"
         >
-          Simpan
+          <span>Kirim untuk Persetujuan Admin</span>
+          <span>→</span>
         </button>
+
+        {onSaveDraft && (
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            className="w-full py-2.5 px-4 rounded-2xl bg-[#FDF8F5] border border-black text-black font-serif text-sm font-semibold hover:bg-stone-100 transition-colors shadow-sm"
+          >
+            Simpan Draf
+          </button>
+        )}
       </div>
-    </div>
+    </form>
   );
 };

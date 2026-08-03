@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 import { LetterFormEditor } from "@/components/organisms/LetterFormEditor";
 
 function NewLetterContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const templateQuery = searchParams.get("template");
 
@@ -16,7 +17,7 @@ function NewLetterContent() {
     letterNumber: "",
     recipient: "",
     subject: "",
-    date: "",
+    date: new Date().toISOString().split("T")[0],
     body: "",
   });
 
@@ -42,7 +43,7 @@ function NewLetterContent() {
     { id: "5", title: "Surat pemberitahuan" },
   ];
 
-  // Auto-select template if passed via URL (e.g. /new-letter?template=Surat%20undangan)
+  // Auto-select template if passed via URL
   useEffect(() => {
     if (templateQuery) {
       const matched = templates.find(
@@ -51,11 +52,16 @@ function NewLetterContent() {
       if (matched) {
         setSelectedTemplate(matched);
       } else {
-        // Fallback if exact match isn't found
         setSelectedTemplate({ id: "custom", title: templateQuery });
       }
     }
   }, [templateQuery]);
+
+  const handleSubmitForApproval = () => {
+    alert("Surat berhasil dikirim ke Admin untuk diperiksa dan ditandatangani!");
+    // Redirect teacher to pending list page
+    router.push("/pending");
+  };
 
   return (
     <DashboardLayout navItems={navItems} currentUser={mockUser}>
@@ -96,21 +102,19 @@ function NewLetterContent() {
                 onClick={() => setSelectedTemplate(null)}
                 className="px-4 py-1.5 rounded-full bg-black text-white text-xs font-medium hover:bg-stone-800 transition-colors"
               >
-                Back
+                ← Change Template
               </button>
             </div>
 
-            {/* Letter Brand Header */}
+            {/* Form Header */}
             <div>
-              <span className="text-xl font-serif font-bold text-stone-900">
-                Let2Kop
+              <span className="text-xs font-semibold uppercase text-stone-500 tracking-wider">
+                Pengajuan Surat Guru
               </span>
+              <h1 className="text-3xl font-serif font-bold text-stone-900 mt-1">
+                {selectedTemplate.title}
+              </h1>
             </div>
-
-            {/* Form Title */}
-            <h1 className="text-3xl font-sans font-semibold text-stone-900 text-center my-2">
-              {selectedTemplate.title}
-            </h1>
 
             {/* Side-by-Side Form + Live Kop Surat Preview */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -120,22 +124,30 @@ function NewLetterContent() {
                 onChange={(updatedData) =>
                   setLetterData((prev) => ({ ...prev, ...updatedData }))
                 }
-                onSubmit={() => alert("Surat berhasil disimpan!")}
-                onGeneratePdf={() => alert("Mengunduh PDF...")}
-                onGenerateDocx={() => alert("Mengunduh DOCX...")}
+                onSubmitForApproval={handleSubmitForApproval}
+                onSaveDraft={() => alert("Draf surat berhasil disimpan!")}
               />
 
               {/* Right Column: Live A4 Kop Surat Preview */}
               <div className="w-full max-w-md mx-auto aspect-[1/1.414] bg-white rounded-xl shadow-xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-xs">
                 <div>
+                  {/* Status Banner inside Preview */}
+                  <div className="mb-3 flex justify-between items-center border-b pb-2 border-dashed border-stone-300 font-sans">
+                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">
+                      • Status: Menunggu Persetujuan
+                    </span>
+                    <span className="text-[9px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                      Pratinjau Draf
+                    </span>
+                  </div>
+
                   {/* Kop Surat Header */}
                   <div className="border-b-2 border-stone-900 pb-3 mb-4 text-center">
                     <h3 className="font-bold text-sm uppercase tracking-wide">
-                      {letterData.institutionName ||
-                        "NAMA INSTANSI / PEMERINTAHAN"}
+                      {letterData.institutionName || "SMA NEGERI 1 TANGERANG SELATAN"}
                     </h3>
                     <p className="text-[10px] text-stone-600 font-sans mt-0.5">
-                      Jl. Education No. 123, Jakarta • Telp: (021) 555-0199
+                      Jl. Pendidikan No. 123, Tangerang Selatan • Telp: (021) 555-0199
                     </p>
                   </div>
 
@@ -144,7 +156,7 @@ function NewLetterContent() {
                     <div>
                       <p>
                         <span className="font-semibold">Nomor:</span>{" "}
-                        {letterData.letterNumber || "123/ADM/2026"}
+                        {letterData.letterNumber || "[Diisi oleh Admin]"}
                       </p>
                       <p>
                         <span className="font-semibold">Hal:</span>{" "}
@@ -152,7 +164,7 @@ function NewLetterContent() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p>{letterData.date || "Jakarta, 20 Juli 2026"}</p>
+                      <p>{letterData.date || "Tangerang Selatan"}</p>
                     </div>
                   </div>
 
@@ -167,19 +179,21 @@ function NewLetterContent() {
                   <div className="leading-relaxed whitespace-pre-wrap text-[11px] text-stone-800 font-sans">
                     {letterData.body || (
                       <span className="italic text-stone-400">
-                        Isi surat akan langsung muncul di sini saat Anda mengetik di
-                        formulir...
+                        Isi surat akan langsung muncul di sini saat Anda mengetik di formulir...
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Signature */}
+                {/* Signature Placeholder */}
                 <div className="flex justify-end pt-4 font-sans text-[10px]">
-                  <div className="text-center w-32">
-                    <p>Hormat kami,</p>
-                    <div className="h-10"></div>
-                    <p className="font-bold underline">Pengirim Surat</p>
+                  <div className="text-center w-36 border border-dashed border-stone-300 p-2 rounded">
+                    <p className="text-stone-500">Mengetahui,</p>
+                    <p className="font-semibold text-stone-700">Kepala Sekolah / Admin</p>
+                    <div className="h-8 flex items-center justify-center italic text-stone-400 text-[9px]">
+                      [Belum Ditandatangani]
+                    </div>
+                    <p className="font-bold underline text-stone-600">NIP. ....................</p>
                   </div>
                 </div>
               </div>

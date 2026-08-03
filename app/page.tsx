@@ -1,12 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 import { RecentLetterList } from "@/components/organisms/RecentLetterList";
+import { SearchBar } from "@/components/molecules/SearchBar";
 
-// Define the shape locally so we don't need any fragile type imports
 type LetterItem = {
   id: string;
   title: string;
@@ -17,7 +16,7 @@ type LetterItem = {
 };
 
 export default function OverviewPage() {
-  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const navItems = [
     { label: "Overview", href: "/", isActive: true },
@@ -60,6 +59,14 @@ export default function OverviewPage() {
     },
   ];
 
+  // Filtering logic based on Search Input
+  const filteredLetters = recentLetters.filter(
+    (letter) =>
+      letter.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      letter.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      letter.authorUsername.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <DashboardLayout navItems={navItems} currentUser={mockUser}>
       <div className="flex flex-col gap-8">
@@ -91,7 +98,7 @@ export default function OverviewPage() {
 
             <Link
               href="/new-letter"
-              className="w-full text-center py-2.5 px-4 rounded-2xl bg-[#0A4D3C] text-white font-medium text-sm hover:bg-[#07382c] transition-colors font-sans"
+              className="w-full text-center py-2.5 px-4 rounded-2xl bg-[#0A4D3C] text-white font-medium text-sm hover:bg-[#07382c] active:scale-95 transition-all font-sans cursor-pointer relative z-20 block"
             >
               Start Creating →
             </Link>
@@ -111,13 +118,12 @@ export default function OverviewPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => router.push("/pending")}
-              className="w-full text-center py-2.5 px-4 rounded-2xl border border-stone-300 text-stone-800 font-medium text-sm hover:bg-stone-50 transition-colors font-sans"
+            <Link
+              href="/pending"
+              className="w-full text-center py-2.5 px-4 rounded-2xl border border-stone-300 text-stone-800 font-medium text-sm hover:bg-stone-50 active:scale-95 transition-all font-sans cursor-pointer relative z-20 block"
             >
               View Pending
-            </button>
+            </Link>
           </div>
 
           {/* Card 3: Total Generated */}
@@ -134,33 +140,35 @@ export default function OverviewPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => router.push("/history")}
-              className="w-full text-center py-2.5 px-4 rounded-2xl border border-stone-300 text-stone-800 font-medium text-sm hover:bg-stone-50 transition-colors font-sans"
+            <Link
+              href="/history"
+              className="w-full text-center py-2.5 px-4 rounded-2xl border border-stone-300 text-stone-800 font-medium text-sm hover:bg-stone-50 active:scale-95 transition-all font-sans cursor-pointer relative z-20 block"
             >
               Open History
-            </button>
+            </Link>
           </div>
         </div>
 
         {/* Recent Letters Section */}
         <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h2 className="text-xl font-serif font-semibold text-stone-900">
               Recent Letters
             </h2>
-            <Link
-              href="/history"
-              className="text-xs text-stone-500 hover:text-stone-900 underline font-sans"
-            >
-              View All
-            </Link>
+            
+            {/* Connected Search Bar */}
+            <div className="w-full md:w-72">
+              <SearchBar
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search letter title..."
+              />
+            </div>
           </div>
 
-          <RecentLetterList letters={recentLetters} />
+          <RecentLetterList letters={filteredLetters} />
         </div>
       </div>
     </DashboardLayout>
   );
-};
+}
