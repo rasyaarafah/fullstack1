@@ -7,7 +7,7 @@ import { MobileHeader } from "@/components/organisms/MobileHeader";
 interface DashboardLayoutProps {
   children: React.ReactNode;
   navItems?: NavItem[];
-  adminTools?: NavItem[]; // Added prop
+  adminTools?: NavItem[];
   currentUser?: {
     name: string;
     username: string;
@@ -20,7 +20,7 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({
   children,
   navItems = [],
-  adminTools = [], // Default to empty array
+  adminTools = [],
   currentUser,
   title,
   description,
@@ -40,12 +40,12 @@ export const DashboardLayout = ({
         />
       )}
 
-      {/* Desktop Sidebar (Only rendered inline on desktop) */}
-      <div className="hidden md:block">
+      {/* Desktop Sidebar Wrapper - FIX: Added h-full w-64 shrink-0 */}
+      <div className="hidden md:block h-full w-64 shrink-0">
         <Sidebar navItems={navItems} adminTools={adminTools} />
       </div>
 
-      {/* Mobile Floating Drawer (Only rendered in DOM when open) */}
+      {/* Mobile Floating Drawer */}
       {isMobileOpen && (
         <div className="fixed inset-y-0 left-0 z-50 md:hidden">
           <Sidebar
@@ -57,7 +57,7 @@ export const DashboardLayout = ({
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto relative z-10">
+      <main className="flex-1 p-4 sm:p-8 overflow-y-auto relative z-10 h-full">
         {(title || description) && (
           <div className="mb-6">
             {title && (
