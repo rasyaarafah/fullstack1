@@ -78,13 +78,13 @@ export default function UserManagementPage() {
 
   return (
     <DashboardLayout navItems={adminNavItems} adminTools={adminToolsItems}>
-      <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="space-y-6 max-w-5xl mx-auto w-full overflow-hidden">
         {/* Top Header */}
         <div className="flex items-center justify-between">
           <h1 className="font-serif text-3xl font-normal text-stone-900">
             Welcome, <span className="italic">Admin</span>
           </h1>
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-stone-300 text-stone-700">
+          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-stone-300 text-stone-700 shrink-0">
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>
@@ -110,13 +110,13 @@ export default function UserManagementPage() {
           >
             Delete Selected
           </button>
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <input
               type="text"
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="py-2 pl-4 pr-9 bg-white border border-stone-800 rounded-lg font-serif text-base text-stone-800 placeholder-stone-400 focus:outline-none"
+              className="w-full sm:w-auto py-2 pl-4 pr-9 bg-white border border-stone-800 rounded-lg font-serif text-base text-stone-800 placeholder-stone-400 focus:outline-none"
             />
             <svg
               className="w-4 h-4 text-stone-700 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -129,112 +129,117 @@ export default function UserManagementPage() {
           </div>
         </div>
 
-        {/* Table Column Headers */}
-        <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-stone-100 border border-stone-300 rounded-full font-serif text-stone-900 text-lg">
-          <div className="col-span-6 pl-12">User</div>
-          <div className="col-span-3 text-center flex items-center justify-center gap-1">
-            Role <span className="text-xs">⌄</span>
-          </div>
-          <div className="col-span-3 text-center flex items-center justify-center gap-1">
-            Last login <span className="text-xs">⌄</span>
-          </div>
-        </div>
-
-        {/* User Rows */}
-        <div className="flex flex-col">
-          {filteredUsers.map((user) => (
-            <div
-              key={user.id}
-              className="grid grid-cols-12 items-center p-3.5 bg-white border border-stone-800 rounded-none -mt-px first:mt-0 font-serif text-base relative"
-            >
-              {/* User Checkbox, Avatar, Name & Email */}
-              <div className="col-span-6 flex items-center gap-4">
-                <input
-                  type="checkbox"
-                  checked={selectedUserIds.includes(user.id)}
-                  onChange={() => toggleSelectUser(user.id)}
-                  className="w-5 h-5 border-stone-800 rounded cursor-pointer accent-stone-800"
-                />
-                <div className="w-10 h-10 rounded-full bg-stone-300 flex items-center justify-center shrink-0 text-stone-600">
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                  </svg>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-serif font-bold text-stone-900 leading-tight">
-                    {user.name}
-                  </span>
-                  <span className="font-serif text-xs text-stone-600">
-                    {user.email}
-                  </span>
-                </div>
+        {/* Horizontal Scroll Area for Table Content */}
+        <div className="w-full overflow-x-auto pb-4">
+          <div className="min-w-150 flex flex-col">
+            {/* Table Column Headers */}
+            <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-stone-100 border border-stone-300 rounded-full font-serif text-stone-900 text-lg mb-2">
+              <div className="col-span-6 pl-12">User</div>
+              <div className="col-span-3 text-center flex items-center justify-center gap-1">
+                Role <span className="text-xs">⌄</span>
               </div>
-
-              {/* Role Display */}
-              <div className="col-span-3 text-center font-serif text-stone-900">
-                {user.role}
+              <div className="col-span-3 text-center flex items-center justify-center gap-1">
+                Last login <span className="text-xs">⌄</span>
               </div>
+            </div>
 
-              {/* Last Login & Action Icons */}
-              <div className="col-span-3 flex items-center justify-between pl-4 relative">
-                <span className="font-serif text-stone-900">{user.lastLogin}</span>
+            {/* User Rows */}
+            <div className="flex flex-col">
+              {filteredUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="grid grid-cols-12 items-center p-3.5 bg-white border border-stone-800 rounded-none -mt-px first:mt-0 font-serif text-base relative"
+                >
+                  {/* User Checkbox, Avatar, Name & Email */}
+                  <div className="col-span-6 flex items-center gap-4 min-w-0 pr-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedUserIds.includes(user.id)}
+                      onChange={() => toggleSelectUser(user.id)}
+                      className="w-5 h-5 border-stone-800 rounded cursor-pointer accent-stone-800 shrink-0"
+                    />
+                    <div className="w-10 h-10 rounded-full bg-stone-300 flex items-center justify-center shrink-0 text-stone-600">
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                      </svg>
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1 truncate">
+                      <span className="font-serif font-bold text-stone-900 leading-tight truncate">
+                        {user.name}
+                      </span>
+                      <span className="font-serif text-xs text-stone-600 truncate">
+                        {user.email}
+                      </span>
+                    </div>
+                  </div>
 
-                <div className="flex items-center gap-2 pr-2 relative">
-                  {/* Edit Role Pencil Icon */}
-                  <button
-                    onClick={() =>
-                      setEditingRoleId(editingRoleId === user.id ? null : user.id)
-                    }
-                    className="p-1 hover:text-stone-600 transition-colors cursor-pointer"
-                    title="Change Role"
-                  >
-                    <svg className="w-5 h-5 text-stone-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
+                  {/* Role Display */}
+                  <div className="col-span-3 text-center font-serif text-stone-900 truncate px-1">
+                    {user.role}
+                  </div>
 
-                  {/* Role Selector Popover */}
-                  {editingRoleId === user.id && (
-                    <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-white border border-stone-800 rounded-lg shadow-lg z-30 overflow-hidden font-serif text-sm flex flex-col w-28">
+                  {/* Last Login & Action Icons */}
+                  <div className="col-span-3 flex items-center justify-between pl-4 relative shrink-0">
+                    <span className="font-serif text-stone-900 whitespace-nowrap">{user.lastLogin}</span>
+
+                    <div className="flex items-center gap-2 pr-2 relative shrink-0">
+                      {/* Edit Role Pencil Icon */}
                       <button
-                        onClick={() => handleRoleChange(user.id, "Teacher")}
-                        className={`px-3 py-1.5 text-left hover:bg-stone-100 transition-colors border-b border-stone-100 ${
-                          user.role === "Teacher" ? "font-bold text-stone-900" : "text-stone-600"
-                        }`}
+                        onClick={() =>
+                          setEditingRoleId(editingRoleId === user.id ? null : user.id)
+                        }
+                        className="p-1 hover:text-stone-600 transition-colors cursor-pointer"
+                        title="Change Role"
                       >
-                        Teacher
+                        <svg className="w-5 h-5 text-stone-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
                       </button>
+
+                      {/* Role Selector Popover */}
+                      {editingRoleId === user.id && (
+                        <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-white border border-stone-800 rounded-lg shadow-lg z-30 overflow-hidden font-serif text-sm flex flex-col w-28">
+                          <button
+                            onClick={() => handleRoleChange(user.id, "Teacher")}
+                            className={`px-3 py-1.5 text-left hover:bg-stone-100 transition-colors border-b border-stone-100 ${
+                              user.role === "Teacher" ? "font-bold text-stone-900" : "text-stone-600"
+                            }`}
+                          >
+                            Teacher
+                          </button>
+                          <button
+                            onClick={() => handleRoleChange(user.id, "Admin")}
+                            className={`px-3 py-1.5 text-left hover:bg-stone-100 transition-colors ${
+                              user.role === "Admin" ? "font-bold text-stone-900" : "text-stone-600"
+                            }`}
+                          >
+                            Admin
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Delete Trash Icon */}
                       <button
-                        onClick={() => handleRoleChange(user.id, "Admin")}
-                        className={`px-3 py-1.5 text-left hover:bg-stone-100 transition-colors ${
-                          user.role === "Admin" ? "font-bold text-stone-900" : "text-stone-600"
-                        }`}
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="p-1 hover:text-red-600 transition-colors cursor-pointer"
+                        title="Delete user"
                       >
-                        Admin
+                        <svg className="w-5 h-5 text-stone-900 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </div>
-                  )}
-
-                  {/* Delete Trash Icon */}
-                  <button
-                    onClick={() => handleDeleteUser(user.id)}
-                    className="p-1 hover:text-red-600 transition-colors cursor-pointer"
-                    title="Delete user"
-                  >
-                    <svg className="w-5 h-5 text-stone-900 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              ))}
 
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-12 text-stone-500 font-serif text-lg">
-              No users found.
+              {filteredUsers.length === 0 && (
+                <div className="text-center py-12 text-stone-500 font-serif text-lg border border-stone-800">
+                  No users found.
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Pagination Bottom */}

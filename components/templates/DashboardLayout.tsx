@@ -29,8 +29,8 @@ export const DashboardLayout = ({
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#FDF8F5] overflow-hidden relative">
-      {/* Mobile Top Navigation */}
-      <MobileHeader />
+      {/* Mobile Top Navigation - Updated to pass navItems */}
+      <MobileHeader navItems={navItems} />
 
       {/* Mobile Drawer Overlay */}
       {isMobileOpen && (
@@ -40,7 +40,7 @@ export const DashboardLayout = ({
         />
       )}
 
-      {/* Desktop Sidebar Wrapper - FIX: Added h-full w-64 shrink-0 */}
+      {/* Desktop Sidebar Wrapper */}
       <div className="hidden md:block h-full w-64 shrink-0">
         <Sidebar navItems={navItems} adminTools={adminTools} />
       </div>

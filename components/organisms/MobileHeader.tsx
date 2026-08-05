@@ -3,34 +3,62 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { NavItem } from "./Sidebar";
 
-export function MobileHeader() {
+interface MobileHeaderProps {
+  navItems?: NavItem[];
+}
+
+export function MobileHeader({ navItems = [] }: MobileHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const menuItems = [
+  const isAdminRoute = pathname?.startsWith("/admin");
+  const homeHref = isAdminRoute ? "/admin" : "/";
+
+  // Fallback items if navItems isn't passed
+  const defaultTeacherItems: NavItem[] = [
     { label: "Overview", href: "/" },
     { label: "New Letter", href: "/new-letter" },
     { label: "History", href: "/history" },
     { label: "Pending", href: "/pending" },
   ];
 
+  const defaultAdminItems: NavItem[] = [
+    { label: "Overview", href: "/admin" },
+    { label: "Pending Approval", href: "/admin/pending" },
+    { label: "Archive", href: "/admin/history" },
+    { label: "User Management", href: "/admin/users" },
+    { label: "New letter", href: "/admin/new-letter" },
+  ];
+
+  const menuItems =
+    navItems.length > 0
+      ? navItems
+      : isAdminRoute
+      ? defaultAdminItems
+      : defaultTeacherItems;
+
   return (
     <div className="w-full bg-[#FDF8F5] border-b border-stone-200 px-4 py-3 flex flex-col gap-1 md:hidden sticky top-0 z-30 shrink-0">
       {/* Top Header Row */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1
-          onClick={() => router.push("/")}
-          className="text-xl font-serif font-bold text-stone-900 cursor-pointer"
+          onClick={() => router.push(homeHref)}
+          className="text-lg font-serif font-bold text-stone-900 cursor-pointer shrink-0"
         >
           Let2Kop
         </h1>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 shrink-0">
           {/* Profile Avatar */}
-          <div className="w-8 h-8 rounded-full bg-stone-300 flex items-center justify-center border border-stone-400">
-            <svg className="w-5 h-5 text-stone-600" fill="currentColor" viewBox="0 0 24 24">
+          <div className="w-7 h-7 rounded-full bg-stone-300 flex items-center justify-center border border-stone-400 shrink-0">
+            <svg
+              className="w-4 h-4 text-stone-600"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>
           </div>
@@ -39,7 +67,7 @@ export function MobileHeader() {
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="text-xs font-serif font-semibold text-stone-900 hover:text-red-600 transition-colors"
+            className="text-xs font-serif font-semibold text-stone-900 hover:text-red-600 transition-colors whitespace-nowrap"
           >
             Log out
           </button>
@@ -54,13 +82,17 @@ export function MobileHeader() {
           className="text-sm font-serif text-stone-800 flex items-center gap-1.5 py-1 focus:outline-none"
         >
           <span>Main menu</span>
-          <span className={`transition-transform duration-200 text-xs ${isMenuOpen ? "rotate-180" : ""}`}>
+          <span
+            className={`transition-transform duration-200 text-xs ${
+              isMenuOpen ? "rotate-180" : ""
+            }`}
+          >
             ▾
           </span>
         </button>
 
         {isMenuOpen && (
-          <div className="absolute top-full left-0 mt-1 w-44 bg-white border border-stone-200 rounded-xl shadow-md py-2 z-50">
+          <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-stone-200 rounded-xl shadow-md py-2 z-50">
             {menuItems.map((item) => {
               const isActive = pathname === item.href;
               return (
