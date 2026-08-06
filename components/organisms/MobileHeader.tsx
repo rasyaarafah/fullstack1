@@ -7,9 +7,10 @@ import { NavItem } from "./Sidebar";
 
 interface MobileHeaderProps {
   navItems?: NavItem[];
+  adminTools?: NavItem[];
 }
 
-export function MobileHeader({ navItems = [] }: MobileHeaderProps) {
+export function MobileHeader({ navItems = [], adminTools = [] }: MobileHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -33,12 +34,25 @@ export function MobileHeader({ navItems = [] }: MobileHeaderProps) {
     { label: "New letter", href: "/admin/new-letter" },
   ];
 
+  const defaultAdminToolsItems: NavItem[] = [
+    { label: "Edit template", href: "/admin/templates/edit" },
+    { label: "Add template", href: "/admin/templates/add" },
+    { label: "Broadcast notice", href: "/admin/notice" },
+  ];
+
   const menuItems =
     navItems.length > 0
       ? navItems
       : isAdminRoute
       ? defaultAdminItems
       : defaultTeacherItems;
+
+  const toolsItems =
+    adminTools.length > 0
+      ? adminTools
+      : isAdminRoute
+      ? defaultAdminToolsItems
+      : [];
 
   return (
     <div className="w-full bg-[#FDF8F5] border-b border-stone-200 px-4 py-3 flex flex-col gap-1 md:hidden sticky top-0 z-30 shrink-0">
@@ -92,7 +106,8 @@ export function MobileHeader({ navItems = [] }: MobileHeaderProps) {
         </button>
 
         {isMenuOpen && (
-          <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-stone-200 rounded-xl shadow-md py-2 z-50">
+          <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-stone-200 rounded-xl shadow-lg py-2 z-50">
+            {/* Main Nav Section */}
             {menuItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -110,6 +125,33 @@ export function MobileHeader({ navItems = [] }: MobileHeaderProps) {
                 </Link>
               );
             })}
+
+            {/* Admin Tools Section (Divider + Subheader) */}
+            {toolsItems.length > 0 && (
+              <>
+                <div className="my-1.5 border-t border-stone-200" />
+                <div className="px-4 py-1 text-[11px] font-serif uppercase tracking-wider text-stone-400 font-bold">
+                  Admin Tools
+                </div>
+                {toolsItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`block px-4 py-2 text-sm font-serif transition-colors ${
+                        isActive
+                          ? "bg-stone-100 font-bold text-stone-900"
+                          : "text-stone-700 hover:bg-stone-50"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </>
+            )}
           </div>
         )}
       </div>

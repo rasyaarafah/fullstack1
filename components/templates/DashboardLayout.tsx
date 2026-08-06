@@ -29,8 +29,8 @@ export const DashboardLayout = ({
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#FDF8F5] overflow-hidden relative">
-      {/* Mobile Top Navigation - Updated to pass navItems */}
-      <MobileHeader navItems={navItems} />
+      {/* Mobile Top Navigation - Passes both navItems & adminTools */}
+      <MobileHeader navItems={navItems} adminTools={adminTools} />
 
       {/* Mobile Drawer Overlay */}
       {isMobileOpen && (
