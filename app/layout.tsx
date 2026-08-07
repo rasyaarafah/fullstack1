@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Aplikasi Surat SMK Letris Indonesia 2",
   description: "Management dan Template Surat",
   icons: {
-    icon: "/logo.png", // <--- Replace this with your image in the /public folder
+    icon: "/logo.png",
   },
 };
 
@@ -28,9 +28,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-screen flex flex-col bg-[#FDF8F5]">{children}</body>
     </html>
   );
 }

@@ -47,8 +47,17 @@ export const Sidebar = ({
     { label: "Surat pemberitahuan", template: "Surat pemberitahuan" },
   ];
 
+  // Helper to determine active state safely
+  const checkIsActive = (item: NavItem) => {
+    if (typeof item.isActive === "boolean") return item.isActive;
+    if (!pathname) return false;
+    return item.href === "/admin" || item.href === "/"
+      ? pathname === item.href
+      : pathname.startsWith(item.href);
+  };
+
   return (
-    <aside className="w-64 bg-white border-r border-stone-200 h-full flex flex-col justify-between p-6 shrink-0 font-sans">
+    <aside className="w-64 bg-white border-r border-stone-200 min-h-screen flex flex-col justify-between p-6 shrink-0 font-sans">
       <div className="flex flex-col gap-6">
         {/* Brand Logo */}
         <div className="text-2xl font-serif font-bold text-stone-900 tracking-tight">
@@ -61,20 +70,23 @@ export const Sidebar = ({
             Main menu
           </span>
           <nav className="flex flex-col gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onItemClick}
-                className={`px-3 py-1.5 rounded-md text-base transition-colors ${
-                  item.isActive
-                    ? "bg-[#0A4D3C] text-white font-medium"
-                    : "text-stone-400 hover:text-stone-900"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const active = checkIsActive(item);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onItemClick}
+                  className={`px-3 py-1.5 rounded-md text-base transition-colors ${
+                    active
+                      ? "bg-[#0A4D3C] text-white font-medium"
+                      : "text-stone-400 hover:text-stone-900"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
@@ -85,7 +97,9 @@ export const Sidebar = ({
           </span>
           <div className="flex flex-col gap-1 pl-3">
             {quickCreateItems.map((item) => {
-              const href = `${basePath}?template=${encodeURIComponent(item.template)}`;
+              const href = `${basePath}?template=${encodeURIComponent(
+                item.template
+              )}`;
               return (
                 <Link
                   key={item.label}
@@ -107,16 +121,23 @@ export const Sidebar = ({
               Admin tools
             </span>
             <nav className="flex flex-col gap-1">
-              {adminTools.map((tool) => (
-                <Link
-                  key={tool.href}
-                  href={tool.href}
-                  onClick={onItemClick}
-                  className="px-3 py-1 text-base text-stone-400 hover:text-stone-900 transition-colors"
-                >
-                  {tool.label}
-                </Link>
-              ))}
+              {adminTools.map((tool) => {
+                const active = checkIsActive(tool);
+                return (
+                  <Link
+                    key={tool.href}
+                    href={tool.href}
+                    onClick={onItemClick}
+                    className={`px-3 py-1.5 rounded-md text-base transition-colors ${
+                      active
+                        ? "bg-[#0A4D3C] text-white font-medium"
+                        : "text-stone-400 hover:text-stone-900"
+                    }`}
+                  >
+                    {tool.label}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
         )}

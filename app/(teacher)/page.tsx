@@ -18,6 +18,11 @@ type LetterItem = {
 export default function OverviewPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Broadcast Notice state (Can be replaced with dynamic fetch/context later)
+  const [adminNotice] = useState(
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+  );
+
   const navItems = [
     { label: "Overview", href: "/", isActive: true },
     { label: "New letter", href: "/new-letter", isActive: false },
@@ -155,7 +160,7 @@ export default function OverviewPage() {
             <h2 className="text-xl font-serif font-semibold text-stone-900">
               Recent Letters
             </h2>
-            
+
             {/* Connected Search Bar */}
             <div className="w-full md:w-72">
               <SearchBar
@@ -168,6 +173,19 @@ export default function OverviewPage() {
 
           <RecentLetterList letters={filteredLetters} />
         </div>
+
+        {/* Admin Broadcast Notice Box (Matching Figma) */}
+        {adminNotice && (
+          <div className="bg-white border border-stone-300 rounded-3xl p-5 shadow-sm flex items-start sm:items-center gap-4">
+            <div className="w-8 h-8 rounded-full bg-red-500 border-2 border-white flex items-center justify-center text-white font-bold text-base shrink-0 shadow-sm">
+              !
+            </div>
+            <div className="text-sm font-sans text-stone-800 leading-relaxed">
+              <span className="font-bold text-stone-900 mr-1">Admin:</span>
+              {adminNotice}
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

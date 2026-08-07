@@ -15,8 +15,13 @@ type LetterItem = {
   authorUsername: string;
 };
 
-export default function OverviewPage() {
+export default function Page() {
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Broadcast Notice state
+  const [adminNotice] = useState(
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+  );
 
   const navItems = [
     { label: "Overview", href: "/", isActive: true },
@@ -59,7 +64,6 @@ export default function OverviewPage() {
     },
   ];
 
-  // Filtering logic based on Search Input
   const filteredLetters = recentLetters.filter(
     (letter) =>
       letter.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -69,7 +73,7 @@ export default function OverviewPage() {
 
   return (
     <DashboardLayout navItems={navItems} currentUser={mockUser}>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-8 pb-12">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-serif text-stone-900">
@@ -83,7 +87,7 @@ export default function OverviewPage() {
         {/* Top Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1: Create Letter */}
-          <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-4">
+          <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-4">
             <div>
               <span className="text-xs font-semibold uppercase text-stone-400 font-sans tracking-wider">
                 QUICK ACTION
@@ -105,7 +109,7 @@ export default function OverviewPage() {
           </div>
 
           {/* Card 2: Pending Approvals */}
-          <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-4">
+          <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-4">
             <div>
               <span className="text-xs font-semibold uppercase text-stone-400 font-sans tracking-wider">
                 PENDING APPROVALS
@@ -127,7 +131,7 @@ export default function OverviewPage() {
           </div>
 
           {/* Card 3: Total Generated */}
-          <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-4">
+          <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-4">
             <div>
               <span className="text-xs font-semibold uppercase text-stone-400 font-sans tracking-wider">
                 TOTAL GENERATED
@@ -150,12 +154,12 @@ export default function OverviewPage() {
         </div>
 
         {/* Recent Letters Section */}
-        <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+        <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-xs flex flex-col gap-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h2 className="text-xl font-serif font-semibold text-stone-900">
               Recent Letters
             </h2>
-            
+
             {/* Connected Search Bar */}
             <div className="w-full md:w-72">
               <SearchBar
@@ -168,6 +172,19 @@ export default function OverviewPage() {
 
           <RecentLetterList letters={filteredLetters} />
         </div>
+
+        {/* Admin Broadcast Notice Box */}
+        {adminNotice && (
+          <div className="bg-white border border-stone-300 rounded-3xl p-5 shadow-xs flex items-center gap-4">
+            <div className="w-8 h-8 rounded-full bg-red-500 border-2 border-white flex items-center justify-center text-white font-bold text-base shrink-0 shadow-xs">
+              !
+            </div>
+            <div className="text-sm font-sans text-stone-800 leading-relaxed">
+              <span className="font-bold text-stone-900 mr-1">Admin:</span>
+              {adminNotice}
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
