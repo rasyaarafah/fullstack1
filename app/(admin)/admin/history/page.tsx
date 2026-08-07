@@ -21,7 +21,7 @@ export default function ArchivePage() {
 
   const adminToolsItems = [
     { label: "Edit template", href: "/admin/templates/edit" },
-    { label: "Add template", href: "/admin/templates/add" },
+    { label: "Add template", href: "/admin/templates/new" },
     { label: "Broadcast notice", href: "/admin/notice" },
   ];
 

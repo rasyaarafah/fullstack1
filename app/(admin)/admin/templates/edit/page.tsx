@@ -23,12 +23,12 @@ export default function TemplateGalleryPage() {
 
   const adminToolsItems = [
     { label: "Edit template", href: "/admin/templates/edit", isActive: true },
-    { label: "Add template", href: "/admin/templates/add" },
+    { label: "Add template", href: "/admin/templates/new" }, // Fixed route here
     { label: "Broadcast notice", href: "/admin/notice" },
   ];
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState("Semua"); // Fixed initial state to match array
 
   const templates: TemplateItem[] = [
     {
@@ -82,7 +82,7 @@ export default function TemplateGalleryPage() {
               Edit <span className="italic">Templates</span>
             </h1>
             <p className="font-serif text-stone-600 text-sm mt-1">
-             Pilih template untuk mulai modifikasi
+              Pilih template untuk mulai modifikasi
             </p>
           </div>
         </div>

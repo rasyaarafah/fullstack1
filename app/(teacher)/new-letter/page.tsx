@@ -59,7 +59,6 @@ function NewLetterContent() {
 
   const handleSubmitForApproval = () => {
     alert("Surat berhasil dikirim ke Admin untuk diperiksa dan ditandatangani!");
-    // Redirect teacher to pending list page
     router.push("/pending");
   };
 
@@ -129,31 +128,60 @@ function NewLetterContent() {
               />
 
               {/* Right Column: Live A4 Kop Surat Preview */}
-              <div className="w-full max-w-md mx-auto aspect-[1/1.414] bg-white rounded-xl shadow-xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-xs">
+              <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow-xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[11px] leading-relaxed">
                 <div>
                   {/* Status Banner inside Preview */}
-                  <div className="mb-3 flex justify-between items-center border-b pb-2 border-dashed border-stone-300 font-sans">
-                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">
-                      • Status: Menunggu Persetujuan
+                  <div className="mb-4 flex justify-between items-center border-b pb-2 border-dashed border-stone-300 font-sans">
+                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wide flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      STATUS: MENUNGGU PERSETUJUAN
                     </span>
                     <span className="text-[9px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
                       Pratinjau Draf
                     </span>
                   </div>
 
-                  {/* Kop Surat Header */}
-                  <div className="border-b-2 border-stone-900 pb-3 mb-4 text-center">
-                    <h3 className="font-bold text-sm uppercase tracking-wide">
-                      {letterData.institutionName || "SMA NEGERI 1 TANGERANG SELATAN"}
-                    </h3>
-                    <p className="text-[10px] text-stone-600 font-sans mt-0.5">
-                      Jl. Pendidikan No. 123, Tangerang Selatan • Telp: (021) 555-0199
-                    </p>
+                  {/* SMK Letris Indonesia 2 Kop Surat Header */}
+                  <div className="relative border-b-4 border-double border-stone-900 pb-2 mb-4 text-center">
+                    {/* Left Logo Slot */}
+                    <div className="absolute left-0 top-0 w-10 h-10 border border-dashed border-blue-400 rounded-full flex items-center justify-center text-[7px] text-blue-600 font-sans font-bold text-center leading-tight">
+                      LOGO LETRIS 2
+                    </div>
+
+                    {/* Right Logo Slot */}
+                    <div className="absolute right-0 top-0 w-10 h-10 border border-dashed border-emerald-500 rounded flex items-center justify-center text-[7px] text-emerald-700 font-sans font-bold text-center leading-tight">
+                      LOGO BANTEN
+                    </div>
+
+                    {/* School Header Text */}
+                    <div className="px-10">
+                      <h4 className="font-bold text-[10px] tracking-tight uppercase leading-tight">
+                        YAYASAN LEO SUTRISNO
+                      </h4>
+                      <h3 className="font-bold text-[12px] tracking-wide uppercase leading-tight">
+                        SMK LETRIS INDONESIA 2
+                      </h3>
+                      <p className="text-[8px] font-sans text-stone-700 mt-0.5 leading-tight">
+                        NPSN : 69894185 &nbsp;&nbsp; NSS : 402286303080
+                      </p>
+                      <p className="text-[8px] font-sans font-semibold text-stone-800 leading-tight">
+                        ( AKREDITASI " A " )
+                      </p>
+                      <p className="text-[7px] font-sans text-stone-600 leading-tight mt-0.5">
+                        Kompetensi Keahlian : DKV, TJKT, PPLG, MPLB, PM, Akuntansi
+                      </p>
+                      <p className="text-[7px] font-sans text-stone-600 leading-tight">
+                        Jl. Raya Siliwangi No. 55 Pamulang, Kota Tangerang Selatan
+                      </p>
+                      <span className="text-[7px] text-blue-700 underline font-sans">
+                        www.smkletrisdua.sch.id
+                      </span>
+                    </div>
                   </div>
 
                   {/* Letter Meta */}
-                  <div className="flex justify-between text-[11px] mb-4 font-sans">
-                    <div>
+                  <div className="flex justify-between text-[10px] mb-4 font-sans">
+                    <div className="space-y-0.5">
                       <p>
                         <span className="font-semibold">Nomor:</span>{" "}
                         {letterData.letterNumber || "[Diisi oleh Admin]"}
@@ -164,19 +192,26 @@ function NewLetterContent() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p>{letterData.date || "Tangerang Selatan"}</p>
+                      <p>Tangerang Selatan, {letterData.date || "2026-08-07"}</p>
                     </div>
                   </div>
 
                   {/* Recipient */}
-                  <div className="mb-4 font-sans text-[11px]">
+                  <div className="mb-4 font-sans text-[10px] space-y-0.5">
                     <p className="font-semibold">Kepada Yth.</p>
                     <p>{letterData.recipient || "Bapak/Ibu Penerima"}</p>
                     <p className="text-stone-500">Di Tempat</p>
                   </div>
 
+                  {/* Sender Subhead if typed */}
+                  {letterData.institutionName && (
+                    <p className="text-[10px] font-semibold text-stone-700 mb-2 font-sans">
+                      Pengirim: {letterData.institutionName}
+                    </p>
+                  )}
+
                   {/* Body Preview */}
-                  <div className="leading-relaxed whitespace-pre-wrap text-[11px] text-stone-800 font-sans">
+                  <div className="leading-relaxed whitespace-pre-wrap text-[10px] text-stone-800 font-sans min-h-25">
                     {letterData.body || (
                       <span className="italic text-stone-400">
                         Isi surat akan langsung muncul di sini saat Anda mengetik di formulir...
@@ -186,14 +221,18 @@ function NewLetterContent() {
                 </div>
 
                 {/* Signature Placeholder */}
-                <div className="flex justify-end pt-4 font-sans text-[10px]">
-                  <div className="text-center w-36 border border-dashed border-stone-300 p-2 rounded">
+                <div className="flex justify-end pt-6 font-sans text-[9px]">
+                  <div className="text-center w-40 border border-dashed border-stone-300 p-2 rounded bg-stone-50/50">
                     <p className="text-stone-500">Mengetahui,</p>
-                    <p className="font-semibold text-stone-700">Kepala Sekolah / Admin</p>
-                    <div className="h-8 flex items-center justify-center italic text-stone-400 text-[9px]">
+                    <p className="font-semibold text-stone-800">
+                      Kepala Sekolah / Admin
+                    </p>
+                    <div className="h-10 flex items-center justify-center italic text-stone-400 text-[8px]">
                       [Belum Ditandatangani]
                     </div>
-                    <p className="font-bold underline text-stone-600">NIP. ....................</p>
+                    <p className="font-bold underline text-stone-700">
+                      NIP. ....................
+                    </p>
                   </div>
                 </div>
               </div>

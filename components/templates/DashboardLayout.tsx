@@ -28,8 +28,8 @@ export const DashboardLayout = ({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    // Changed `h-screen overflow-hidden` to `min-h-screen`
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#FDF8F5] relative">
+    // FIXED: Changed `min-h-screen` to `h-screen overflow-hidden`
+    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#FDF8F5] relative">
       {/* Mobile Top Navigation */}
       <MobileHeader navItems={navItems} adminTools={adminTools} />
 
@@ -42,7 +42,8 @@ export const DashboardLayout = ({
       )}
 
       {/* Desktop Sidebar Wrapper */}
-      <div className="hidden md:block min-h-screen w-64 shrink-0 border-r border-stone-200 bg-white">
+      {/* FIXED: Changed `min-h-screen` to `h-full` */}
+      <div className="hidden md:block h-full w-64 shrink-0 border-r border-stone-200 bg-white">
         <Sidebar navItems={navItems} adminTools={adminTools} />
       </div>
 
@@ -58,7 +59,8 @@ export const DashboardLayout = ({
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 sm:p-8 relative z-10">
+      {/* FIXED: Added `h-full overflow-y-auto` */}
+      <main className="flex-1 h-full overflow-y-auto p-4 sm:p-8 relative z-10">
         {(title || description) && (
           <div className="mb-6">
             {title && (

@@ -27,7 +27,6 @@ export const Sidebar = ({
   const router = useRouter();
   const pathname = usePathname();
 
-  // Check if we are currently inside the /admin section
   const isAdminRoute = pathname?.startsWith("/admin");
   const basePath = isAdminRoute ? "/admin/new-letter" : "/new-letter";
 
@@ -47,7 +46,6 @@ export const Sidebar = ({
     { label: "Surat pemberitahuan", template: "Surat pemberitahuan" },
   ];
 
-  // Helper to determine active state safely
   const checkIsActive = (item: NavItem) => {
     if (typeof item.isActive === "boolean") return item.isActive;
     if (!pathname) return false;
@@ -57,7 +55,8 @@ export const Sidebar = ({
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-stone-200 min-h-screen flex flex-col justify-between p-6 shrink-0 font-sans">
+    // FIXED: Changed `min-h-screen` to `h-full overflow-y-auto`
+    <aside className="w-64 bg-white border-r border-stone-200 h-full overflow-y-auto flex flex-col justify-between p-6 shrink-0 font-sans">
       <div className="flex flex-col gap-6">
         {/* Brand Logo */}
         <div className="text-2xl font-serif font-bold text-stone-900 tracking-tight">

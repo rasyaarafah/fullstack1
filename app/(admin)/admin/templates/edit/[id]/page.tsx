@@ -19,7 +19,7 @@ export default function TemplateEditorPage() {
 
   const adminToolsItems = [
     { label: "Edit template", href: "/admin/templates/edit", isActive: true },
-    { label: "Add template", href: "/admin/templates/add" },
+    { label: "Add template", href: "/admin/templates/new" },
     { label: "Broadcast notice", href: "/admin/notice" },
   ];
 

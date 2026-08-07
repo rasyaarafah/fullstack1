@@ -105,7 +105,7 @@ export default function PendingApprovalsPage() {
 
   const adminToolsItems = [
     { label: "Edit template", href: "/admin/templates/edit" },
-    { label: "Add template", href: "/admin/templates/add" },
+    { label: "Add template", href: "/admin/templates/new" }, // FIXED ROUTE HERE
     { label: "Broadcast notice", href: "/admin/notice" },
   ];
 
@@ -123,7 +123,6 @@ export default function PendingApprovalsPage() {
 
   const handleActionSelect = (action: string, id: number) => {
     console.log(`Action triggered: ${action} for letter ID: ${id}`);
-    // Handler logic for Approve/Revise/Reject/View can be hooked up here
   };
 
   return (
