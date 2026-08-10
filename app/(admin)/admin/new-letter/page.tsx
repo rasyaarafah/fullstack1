@@ -124,7 +124,7 @@ function AdminNewLetterContent() {
     window.print();
   };
 
-  // Client-side DOCX Export Generator
+  // Client-side DOCX Export Generator (TABLE-BASED FOR WORD COMPATIBILITY)
   const handleExportDocx = () => {
     const formattedBody = letterData.body ? letterData.body.replace(/\n/g, "<br/>") : "";
     const htmlString = `
@@ -133,25 +133,45 @@ function AdminNewLetterContent() {
         <meta charset='utf-8'>
         <title>${selectedTemplate?.title || "Surat"}</title>
         <style>
-          body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; }
-          .header { text-align: center; font-weight: bold; text-transform: uppercase; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px; }
-          .meta { margin-bottom: 20px; }
-          .recipient { margin-bottom: 20px; }
-          .body { text-align: justify; margin-bottom: 30px; }
-          .signature { float: right; width: 200px; text-align: center; }
+          @page { size: A4; margin: 2cm; }
+          body { font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.4; color: #000; }
+          p { margin: 0 0 6pt 0; }
+          .kop-table { width: 100%; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 20px; }
+          .logo-cell { width: 70px; text-align: center; vertical-align: middle; }
+          .logo-box { border: 1px dashed #666; font-size: 7pt; font-family: Arial, sans-serif; padding: 6px 2px; text-align: center; }
+          .header-text { text-align: center; font-family: Arial, sans-serif; }
+          .meta-table { width: 100%; margin-bottom: 20px; font-family: Arial, sans-serif; font-size: 10pt; }
+          .body-text { font-family: Arial, sans-serif; font-size: 10pt; text-align: justify; line-height: 1.5; margin-bottom: 40px; }
+          .sig-table { width: 100%; font-family: Arial, sans-serif; font-size: 10pt; }
         </style>
       </head>
       <body>
-        <div className="header">
-          <p style="font-size: 10pt; margin: 0;">YAYASAN LEO SUTRISNO</p>
-          <p style="font-size: 14pt; margin: 0;"><b>SMK LETRIS INDONESIA 2</b></p>
-          <p style="font-size: 8pt; margin: 0;">NPSN: 69894185 | AKREDITASI "A"</p>
-          <p style="font-size: 8pt; margin: 0;">Jl. Raya Siliwangi No. 55 Pamulang, Kota Tangerang Selatan</p>
-        </div>
 
-        <table width="100%" style="margin-bottom: 20px;">
+        <!-- Kop Surat Table -->
+        <table class="kop-table">
           <tr>
-            <td>
+            <td class="logo-cell">
+              <div class="logo-box">LOGO<br/>LETRIS 2</div>
+            </td>
+            <td class="header-text">
+              <div style="font-size: 9pt; font-weight: bold;">YAYASAN LEO SUTRISNO</div>
+              <div style="font-size: 13pt; font-weight: bold;">SMK LETRIS INDONESIA 2</div>
+              <div style="font-size: 7.5pt;">NPSN : 69894185 &nbsp;&nbsp; NSS : 402286303080</div>
+              <div style="font-size: 7.5pt; font-weight: bold;">( AKREDITASI " A " )</div>
+              <div style="font-size: 6.5pt;">Kompetensi Keahlian : DKV, TJKT, PPLG, MPLB, PM, Akuntansi</div>
+              <div style="font-size: 6.5pt;">Jl. Raya Siliwangi No. 55 Pamulang, Kota Tangerang Selatan</div>
+              <div style="font-size: 6.5pt; color: #0000FF; text-decoration: underline;">www.smkletrisdua.sch.id</div>
+            </td>
+            <td class="logo-cell">
+              <div class="logo-box">LOGO<br/>BANTEN</div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Meta Info -->
+        <table class="meta-table">
+          <tr>
+            <td valign="top">
               <b>Nomor:</b> ${letterData.letterNumber || "-"}<br/>
               <b>Hal:</b> ${selectedTemplate?.title || "Surat"}
             </td>
@@ -161,25 +181,33 @@ function AdminNewLetterContent() {
           </tr>
         </table>
 
-        <div className="recipient">
+        <!-- Recipient -->
+        <div style="font-family: Arial, sans-serif; font-size: 10pt; margin-bottom: 20px;">
           <b>Kepada Yth.</b><br/>
           ${letterData.recipient || "Penerima"}<br/>
           Di Tempat
         </div>
 
-        ${letterData.institutionName ? `<p><b>Pengirim:</b> ${letterData.institutionName}</p>` : ""}
+        ${letterData.institutionName ? `<p style="font-family: Arial, sans-serif; font-size: 10pt;"><b>Pengirim:</b> ${letterData.institutionName}</p>` : ""}
 
-        <div className="body">
+        <!-- Body -->
+        <div class="body-text">
           ${formattedBody}
         </div>
 
-        <br/><br/>
-        <div className="signature">
-          <p>Mengetahui,</p>
-          <p><b>Kepala Sekolah / Admin</b></p>
-          <br/><br/><br/>
-          <p><u>NIP. ....................</u></p>
-        </div>
+        <!-- Signature aligned right via table -->
+        <table class="sig-table">
+          <tr>
+            <td width="60%"></td>
+            <td width="40%" align="center">
+              <p>Mengetahui,</p>
+              <p><b>Kepala Sekolah / Admin</b></p>
+              <br/><br/><br/>
+              <p><u><b>NIP. ....................</b></u></p>
+            </td>
+          </tr>
+        </table>
+
       </body>
       </html>
     `;
@@ -206,6 +234,36 @@ function AdminNewLetterContent() {
       adminTools={adminTools}
       currentUser={mockUser}
     >
+      {/* Scoped Print CSS Rules */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+          
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 12mm 15mm !important;
+          }
+
+          .printable-paper {
+            height: auto !important;
+            max-height: none !important;
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+            overflow: visible !important;
+          }
+
+          .printable-paper * {
+            overflow: visible !important;
+          }
+        }
+      `}</style>
+
       <div className="flex flex-col gap-6 print:block print:p-0">
         {!selectedTemplate ? (
           /* Template Selection View */
@@ -257,7 +315,7 @@ function AdminNewLetterContent() {
               </h1>
             </div>
 
-            {/* Side-by-Side Form + Fixed Paper Preview */}
+            {/* Side-by-Side Form + Paper Preview */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start print:block">
               {/* Left Column: Form Editor (HIDDEN ON PRINT) */}
               <div className="print:hidden">
@@ -275,7 +333,7 @@ function AdminNewLetterContent() {
                 />
               </div>
 
-              {/* Right Column: Sticky Fixed Height A4 Preview Container */}
+              {/* Right Column: Sticky Paper Preview */}
               <div className="sticky top-6 w-full max-w-md mx-auto print:static print:max-w-none print:w-full print:m-0">
                 
                 {/* Export Action Bar Above Paper Preview */}
@@ -299,9 +357,9 @@ function AdminNewLetterContent() {
                   </div>
                 </div>
 
-                <div className="w-full h-160 bg-white rounded-xl shadow-2xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[11px] leading-relaxed overflow-hidden print:h-auto print:shadow-none print:border-none print:p-0 print:overflow-visible print:text-xs">
+                <div className="printable-paper w-full min-h-[580px] bg-white rounded-xl shadow-2xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[10.5px] leading-relaxed">
                   {/* Content Container */}
-                  <div className="flex flex-col flex-1 min-h-0 print:min-h-0 print:block">
+                  <div className="flex flex-col flex-1 min-h-0 print:block">
                     {/* Status Banner */}
                     <div className="mb-3 flex justify-between items-center border-b pb-2 border-dashed border-stone-300 font-sans shrink-0 print:hidden">
                       <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide flex items-center gap-1">
@@ -378,8 +436,8 @@ function AdminNewLetterContent() {
                       </p>
                     )}
 
-                    {/* Body Scrollable Area */}
-                    <div className="flex-1 overflow-y-auto pr-1 my-1 scrollbar-thin scrollbar-thumb-stone-300 min-h-0 print:overflow-visible print:h-auto print:block">
+                    {/* Body Area */}
+                    <div className="my-1 print:overflow-visible">
                       <p className="leading-relaxed whitespace-pre-wrap text-[10px] text-stone-800 font-sans print:text-xs">
                         {letterData.body || (
                           <span className="italic text-stone-400">
