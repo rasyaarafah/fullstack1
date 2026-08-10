@@ -28,28 +28,28 @@ export const DashboardLayout = ({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#FDF8F5] relative">
-      {/* Mobile Top Navigation - Needs z-30 and relative position to sit ON TOP of <main> */}
-      <div className="md:hidden z-30 relative shrink-0">
+    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#FDF8F5] relative print:h-auto print:w-auto print:overflow-visible print:bg-white print:block">
+      {/* Mobile Top Navigation - Hidden on print */}
+      <div className="md:hidden z-30 relative shrink-0 print:hidden">
         <MobileHeader navItems={navItems} adminTools={adminTools} />
       </div>
 
-      {/* Mobile Drawer Overlay */}
+      {/* Mobile Drawer Overlay - Hidden on print */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+          className="fixed inset-0 bg-black/40 z-40 md:hidden print:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
-      {/* Desktop Sidebar Wrapper */}
-      <div className="hidden md:block h-full w-64 shrink-0 border-r border-stone-200 bg-white">
+      {/* Desktop Sidebar Wrapper - Hidden on print */}
+      <div className="hidden md:block h-full w-64 shrink-0 border-r border-stone-200 bg-white print:hidden">
         <Sidebar navItems={navItems} adminTools={adminTools} />
       </div>
 
-      {/* Mobile Floating Drawer */}
+      {/* Mobile Floating Drawer - Hidden on print */}
       {isMobileOpen && (
-        <div className="fixed inset-y-0 left-0 z-50 md:hidden">
+        <div className="fixed inset-y-0 left-0 z-50 md:hidden print:hidden">
           <Sidebar
             navItems={navItems}
             adminTools={adminTools}
@@ -58,10 +58,10 @@ export const DashboardLayout = ({
         </div>
       )}
 
-      {/* Main Content Area - Changed z-10 to z-0 so it never blocks the header */}
-      <main className="flex-1 h-full overflow-y-auto p-4 sm:p-8 relative z-0">
+      {/* Main Content Area - Expands fully on print */}
+      <main className="flex-1 h-full overflow-y-auto p-4 sm:p-8 relative z-0 print:p-0 print:m-0 print:overflow-visible print:h-auto print:w-full print:block">
         {(title || description) && (
-          <div className="mb-6">
+          <div className="mb-6 print:hidden">
             {title && (
               <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-stone-900">
                 {title}

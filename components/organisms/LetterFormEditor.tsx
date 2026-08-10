@@ -1,13 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 
 export interface LetterFormData {
-  institutionName: string; // Data Pengirim
-  letterNumber: string;    // Nomor & Hal surat (Optional/Auto-generated)
-  date: string;            // Tanggal Surat
-  recipient: string;       // Data Penerima
-  body: string;            // Isi Surat
+  institutionName: string;
+  letterNumber: string;
+  date: string;
+  recipient: string;
+  subject?: string;
+  body: string;
+  attachmentUrl?: string | null;
 }
 
 interface LetterFormEditorProps {
@@ -15,6 +17,7 @@ interface LetterFormEditorProps {
   onChange: (updatedData: LetterFormData) => void;
   onSubmitForApproval: () => void;
   onSaveDraft?: () => void;
+  onSelectTemplatePreset?: (templateId: string) => void;
 }
 
 export const LetterFormEditor = ({
@@ -22,6 +25,7 @@ export const LetterFormEditor = ({
   onChange,
   onSubmitForApproval,
   onSaveDraft,
+  onSelectTemplatePreset,
 }: LetterFormEditorProps) => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -33,17 +37,72 @@ export const LetterFormEditor = ({
     });
   };
 
+  // Cleanup object URL when component unmounts or when attachmentUrl changes
+  useEffect(() => {
+    return () => {
+      if (formData.attachmentUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(formData.attachmentUrl);
+      }
+    };
+  }, [formData.attachmentUrl]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (formData.attachmentUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(formData.attachmentUrl);
+      }
+      const url = URL.createObjectURL(file);
+      onChange({
+        ...formData,
+        attachmentUrl: url,
+      });
+    }
+  };
+
+  const handleRemoveImage = () => {
+    if (formData.attachmentUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(formData.attachmentUrl);
+    }
+    onChange({
+      ...formData,
+      attachmentUrl: null,
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmitForApproval();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-lg w-full">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-lg w-full print:hidden">
+      {/* Quick Template Preset Switcher */}
+      {onSelectTemplatePreset && (
+        <div className="flex flex-col gap-1.5 bg-stone-100 p-3 rounded-2xl border border-stone-200">
+          <label className="font-serif text-xs font-semibold text-stone-700">
+            Ganti Template Cepat (Isi Otomatis)
+          </label>
+          <select
+            onChange={(e) => onSelectTemplatePreset(e.target.value)}
+            defaultValue=""
+            className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+          >
+            <option value="" disabled>-- Pilih Preset Template --</option>
+            <option value="1">Surat Undangan</option>
+            <option value="2">Surat Tugas</option>
+            <option value="3">Surat Keterangan</option>
+            <option value="4">Surat Keputusan</option>
+            <option value="5">Surat Pemberitahuan</option>
+          </select>
+        </div>
+      )}
+
       {/* 1. Data Pengirim */}
-      <div className="flex flex-col gap-1.5">
-        <label className="font-serif text-sm font-semibold text-stone-900">
-          Data Pengirim / Unit Kerja
+      <div className="flex flex-col gap-1">
+        <label className="font-serif text-sm font-semibold text-stone-900 flex items-center justify-between">
+          <span>Data Pengirim / Unit Kerja</span>
+          <span className="text-[10px] font-sans font-normal text-stone-500">Wajib diisi</span>
         </label>
         <input
           type="text"
@@ -54,26 +113,29 @@ export const LetterFormEditor = ({
           className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
           required
         />
+        <p className="text-[11px] text-stone-500">Isi dengan nama jabatan atau unit penanggung jawab surat.</p>
       </div>
 
-      {/* 2. Nomor & Hal surat */}
-      <div className="flex flex-col gap-1.5">
-        <label className="font-serif text-sm font-semibold text-stone-900">
-          Usulan Nomor / Hal Surat
+      {/* 2. Nomor Surat */}
+      <div className="flex flex-col gap-1">
+        <label className="font-serif text-sm font-semibold text-stone-900 flex items-center justify-between">
+          <span>Usulan Nomor Surat</span>
+          <span className="text-[10px] font-sans font-normal text-stone-500">Wajib diisi</span>
         </label>
         <input
           type="text"
           name="letterNumber"
           value={formData.letterNumber}
           onChange={handleChange}
-          placeholder="e.g. Undangan Rapat Orang Tua"
+          placeholder="e.g. 001/UND/SMK-2/2026"
           className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
           required
         />
+        <p className="text-[11px] text-stone-500">Format standar: [No]/[KODE]/SMK-2/[TAHUN]</p>
       </div>
 
       {/* 3. Tanggal Surat */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <label className="font-serif text-sm font-semibold text-stone-900">
           Tanggal Surat
         </label>
@@ -88,7 +150,7 @@ export const LetterFormEditor = ({
       </div>
 
       {/* 4. Data Penerima */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <label className="font-serif text-sm font-semibold text-stone-900">
           Data Penerima
         </label>
@@ -104,7 +166,7 @@ export const LetterFormEditor = ({
       </div>
 
       {/* 5. Isi Surat */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <label className="font-serif text-sm font-semibold text-stone-900">
           Isi Surat
         </label>
@@ -117,6 +179,33 @@ export const LetterFormEditor = ({
           className="w-full px-4 py-3 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white resize-none"
           required
         />
+      </div>
+
+      {/* 6. Image / Stamp Upload Field */}
+      <div className="flex flex-col gap-2 bg-stone-50 p-3.5 rounded-2xl border border-dashed border-stone-400">
+        <label className="font-serif text-sm font-semibold text-stone-900">
+          Upload Lampiran / Stempel / Gambar
+        </label>
+        
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          className="text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer"
+        />
+
+        {formData.attachmentUrl && (
+          <div className="flex items-center justify-between pt-2 border-t border-stone-200">
+            <span className="text-xs text-emerald-700 font-medium">✓ Gambar berhasil diunggah</span>
+            <button
+              type="button"
+              onClick={handleRemoveImage}
+              className="text-xs text-red-600 hover:text-red-800 font-medium underline"
+            >
+              Hapus Gambar
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Button Action Row */}
@@ -135,7 +224,7 @@ export const LetterFormEditor = ({
             onClick={onSaveDraft}
             className="w-full py-2.5 px-4 rounded-2xl bg-[#FDF8F5] border border-black text-black font-serif text-sm font-semibold hover:bg-stone-100 transition-colors shadow-sm"
           >
-            Simpan Draf
+            Simpan Draf Ke Memori Browser
           </button>
         )}
       </div>
