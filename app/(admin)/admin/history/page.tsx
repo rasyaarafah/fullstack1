@@ -27,14 +27,14 @@ export default function ArchivePage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [letters, setLetters] = useState<ArchiveLetter[]>([
-    { id: 1, username: "useruseruser", title: "surat izin kegiatan", date: "07/1/2026" },
-    { id: 2, username: "useruseruser", title: "surat izin kegiatan", date: "07/2/2026" },
-    { id: 3, username: "useruseruser", title: "surat izin kegiatan", date: "07/3/2026" },
-    { id: 4, username: "useruseruser", title: "surat izin kegiatan", date: "07/4/2026" },
-    { id: 5, username: "useruseruser", title: "surat izin kegiatan", date: "07/5/2026" },
-    { id: 6, username: "useruseruser", title: "surat izin kegiatan", date: "07/6/2026" },
-    { id: 7, username: "useruseruser", title: "surat izin kegiatan", date: "07/7/2026" },
-    { id: 8, username: "useruseruser", title: "surat izin kegiatan", date: "07/8/2026" },
+    { id: 1, username: "useruseruser", title: "surat 1", date: "07/1/2026" },
+    { id: 2, username: "useruseruser", title: "surat 2", date: "07/2/2026" },
+    { id: 3, username: "useruseruser", title: "surat 3", date: "07/3/2026" },
+    { id: 4, username: "useruseruser", title: "surat 4", date: "07/4/2026" },
+    { id: 5, username: "useruseruser", title: "surat 5", date: "07/5/2026" },
+    { id: 6, username: "useruseruser", title: "surat 6", date: "07/6/2026" },
+    { id: 7, username: "useruseruser", title: "surat 7", date: "07/7/2026" },
+    { id: 8, username: "useruseruser", title: "surat 8", date: "07/8/2026" },
   ]);
 
   const handleRemove = (id: number) => {
