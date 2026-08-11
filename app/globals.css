@@ -24,39 +24,3 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-
-/* ==========================================================================
-   Print Stylesheet Fix
-   ========================================================================== */
-@media print {
-  /* 1. Remove browser default margins (removes page title, dates, and URL) */
-  @page {
-    margin: 10mm;
-    size: A4 portrait;
-  }
-
-  /* 2. Reset body for pure white background and full height */
-  body {
-    background: white !important;
-    color: black !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  /* 3. Hide all non-printable UI elements */
-  header,
-  nav,
-  aside,
-  button,
-  .print\:hidden {
-    display: none !important;
-  }
-
-  /* 4. Ensure layout wrappers don't clip or add extra margins */
-  main {
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-  }
-}

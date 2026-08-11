@@ -10,6 +10,8 @@ export interface LetterFormData {
   subject?: string;
   body: string;
   attachmentUrl?: string | null;
+  leftLogo?: string;
+  rightLogo?: string;
 }
 
 interface LetterFormEditorProps {
@@ -28,7 +30,7 @@ export const LetterFormEditor = ({
   onSelectTemplatePreset,
 }: LetterFormEditorProps) => {
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     onChange({
@@ -97,6 +99,44 @@ export const LetterFormEditor = ({
           </select>
         </div>
       )}
+
+      {/* Logo Kop Surat Selector */}
+      <div className="flex flex-col gap-2 bg-stone-50 p-3.5 rounded-2xl border border-stone-300">
+        <label className="font-serif text-xs font-semibold text-stone-900">
+          Pilih Logo Kop Surat
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {/* Logo Kiri */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] text-stone-600 font-medium">Logo Kiri</span>
+            <select
+              name="leftLogo"
+              value={formData.leftLogo || "/logo_letris.png"}
+              onChange={handleChange}
+              className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+            >
+              <option value="/logo_letris.png">SMK Letris Indonesia 2</option>
+              <option value="/logo_letris_kesehatan.png">SMK Letris Kesehatan</option>
+              <option value="">Tanpa Logo Kiri</option>
+            </select>
+          </div>
+
+          {/* Logo Kanan */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] text-stone-600 font-medium">Logo Kanan</span>
+            <select
+              name="rightLogo"
+              value={formData.rightLogo || "/logo_banten.png"}
+              onChange={handleChange}
+              className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+            >
+              <option value="/logo_banten.png">Provinsi Banten</option>
+              <option value="/logo_tangsel.png">Kota Tangerang Selatan</option>
+              <option value="">Tanpa Logo Kanan</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
       {/* 1. Data Pengirim */}
       <div className="flex flex-col gap-1">
