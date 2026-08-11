@@ -357,7 +357,7 @@ function AdminNewLetterContent() {
                   </div>
                 </div>
 
-                <div className="printable-paper w-full min-h-[580px] bg-white rounded-xl shadow-2xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[10.5px] leading-relaxed">
+                <div className="printable-paper w-full min-h-145 bg-white rounded-xl shadow-2xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[10.5px] leading-relaxed">
                   {/* Content Container */}
                   <div className="flex flex-col flex-1 min-h-0 print:block">
                     {/* Status Banner */}

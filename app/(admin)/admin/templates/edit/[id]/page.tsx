@@ -9,6 +9,9 @@ export default function TemplateEditorPage() {
   const params = useParams();
   const templateId = params.id as string;
 
+  // Active View Tab on Mobile (form vs preview)
+  const [activeTab, setActiveTab] = useState<"form" | "preview">("form");
+
   const adminNavItems = [
     { label: "Overview", href: "/admin" },
     { label: "Pending Approval", href: "/admin/pending" },
@@ -46,7 +49,7 @@ export default function TemplateEditorPage() {
 
   // Body Paragraphs State
   const [openingText, setOpeningText] = useState(
-    "Sehubungan dengan telah berakhrinya kegiatan Pembelajaran Semester, maka SMK Letris Indonesia 2 akan mengadakan pembagian raport. Untuk itu, kami mengundang para Bapak/Ibu Orang tua/Wali siswa untuk mengambil raport pada :"
+    "Sehubungan dengan telah berakhirnya kegiatan Pembelajaran Semester, maka SMK Letris Indonesia 2 akan mengadakan pembagian raport. Untuk itu, kami mengundang para Bapak/Ibu Orang tua/Wali siswa untuk mengambil raport pada :"
   );
   const [closingText, setClosingText] = useState(
     "Demikian surat undangan ini kami sampaikan, atas perhatian dan kehadirannya kami ucapkan terima kasih."
@@ -98,12 +101,11 @@ export default function TemplateEditorPage() {
             width: 100% !important;
             min-height: auto !important;
             height: auto !important;
-            transform: none !important;
           }
         }
       `}</style>
 
-      <div className="space-y-4 max-w-[1600px] mx-auto w-full px-2 sm:px-0">
+      <div className="space-y-4 max-w-[1600px] mx-auto w-full px-2 sm:px-4 pb-12">
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-300 pb-3 no-print">
           <div className="flex items-center gap-3">
@@ -126,7 +128,7 @@ export default function TemplateEditorPage() {
               </svg>
             </Link>
             <div>
-              <h1 className="font-serif text-xl sm:text-2xl font-bold text-stone-900 leading-tight">
+              <h1 className="font-serif text-lg sm:text-2xl font-bold text-stone-900 leading-tight">
                 Edit Template:{" "}
                 <span className="italic font-normal">{schoolName}</span>
               </h1>
@@ -140,7 +142,7 @@ export default function TemplateEditorPage() {
             <Link
               href={`/admin/templates/preview/${templateId}`}
               target="_blank"
-              className="px-3 py-1.5 sm:px-4 sm:py-2 border border-stone-800 rounded-lg font-serif text-xs sm:text-sm text-stone-900 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 border border-stone-800 rounded-lg font-serif text-xs sm:text-sm text-stone-900 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
             >
               <svg
                 className="w-4 h-4"
@@ -164,24 +166,17 @@ export default function TemplateEditorPage() {
               <span>Full Preview</span>
             </Link>
 
-            <Link
-              href="/admin/templates/edit"
-              className="px-3 py-1.5 sm:px-4 sm:py-2 border border-stone-800 rounded-lg font-serif text-xs sm:text-sm text-stone-900 hover:bg-stone-100 transition-colors"
-            >
-              Cancel
-            </Link>
-
             <button
               onClick={() => alert("Template saved successfully!")}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-stone-900 text-white rounded-lg font-serif text-xs sm:text-sm hover:bg-stone-800 transition-colors cursor-pointer"
+              className="px-3 py-1.5 bg-stone-900 text-white rounded-lg font-serif text-xs sm:text-sm hover:bg-stone-800 transition-colors"
             >
-              Save Changes
+              Save
             </button>
           </div>
         </div>
 
         {/* Dynamic Variable Pills */}
-        <div className="bg-stone-50 p-2.5 sm:p-3 border border-stone-300 rounded-xl flex items-center gap-2 overflow-x-auto no-print">
+        <div className="bg-stone-50 p-2.5 border border-stone-300 rounded-xl flex items-center gap-2 overflow-x-auto no-print">
           <span className="font-serif text-xs font-semibold text-stone-700 whitespace-nowrap">
             Variables:
           </span>
@@ -195,10 +190,38 @@ export default function TemplateEditorPage() {
           ))}
         </div>
 
-        {/* Editor Grid */}
+        {/* Mobile Tab Switcher Toggle */}
+        <div className="flex xl:hidden border border-stone-800 rounded-lg overflow-hidden bg-stone-100 p-1 no-print">
+          <button
+            onClick={() => setActiveTab("form")}
+            className={`flex-1 py-2 text-xs font-serif font-bold rounded-md transition-colors ${
+              activeTab === "form"
+                ? "bg-stone-900 text-white shadow"
+                : "text-stone-700 hover:bg-stone-200"
+            }`}
+          >
+            Form Controls
+          </button>
+          <button
+            onClick={() => setActiveTab("preview")}
+            className={`flex-1 py-2 text-xs font-serif font-bold rounded-md transition-colors ${
+              activeTab === "preview"
+                ? "bg-stone-900 text-white shadow"
+                : "text-stone-700 hover:bg-stone-200"
+            }`}
+          >
+            Live Document Preview
+          </button>
+        </div>
+
+        {/* Editor Layout */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-          {/* Form Controls Column (5 cols) */}
-          <div className="xl:col-span-5 space-y-4 bg-white p-4 sm:p-5 border border-stone-800 rounded-xl xl:max-h-[85vh] xl:overflow-y-auto no-print">
+          {/* Form Controls Column */}
+          <div
+            className={`xl:col-span-5 space-y-4 bg-white p-4 sm:p-5 border border-stone-800 rounded-xl xl:max-h-[85vh] xl:overflow-y-auto no-print ${
+              activeTab === "form" ? "block" : "hidden xl:block"
+            }`}
+          >
             <h2 className="font-serif text-lg font-bold text-stone-900 border-b pb-2 border-stone-200">
               Template Controls
             </h2>
@@ -269,8 +292,8 @@ export default function TemplateEditorPage() {
                 <label className="block text-xs font-semibold text-stone-600 mb-1">
                   Alamat
                 </label>
-                <input
-                  type="text"
+                <textarea
+                  rows={2}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
@@ -432,68 +455,67 @@ export default function TemplateEditorPage() {
             </div>
           </div>
 
-          {/* Responsive A4 Wrapper */}
-          <div className="xl:col-span-7 bg-stone-300 p-2 sm:p-6 border border-stone-800 rounded-xl overflow-x-auto flex justify-center items-start w-full">
-            {/* A4 Container */}
-            <div className="a4-container w-full max-w-[210mm] min-h-[297mm] bg-white p-4 sm:p-8 md:p-12 border border-stone-400 shadow-2xl font-serif text-stone-900 text-[10px] sm:text-xs leading-normal flex flex-col justify-between box-border overflow-hidden shrink-0 my-0 mx-auto scale-[0.85] sm:scale-100 origin-top">
+          {/* Clean Preview Wrapper (No CSS Scale Bugs) */}
+          <div
+            className={`xl:col-span-7 bg-stone-200 p-2 sm:p-4 rounded-xl border border-stone-800 w-full xl:max-h-[85vh] xl:overflow-y-auto ${
+              activeTab === "preview" ? "block" : "hidden xl:block"
+            }`}
+          >
+            <div className="a4-container w-full xl:w-[210mm] xl:min-h-[297mm] mx-auto bg-white p-4 sm:p-8 xl:p-12 border border-stone-300 shadow-md font-serif text-stone-900 text-[11px] sm:text-xs leading-normal flex flex-col justify-between box-border">
               <div>
                 {/* Header Kop Surat */}
-                <div className="flex items-center justify-between gap-1.5 sm:gap-4 border-b-2 border-stone-900 pb-2 mb-4">
-                  <div className="w-10 h-10 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center border-2 border-dashed border-blue-600 rounded-full bg-blue-50 text-[7px] sm:text-[9px] font-bold text-blue-900 text-center p-0.5 sm:p-1">
-                    LOGO LETRIS 2
+                <div className="flex items-center justify-between gap-2 border-b-2 border-stone-900 pb-2 mb-4">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 shrink-0 flex items-center justify-center border-2 border-dashed border-blue-600 rounded-full bg-blue-50 text-[8px] font-bold text-blue-900 text-center p-0.5">
+                    LOGO LETRIS
                   </div>
 
-                  <div className="text-center flex-1 space-y-0.5 overflow-hidden">
-                    <h2 className="font-bold text-[9px] sm:text-[11px] tracking-wider uppercase wrap-break-word">
+                  <div className="text-center flex-1 space-y-0.5">
+                    <h2 className="font-bold text-[9px] sm:text-[11px] tracking-wider uppercase">
                       {yayasan}
                     </h2>
-                    <h1 className="font-extrabold text-[11px] sm:text-base tracking-wide uppercase leading-tight wrap-break-word">
+                    <h1 className="font-extrabold text-[11px] sm:text-sm xl:text-base tracking-wide uppercase leading-tight">
                       {schoolName}
                     </h1>
-                    <p className="font-semibold text-[8px] sm:text-[10px] wrap-break-word">
+                    <p className="font-semibold text-[8px] sm:text-[10px]">
                       {npsnNss}
                     </p>
-                    <p className="font-bold text-[8px] sm:text-[10px] wrap-break-word">
+                    <p className="font-bold text-[8px] sm:text-[10px]">
                       {akreditasi}
                     </p>
-                    <p className="text-[7.5px] sm:text-[9px] px-1 sm:px-2 leading-tight text-stone-700 wrap-break-word">
+                    <p className="text-[7.5px] sm:text-[9px] leading-tight text-stone-700">
                       {jurusan}
                     </p>
-                    <p className="text-[7.5px] sm:text-[9px] text-stone-700 wrap-break-word">
+                    <p className="text-[7.5px] sm:text-[9px] text-stone-700">
                       {address}
                     </p>
-                    <p className="text-[7.5px] sm:text-[9px] text-blue-800 underline wrap-break-word">
+                    <p className="text-[7.5px] sm:text-[9px] text-blue-800 underline">
                       {website}
                     </p>
                   </div>
 
-                  <div className="w-10 h-10 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center border-2 border-dashed border-emerald-600 rounded bg-emerald-50 text-[7px] sm:text-[9px] font-bold text-emerald-900 text-center p-0.5 sm:p-1">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 shrink-0 flex items-center justify-center border-2 border-dashed border-emerald-600 rounded bg-emerald-50 text-[8px] font-bold text-emerald-900 text-center p-0.5">
                     LOGO BANTEN
                   </div>
                 </div>
 
                 {/* City and Date Header */}
-                <div className="flex justify-end mb-4 w-full">
-                  <span className="text-right max-w-full wrap-break-word">
-                    {cityDate}
-                  </span>
+                <div className="flex justify-end mb-4">
+                  <span>{cityDate}</span>
                 </div>
 
                 {/* Letter Metadata */}
                 <div className="space-y-1 mb-4">
-                  <div className="grid grid-cols-12 gap-1">
-                    <span className="col-span-3 sm:col-span-2">Nomor</span>
-                    <span className="col-span-9 sm:col-span-10 wrap-break-word">: {nomor}</span>
+                  <div className="flex gap-2">
+                    <span className="w-16 sm:w-20">Nomor</span>
+                    <span>: {nomor}</span>
                   </div>
-                  <div className="grid grid-cols-12 gap-1">
-                    <span className="col-span-3 sm:col-span-2">Perihal</span>
-                    <span className="col-span-9 sm:col-span-10 font-semibold wrap-break-word">
-                      : {perihal}
-                    </span>
+                  <div className="flex gap-2">
+                    <span className="w-16 sm:w-20">Perihal</span>
+                    <span className="font-semibold">: {perihal}</span>
                   </div>
                   <div className="pt-2 space-y-0.5">
                     <p>Kepada Yth,</p>
-                    <p className="font-semibold whitespace-pre-line leading-snug wrap-break-word">
+                    <p className="font-semibold whitespace-pre-line leading-snug">
                       {recipient}
                     </p>
                     <p>di Tempat</p>
@@ -503,46 +525,44 @@ export default function TemplateEditorPage() {
                 {/* Opening Body */}
                 <div className="space-y-2 mb-4">
                   <p>Dengan hormat,</p>
-                  <p className="text-justify indent-6 sm:indent-8 leading-relaxed wrap-break-word">
+                  <p className="text-justify indent-6 sm:indent-8 leading-relaxed">
                     {openingText}
                   </p>
                 </div>
 
                 {/* Event Schedule Details */}
-                <div className="pl-3 sm:pl-8 space-y-1 mb-4">
-                  <div className="grid grid-cols-12 gap-1">
-                    <span className="col-span-4 sm:col-span-3">Hari/Tanggal</span>
-                    <span className="col-span-8 sm:col-span-9 wrap-break-word">: {eventDay}</span>
+                <div className="pl-4 sm:pl-8 space-y-1 mb-4">
+                  <div className="flex gap-2">
+                    <span className="w-24 sm:w-28">Hari/Tanggal</span>
+                    <span>: {eventDay}</span>
                   </div>
-                  <div className="grid grid-cols-12 gap-1">
-                    <span className="col-span-4 sm:col-span-3">Waktu</span>
-                    <span className="col-span-8 sm:col-span-9 wrap-break-word">: {eventTime}</span>
+                  <div className="flex gap-2">
+                    <span className="w-24 sm:w-28">Waktu</span>
+                    <span>: {eventTime}</span>
                   </div>
-                  <div className="grid grid-cols-12 gap-1">
-                    <span className="col-span-4 sm:col-span-3">Tempat</span>
-                    <span className="col-span-8 sm:col-span-9 wrap-break-word">
-                      : {eventLocation}
-                    </span>
+                  <div className="flex gap-2">
+                    <span className="w-24 sm:w-28">Tempat</span>
+                    <span>: {eventLocation}</span>
                   </div>
                 </div>
 
                 {/* Closing Body */}
                 <div className="space-y-2 mb-4">
-                  <p className="text-justify indent-6 sm:indent-8 leading-relaxed wrap-break-word">
+                  <p className="text-justify indent-6 sm:indent-8 leading-relaxed">
                     {closingText}
                   </p>
                 </div>
               </div>
 
               {/* Bottom Signature Section */}
-              <div className="flex justify-end pt-2 mt-2">
-                <div className="text-center min-w-36 sm:min-w-56 max-w-xs space-y-8 sm:space-y-12">
+              <div className="flex justify-end pt-4 mt-4">
+                <div className="text-center min-w-36 sm:min-w-48 space-y-10">
                   <div>
                     <p>Hormat Kami,</p>
-                    <p className="font-semibold wrap-break-word">{signerTitle}</p>
+                    <p className="font-semibold">{signerTitle}</p>
                   </div>
                   <div>
-                    <p className="font-bold underline uppercase wrap-break-word">
+                    <p className="font-bold underline uppercase">
                       {signerName}
                     </p>
                   </div>
