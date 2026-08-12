@@ -1,0 +1,29 @@
+datasource db {
+  provider = "mysql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  username  String   @unique
+  password  String
+  role      String   @default("TEACHER")
+  createdAt DateTime @default(now())
+  letters   Letter[]
+}
+
+model Letter {
+  id           String   @id @default(uuid())
+  letterNumber String?
+  recipient    String
+  subject      String?
+  body         String   @db.Text
+  status       String   @default("PENDING")
+  authorId     String
+  author       User     @relation(fields: [authorId], references: [id])
+  createdAt    DateTime @default(now())
+}
