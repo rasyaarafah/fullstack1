@@ -18,8 +18,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Return successful user info (exclude password for safety)
-    return NextResponse.json({
+    // 3. Create the response object
+    const response = NextResponse.json({
       message: 'Login successful',
       user: {
         id: user.id,
@@ -28,6 +28,16 @@ export async function POST(req: Request) {
         role: user.role,
       },
     });
+
+    // 4. Hand out the wristband (Cookie) so Next.js remembers them!
+    response.cookies.set('user_role', user.role, {
+      httpOnly: true, // Security: Prevents malicious client scripts from tampering with it
+      path: '/',      // Cookie works across the entire website
+      maxAge: 60 * 60 * 24, // Expire in 1 day (in seconds)
+    });
+
+    return response;
+
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

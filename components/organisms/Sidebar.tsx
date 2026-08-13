@@ -30,11 +30,22 @@ export const Sidebar = ({
   const isAdminRoute = pathname?.startsWith("/admin");
   const basePath = isAdminRoute ? "/admin/new-letter" : "/new-letter";
 
-  const handleLogout = () => {
-    if (onLogout) {
-      onLogout();
-    } else {
-      router.push("/login");
+  const handleLogout = async () => {
+    try {
+      // 1. Tell backend to delete the user_role cookie
+      await fetch("/api/logout", {
+        method: "POST",
+      });
+
+      // 2. Run custom prop if passed (optional cleanup)
+      if (onLogout) {
+        onLogout();
+      }
+
+      // 3. Force a hard browser navigation to /login to wipe all state clean
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
     }
   };
 
