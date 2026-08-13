@@ -8,11 +8,40 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Logging in with:", { email, password });
-    router.push("/");
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Invalid email or password");
+        setLoading(false);
+        return;
+      }
+
+      // Redirect based on role
+      if (data.user.role === "ADMIN") {
+        router.push("/admin"); 
+      } else {
+        router.push("/"); 
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -27,6 +56,13 @@ export default function LoginPage() {
 
       {/* Auth Form */}
       <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6">
+        {/* Error Notification Banner */}
+        {error && (
+          <div className="p-3 text-sm text-red-600 bg-red-100 rounded-lg text-center font-sans">
+            {error}
+          </div>
+        )}
+
         {/* Email Field */}
         <div className="flex flex-col gap-2">
           <label className="text-base font-bold text-black font-sans">
@@ -69,9 +105,10 @@ export default function LoginPage() {
         {/* Submit Button */}
         <button
           type="submit"
-          className="w-full mt-2 py-3 rounded-full bg-black text-white font-serif text-lg font-normal hover:bg-stone-900 transition-all shadow-md active:scale-[0.99] cursor-pointer"
+          disabled={loading}
+          className="w-full mt-2 py-3 rounded-full bg-black text-white font-serif text-lg font-normal hover:bg-stone-900 transition-all shadow-md active:scale-[0.99] cursor-pointer disabled:opacity-50"
         >
-          Sign in
+          {loading ? "Signing in..." : "Sign in"}
         </button>
       </form>
     </AuthLayout>

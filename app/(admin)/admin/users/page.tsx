@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 
 interface UserData {
   id: string;
   name: string;
-  username: string;
   email: string;
-  role: "Teacher" | "Admin";
-  lastLogin: string;
-  avatarUrl?: string;
+  role: "TEACHER" | "ADMIN";
+  createdAt?: string;
 }
 
 export default function UserManagementPage() {
@@ -28,23 +26,83 @@ export default function UserManagementPage() {
     { label: "Broadcast notice", href: "/admin/notice" },
   ];
 
-  const [users, setUsers] = useState<UserData[]>([
-    { id: "1", name: "1", username: "UsernameUsername", email: "@EmailEmailEmailEmail", role: "Teacher", lastLogin: "01/01/26" },
-    { id: "2", name: "2", username: "UsernameUsername", email: "@EmailEmailEmailEmail", role: "Teacher", lastLogin: "01/01/26" },
-    { id: "3", name: "3", username: "UsernameUsername", email: "@EmailEmailEmailEmail", role: "Teacher", lastLogin: "01/01/26" },
-    { id: "4", name: "10", username: "UsernameUsername", email: "@EmailEmailEmailEmail", role: "Teacher", lastLogin: "01/01/26" },
-    { id: "5", name: "UsernameUsername", username: "UsernameUsername", email: "@EmailEmailEmailEmail", role: "Teacher", lastLogin: "01/01/26" },
-    { id: "6", name: "UsernameUsername", username: "UsernameUsername", email: "@EmailEmailEmailEmail", role: "Teacher", lastLogin: "01/01/26" },
-    { id: "7", name: "UsernameUsername", username: "UsernameUsername", email: "@EmailEmailEmailEmail", role: "Teacher", lastLogin: "01/01/26" },
-    { id: "8", name: "UsernameUsername", username: "UsernameUsername", email: "@EmailEmailEmailEmail", role: "Teacher", lastLogin: "01/01/26" },
-    { id: "9", name: "UsernameUsername", username: "UsernameUsername", email: "@EmailEmailEmailEmail", role: "Teacher", lastLogin: "01/01/26" },
-    { id: "10", name: "UsernameUsername", username: "UsernameUsername", email: "@EmailEmailEmailEmail", role: "Teacher", lastLogin: "01/01/26" },
-  ]);
-
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Add User Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState<"TEACHER" | "ADMIN">("TEACHER");
+  const [modalError, setModalError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch users from MySQL on mount
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Modal Submit (Create User)
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalError("");
+    setSubmitting(true);
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newName,
+          email: newEmail,
+          password: newPassword,
+          role: newRole,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setModalError(data.error || "Failed to create user");
+        setSubmitting(false);
+        return;
+      }
+
+      // Reset form & close modal
+      setNewName("");
+      setNewEmail("");
+      setNewPassword("");
+      setNewRole("TEACHER");
+      setIsModalOpen(false);
+      
+      // Refresh database table
+      fetchUsers();
+    } catch (err) {
+      setModalError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Checkbox handlers
   const toggleSelectUser = (id: string) => {
@@ -53,20 +111,50 @@ export default function UserManagementPage() {
     );
   };
 
-  const handleDeleteSelected = () => {
-    setUsers((prev) => prev.filter((user) => !selectedUserIds.includes(user.id)));
+  // Delete User Handlers
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+
+    try {
+      const res = await fetch(`/api/users?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setUsers((prev) => prev.filter((user) => user.id !== id));
+        setSelectedUserIds((prev) => prev.filter((itemId) => itemId !== id));
+      } else {
+        alert("Failed to delete user");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!confirm(`Delete ${selectedUserIds.length} selected users?`)) return;
+
+    for (const id of selectedUserIds) {
+      await fetch(`/api/users?id=${id}`, { method: "DELETE" });
+    }
+    fetchUsers();
     setSelectedUserIds([]);
   };
 
-  const handleDeleteUser = (id: string) => {
-    setUsers((prev) => prev.filter((user) => user.id !== id));
-    setSelectedUserIds((prev) => prev.filter((itemId) => itemId !== id));
-  };
+  // Role Change Handler
+  const handleRoleChange = async (userId: string, newRole: "TEACHER" | "ADMIN") => {
+    try {
+      const res = await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: userId, role: newRole }),
+      });
 
-  const handleRoleChange = (userId: string, newRole: "Teacher" | "Admin") => {
-    setUsers((prev) =>
-      prev.map((user) => (user.id === userId ? { ...user, role: newRole } : user))
-    );
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((user) => (user.id === userId ? { ...user, role: newRole } : user))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update role:", err);
+    }
     setEditingRoleId(null);
   };
 
@@ -100,7 +188,10 @@ export default function UserManagementPage() {
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-          <button className="px-4 py-2 bg-white border border-stone-800 rounded-lg text-stone-900 font-serif text-base hover:bg-stone-100 transition-colors cursor-pointer">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-white border border-stone-800 rounded-lg text-stone-900 font-serif text-base hover:bg-stone-100 transition-colors cursor-pointer"
+          >
             Add New User
           </button>
           <button
@@ -139,104 +230,110 @@ export default function UserManagementPage() {
                 Role <span className="text-xs">⌄</span>
               </div>
               <div className="col-span-3 text-center flex items-center justify-center gap-1">
-                Last login <span className="text-xs">⌄</span>
+                Created At <span className="text-xs">⌄</span>
               </div>
             </div>
 
             {/* User Rows */}
             <div className="flex flex-col">
-              {filteredUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="grid grid-cols-12 items-center p-3.5 bg-white border border-stone-800 rounded-none -mt-px first:mt-0 font-serif text-base relative"
-                >
-                  {/* User Checkbox, Avatar, Name & Email */}
-                  <div className="col-span-6 flex items-center gap-4 min-w-0 pr-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedUserIds.includes(user.id)}
-                      onChange={() => toggleSelectUser(user.id)}
-                      className="w-5 h-5 border-stone-800 rounded cursor-pointer accent-stone-800 shrink-0"
-                    />
-                    <div className="w-10 h-10 rounded-full bg-stone-300 flex items-center justify-center shrink-0 text-stone-600">
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                      </svg>
-                    </div>
-                    <div className="flex flex-col min-w-0 flex-1 truncate">
-                      <span className="font-serif font-bold text-stone-900 leading-tight truncate">
-                        {user.name}
-                      </span>
-                      <span className="font-serif text-xs text-stone-600 truncate">
-                        {user.email}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Role Display */}
-                  <div className="col-span-3 text-center font-serif text-stone-900 truncate px-1">
-                    {user.role}
-                  </div>
-
-                  {/* Last Login & Action Icons */}
-                  <div className="col-span-3 flex items-center justify-between pl-4 relative shrink-0">
-                    <span className="font-serif text-stone-900 whitespace-nowrap">{user.lastLogin}</span>
-
-                    <div className="flex items-center gap-2 pr-2 relative shrink-0">
-                      {/* Edit Role Pencil Icon */}
-                      <button
-                        onClick={() =>
-                          setEditingRoleId(editingRoleId === user.id ? null : user.id)
-                        }
-                        className="p-1 hover:text-stone-600 transition-colors cursor-pointer"
-                        title="Change Role"
-                      >
-                        <svg className="w-5 h-5 text-stone-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-
-                      {/* Role Selector Popover */}
-                      {editingRoleId === user.id && (
-                        <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-white border border-stone-800 rounded-lg shadow-lg z-30 overflow-hidden font-serif text-sm flex flex-col w-28">
-                          <button
-                            onClick={() => handleRoleChange(user.id, "Teacher")}
-                            className={`px-3 py-1.5 text-left hover:bg-stone-100 transition-colors border-b border-stone-100 ${
-                              user.role === "Teacher" ? "font-bold text-stone-900" : "text-stone-600"
-                            }`}
-                          >
-                            Teacher
-                          </button>
-                          <button
-                            onClick={() => handleRoleChange(user.id, "Admin")}
-                            className={`px-3 py-1.5 text-left hover:bg-stone-100 transition-colors ${
-                              user.role === "Admin" ? "font-bold text-stone-900" : "text-stone-600"
-                            }`}
-                          >
-                            Admin
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Delete Trash Icon */}
-                      <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="p-1 hover:text-red-600 transition-colors cursor-pointer"
-                        title="Delete user"
-                      >
-                        <svg className="w-5 h-5 text-stone-900 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {filteredUsers.length === 0 && (
+              {loading ? (
                 <div className="text-center py-12 text-stone-500 font-serif text-lg border border-stone-800">
-                  No users found.
+                  Loading users...
                 </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-12 text-stone-500 font-serif text-lg border border-stone-800">
+                  No users found in database.
+                </div>
+              ) : (
+                filteredUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="grid grid-cols-12 items-center p-3.5 bg-white border border-stone-800 rounded-none -mt-px first:mt-0 font-serif text-base relative"
+                  >
+                    {/* User Checkbox, Avatar, Name & Email */}
+                    <div className="col-span-6 flex items-center gap-4 min-w-0 pr-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.includes(user.id)}
+                        onChange={() => toggleSelectUser(user.id)}
+                        className="w-5 h-5 border-stone-800 rounded cursor-pointer accent-stone-800 shrink-0"
+                      />
+                      <div className="w-10 h-10 rounded-full bg-stone-300 flex items-center justify-center shrink-0 text-stone-600">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                      </div>
+                      <div className="flex flex-col min-w-0 flex-1 truncate">
+                        <span className="font-serif font-bold text-stone-900 leading-tight truncate">
+                          {user.name}
+                        </span>
+                        <span className="font-serif text-xs text-stone-600 truncate">
+                          {user.email}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Role Display */}
+                    <div className="col-span-3 text-center font-serif text-stone-900 truncate px-1 capitalize">
+                      {user.role.toLowerCase()}
+                    </div>
+
+                    {/* Created Date & Action Icons */}
+                    <div className="col-span-3 flex items-center justify-between pl-4 relative shrink-0">
+                      <span className="font-serif text-stone-900 text-sm whitespace-nowrap">
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+                      </span>
+
+                      <div className="flex items-center gap-2 pr-2 relative shrink-0">
+                        {/* Edit Role Pencil Icon */}
+                        <button
+                          onClick={() =>
+                            setEditingRoleId(editingRoleId === user.id ? null : user.id)
+                          }
+                          className="p-1 hover:text-stone-600 transition-colors cursor-pointer"
+                          title="Change Role"
+                        >
+                          <svg className="w-5 h-5 text-stone-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+
+                        {/* Role Selector Popover */}
+                        {editingRoleId === user.id && (
+                          <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-white border border-stone-800 rounded-lg shadow-lg z-30 overflow-hidden font-serif text-sm flex flex-col w-28">
+                            <button
+                              onClick={() => handleRoleChange(user.id, "TEACHER")}
+                              className={`px-3 py-1.5 text-left hover:bg-stone-100 transition-colors border-b border-stone-100 ${
+                                user.role === "TEACHER" ? "font-bold text-stone-900" : "text-stone-600"
+                              }`}
+                            >
+                              Teacher
+                            </button>
+                            <button
+                              onClick={() => handleRoleChange(user.id, "ADMIN")}
+                              className={`px-3 py-1.5 text-left hover:bg-stone-100 transition-colors ${
+                                user.role === "ADMIN" ? "font-bold text-stone-900" : "text-stone-600"
+                              }`}
+                            >
+                              Admin
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Delete Trash Icon */}
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="p-1 hover:text-red-600 transition-colors cursor-pointer"
+                          title="Delete user"
+                        >
+                          <svg className="w-5 h-5 text-stone-900 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -263,6 +360,104 @@ export default function UserManagementPage() {
           })}
         </div>
       </div>
+
+      {/* --- ADD NEW USER MODAL --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-stone-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 font-serif">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h2 className="text-xl font-bold text-stone-900">Add New User</h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-stone-500 hover:text-stone-800 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {modalError && (
+              <div className="p-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded text-center">
+                {modalError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddUser} className="space-y-4 font-sans text-sm">
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. John Doe"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full px-3 py-2 border border-stone-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-black"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. teacher@school.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-stone-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-black"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-stone-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-black"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase mb-1">
+                  Role
+                </label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as "TEACHER" | "ADMIN")}
+                  className="w-full px-3 py-2 border border-stone-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-black bg-white"
+                >
+                  <option value="TEACHER">Teacher</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-1/2 py-2 border border-stone-400 rounded-lg hover:bg-stone-100 font-serif"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-1/2 py-2 bg-black text-white rounded-lg hover:bg-stone-800 font-serif disabled:opacity-50"
+                >
+                  {submitting ? "Creating..." : "Save User"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
