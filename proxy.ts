@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const userRole = request.cookies.get('user_role')?.value;
 
@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
     // Redirect logged in user to their dashboard
-    const redirectUrl = userRole === 'ADMIN' ? '/admin/users' : '/teacher/history';
+    const redirectUrl = userRole === 'ADMIN' ? '/admin/users' : '/teacher';
     return NextResponse.redirect(new URL(redirectUrl, request.url));
   }
 
@@ -20,7 +20,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
     if (userRole !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/teacher/history', request.url));
+      return NextResponse.redirect(new URL('/teacher', request.url));
     }
   }
 

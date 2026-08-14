@@ -28,7 +28,7 @@ export const Sidebar = ({
   const pathname = usePathname();
 
   const isAdminRoute = pathname?.startsWith("/admin");
-  const basePath = isAdminRoute ? "/admin/new-letter" : "/new-letter";
+  const basePath = isAdminRoute ? "/admin/new-letter" : "/teacher/new-letter";
 
   const handleLogout = async () => {
     try {

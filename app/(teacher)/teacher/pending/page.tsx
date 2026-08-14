@@ -6,10 +6,10 @@ import { LetterRowItem } from "@/components/molecules/LetterRowItem";
 
 export default function PendingPage() {
   const navItems = [
-    { label: "Overview", href: "/", isActive: false },
-    { label: "New letter", href: "/new-letter", isActive: false },
-    { label: "History", href: "/history", isActive: false },
-    { label: "Pending", href: "/pending", isActive: true },
+    { label: "Overview", href: "/teacher", isActive: false },
+    { label: "New letter", href: "/teacher/new-letter", isActive: false },
+    { label: "History", href: "/teacher/history", isActive: false },
+    { label: "Pending", href: "/teacher/pending", isActive: true },
   ];
 
   const mockUser = {

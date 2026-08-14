@@ -24,11 +24,11 @@ export default function Page() {
   );
 
   const navItems = [
-    { label: "Overview", href: "/", isActive: true },
-    { label: "New letter", href: "/new-letter", isActive: false },
-    { label: "History", href: "/history", isActive: false },
-    { label: "Pending", href: "/pending", isActive: false },
-  ];
+  { label: "Overview", href: "/teacher", isActive: true },
+  { label: "New letter", href: "/teacher/new-letter", isActive: false },
+  { label: "History", href: "/teacher/history", isActive: false },
+  { label: "Pending", href: "/teacher/pending", isActive: false },
+];
 
   const mockUser = {
     name: "Teacher",

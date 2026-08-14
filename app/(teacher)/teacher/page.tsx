@@ -24,10 +24,10 @@ export default function OverviewPage() {
   );
 
   const navItems = [
-    { label: "Overview", href: "/", isActive: true },
-    { label: "New letter", href: "/new-letter", isActive: false },
-    { label: "History", href: "/history", isActive: false },
-    { label: "Pending", href: "/pending", isActive: false },
+    { label: "Overview", href: "/teacher", isActive: true },
+    { label: "New letter", href: "/teacher/new-letter", isActive: false },
+    { label: "History", href: "/teacher/history", isActive: false },
+    { label: "Pending", href: "/teacher/pending", isActive: false },
   ];
 
   const mockUser = {
@@ -102,7 +102,7 @@ export default function OverviewPage() {
             </div>
 
             <Link
-              href="/new-letter"
+              href="/teacher/new-letter"
               className="w-full text-center py-2.5 px-4 rounded-2xl bg-[#0A4D3C] text-white font-medium text-sm hover:bg-[#07382c] active:scale-95 transition-all font-sans cursor-pointer relative z-20 block"
             >
               Start Creating →
@@ -124,7 +124,7 @@ export default function OverviewPage() {
             </div>
 
             <Link
-              href="/pending"
+              href="/teacher/pending"
               className="w-full text-center py-2.5 px-4 rounded-2xl border border-stone-300 text-stone-800 font-medium text-sm hover:bg-stone-50 active:scale-95 transition-all font-sans cursor-pointer relative z-20 block"
             >
               View Pending
@@ -146,7 +146,7 @@ export default function OverviewPage() {
             </div>
 
             <Link
-              href="/history"
+              href="/teacher/history"
               className="w-full text-center py-2.5 px-4 rounded-2xl border border-stone-300 text-stone-800 font-medium text-sm hover:bg-stone-50 active:scale-95 transition-all font-sans cursor-pointer relative z-20 block"
             >
               Open History
@@ -174,7 +174,7 @@ export default function OverviewPage() {
           <RecentLetterList letters={filteredLetters} />
         </div>
 
-        {/* Admin Broadcast Notice Box (Matching Figma) */}
+        {/* Admin Broadcast Notice Box */}
         {adminNotice && (
           <div className="bg-white border border-stone-300 rounded-3xl p-5 shadow-sm flex items-start sm:items-center gap-4">
             <div className="w-8 h-8 rounded-full bg-red-500 border-2 border-white flex items-center justify-center text-white font-bold text-base shrink-0 shadow-sm">

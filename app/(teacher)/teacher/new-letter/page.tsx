@@ -87,12 +87,13 @@ function NewLetterContent() {
     body: TEMPLATE_PRESETS["Surat Undangan"].body,
   });
 
-  const navItems = [
-    { label: "Overview", href: "/", isActive: false },
-    { label: "New letter", href: "/new-letter", isActive: true },
-    { label: "History", href: "/history", isActive: false },
-    { label: "Pending", href: "/pending", isActive: false },
+ const navItems = [
+    { label: "Overview", href: "/teacher", isActive: false },
+    { label: "New letter", href: "/teacher/new-letter", isActive: true },
+    { label: "History", href: "/teacher/history", isActive: false },
+    { label: "Pending", href: "/teacher/pending", isActive: false },
   ];
+  
 
   const mockUser = {
     name: "Teacher",
