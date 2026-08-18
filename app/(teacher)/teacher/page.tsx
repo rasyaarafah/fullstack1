@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 import { RecentLetterList } from "@/components/organisms/RecentLetterList";
@@ -17,8 +17,12 @@ type LetterItem = {
 
 export default function OverviewPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [recentLetters, setRecentLetters] = useState<LetterItem[]>([]);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
-  // Broadcast Notice state (Can be replaced with dynamic fetch/context later)
+  // Broadcast Notice state
   const [adminNotice] = useState(
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
   );
@@ -37,32 +41,47 @@ export default function OverviewPage() {
     role: "teacher",
   };
 
-  const recentLetters: LetterItem[] = [
-    {
-      id: "1",
-      title: "Surat Undangan Rapat Orang Tua",
-      recipient: "Wali Murid Kelas X",
-      date: "2026-07-28",
-      status: "approved",
-      authorUsername: "teacher_dev",
-    },
-    {
-      id: "2",
-      title: "Surat Tugas Pendampingan Lomba",
-      recipient: "Bpk. Ahmad Suherman",
-      date: "2026-07-25",
-      status: "pending",
-      authorUsername: "teacher_dev",
-    },
-    {
-      id: "3",
-      title: "Surat Keterangan Aktif Mengajar",
-      recipient: "Dinas Pendidikan",
-      date: "2026-07-20",
-      status: "approved",
-      authorUsername: "teacher_dev",
-    },
-  ];
+  useEffect(() => {
+    async function fetchOverviewData() {
+      try {
+        const res = await fetch("/api/letters");
+        if (res.ok) {
+          const rawData = await res.json();
+
+          // Map API payload to match RecentLetterList prop types
+          const formattedData: LetterItem[] = rawData.map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            recipient: item.recipient || "",
+            date: new Date(item.createdAt).toLocaleDateString("en-US", {
+              month: "2-digit",
+              day: "2-digit",
+              year: "numeric",
+            }),
+            status: item.status.toLowerCase() as "approved" | "pending" | "rejected",
+            authorUsername: item.author?.name || "teacher_dev",
+          }));
+
+          // Calculate real summary numbers
+          const pending = formattedData.filter(
+            (l) => l.status === "pending"
+          ).length;
+
+          setPendingCount(pending);
+          setTotalCount(formattedData.length);
+
+          // Get top 5 most recent letters
+          setRecentLetters(formattedData.slice(0, 5));
+        }
+      } catch (err) {
+        console.error("Failed to fetch overview data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchOverviewData();
+  }, []);
 
   // Filtering logic based on Search Input
   const filteredLetters = recentLetters.filter(
@@ -116,7 +135,7 @@ export default function OverviewPage() {
                 PENDING APPROVALS
               </span>
               <div className="text-3xl font-bold text-stone-900 mt-1 font-sans">
-                3
+                {loading ? "..." : pendingCount}
               </div>
               <p className="text-xs text-stone-500 mt-1 font-sans">
                 Letters waiting for signature or review.
@@ -138,7 +157,7 @@ export default function OverviewPage() {
                 TOTAL GENERATED
               </span>
               <div className="text-3xl font-bold text-stone-900 mt-1 font-sans">
-                24
+                {loading ? "..." : totalCount}
               </div>
               <p className="text-xs text-stone-500 mt-1 font-sans">
                 Completed and saved letters in your archive.
@@ -171,7 +190,13 @@ export default function OverviewPage() {
             </div>
           </div>
 
-          <RecentLetterList letters={filteredLetters} />
+          {loading ? (
+            <div className="text-center py-8 text-stone-400 font-sans text-sm">
+              Loading recent letters...
+            </div>
+          ) : (
+            <RecentLetterList letters={filteredLetters} />
+          )}
         </div>
 
         {/* Admin Broadcast Notice Box */}

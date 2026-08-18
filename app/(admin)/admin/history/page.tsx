@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 
 interface ArchiveLetter {
-  id: number;
+  id: string;
   username: string;
   title: string;
   date: string;
 }
 
 export default function ArchivePage() {
+  const router = useRouter();
+
   const adminNavItems = [
     { label: "Overview", href: "/admin" },
     { label: "Pending Approval", href: "/admin/pending" },
@@ -26,19 +29,55 @@ export default function ArchivePage() {
   ];
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [letters, setLetters] = useState<ArchiveLetter[]>([
-    { id: 1, username: "useruseruser", title: "surat 1", date: "07/1/2026" },
-    { id: 2, username: "useruseruser", title: "surat 2", date: "07/2/2026" },
-    { id: 3, username: "useruseruser", title: "surat 3", date: "07/3/2026" },
-    { id: 4, username: "useruseruser", title: "surat 4", date: "07/4/2026" },
-    { id: 5, username: "useruseruser", title: "surat 5", date: "07/5/2026" },
-    { id: 6, username: "useruseruser", title: "surat 6", date: "07/6/2026" },
-    { id: 7, username: "useruseruser", title: "surat 7", date: "07/7/2026" },
-    { id: 8, username: "useruseruser", title: "surat 8", date: "07/8/2026" },
-  ]);
+  const [letters, setLetters] = useState<ArchiveLetter[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleRemove = (id: number) => {
-    setLetters((prev) => prev.filter((item) => item.id !== id));
+  // Fetch only APPROVED letters from DB
+  useEffect(() => {
+    async function fetchApprovedLetters() {
+      try {
+        const res = await fetch("/api/letters?status=APPROVED");
+        if (res.ok) {
+          const rawData = await res.json();
+          const formatted: ArchiveLetter[] = rawData.map((item: any) => ({
+            id: item.id,
+            username: item.author?.name || "useruseruser",
+            title: item.title,
+            date: new Date(item.createdAt).toLocaleDateString("en-US", {
+              month: "2-digit",
+              day: "2-digit",
+              year: "numeric",
+            }),
+          }));
+          setLetters(formatted);
+        }
+      } catch (err) {
+        console.error("Failed to fetch archive letters:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchApprovedLetters();
+  }, []);
+
+  // Delete letter from database
+  const handleRemove = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this archived letter?")) return;
+
+    try {
+      const res = await fetch(`/api/letters/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setLetters((prev) => prev.filter((item) => item.id !== id));
+      } else {
+        console.error("Failed to delete letter from backend");
+      }
+    } catch (err) {
+      console.error("Error deleting letter:", err);
+    }
   };
 
   const filteredLetters = letters.filter(
@@ -76,49 +115,53 @@ export default function ArchivePage() {
 
         {/* Archive List */}
         <div className="flex flex-col">
-          {filteredLetters.map((item) => (
-            <div
-              key={item.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-white border border-stone-800 rounded-none -mt-px first:mt-0 font-serif text-base"
-            >
-              {/* Item Details */}
-              <div className="flex items-center gap-1 text-stone-900">
-                <span className="font-sans font-normal text-stone-900">
-                  @{item.username},
-                </span>{" "}
-                <span className="font-serif font-semibold text-stone-900">
-                  {item.title},
-                </span>{" "}
-                <span className="font-serif font-semibold text-stone-900">
-                  {item.date}
-                </span>
-              </div>
-
-              {/* Action Buttons & Status Dot */}
-              <div className="flex items-center gap-3 mt-2 sm:mt-0 self-end sm:self-center">
-                {/* Green Status Dot */}
-                <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shrink-0" />
-
-                {/* See Button */}
-                <button
-                  onClick={() => console.log("See letter", item.id)}
-                  className="px-4 py-1 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 font-serif text-base transition-colors"
-                >
-                  See
-                </button>
-
-                {/* Remove Button */}
-                <button
-                  onClick={() => handleRemove(item.id)}
-                  className="px-3 py-1 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 font-serif text-base transition-colors"
-                >
-                  Remove
-                </button>
-              </div>
+          {loading ? (
+            <div className="text-center py-12 text-stone-500 font-serif text-lg">
+              Loading archived letters...
             </div>
-          ))}
+          ) : filteredLetters.length > 0 ? (
+            filteredLetters.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-white border border-stone-800 rounded-none -mt-px first:mt-0 font-serif text-base"
+              >
+                {/* Item Details */}
+                <div className="flex items-center gap-1 text-stone-900">
+                  <span className="font-sans font-normal text-stone-900">
+                    @{item.username},
+                  </span>{" "}
+                  <span className="font-serif font-semibold text-stone-900">
+                    {item.title},
+                  </span>{" "}
+                  <span className="font-serif font-semibold text-stone-900">
+                    {item.date}
+                  </span>
+                </div>
 
-          {filteredLetters.length === 0 && (
+                {/* Action Buttons & Status Dot */}
+                <div className="flex items-center gap-3 mt-2 sm:mt-0 self-end sm:self-center">
+                  {/* Green Status Dot */}
+                  <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shrink-0" />
+
+                  {/* See Button */}
+                  <button
+                    onClick={() => router.push(`/admin/templates/preview/${item.id}`)}
+                    className="px-4 py-1 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 font-serif text-base transition-colors"
+                  >
+                    See
+                  </button>
+
+                  {/* Remove Button */}
+                  <button
+                    onClick={() => handleRemove(item.id)}
+                    className="px-3 py-1 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 font-serif text-base transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
             <div className="text-center py-12 text-stone-500 font-serif text-lg">
               No archived letters found.
             </div>

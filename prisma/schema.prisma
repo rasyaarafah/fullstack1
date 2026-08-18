@@ -19,13 +19,15 @@ model User {
 }
 
 model Letter {
-  id           String   @id @default(uuid())
-  letterNumber String?
-  recipient    String
-  subject      String?
-  body         String   @db.Text
-  status       String   @default("PENDING")
-  authorId     Int
-  author       User     @relation(fields: [authorId], references: [id])
-  createdAt    DateTime @default(now())
+  id              String   @id @default(uuid())
+  title           String   // e.g., "Surat Undangan Rapat Orang Tua"
+  letterNumber    String?  // Optional until approved by Admin
+  recipient       String
+  subject         String?
+  body            String   @db.Text
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason String?  @db.Text
+  authorId        Int
+  author          User     @relation(fields: [authorId], references: [id])
+  createdAt       DateTime @default(now())
 }

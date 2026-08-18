@@ -19,7 +19,8 @@ interface LetterFormEditorProps {
   onChange: (updatedData: LetterFormData) => void;
   onSubmitForApproval: () => void;
   onSaveDraft?: () => void;
-  onSelectTemplatePreset?: (templateId: string) => void;
+  onSelectTemplatePreset?: (templateTitle: string) => void;
+  isSubmitting?: boolean;
 }
 
 export const LetterFormEditor = ({
@@ -28,6 +29,7 @@ export const LetterFormEditor = ({
   onSubmitForApproval,
   onSaveDraft,
   onSelectTemplatePreset,
+  isSubmitting = false,
 }: LetterFormEditorProps) => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -74,7 +76,9 @@ export const LetterFormEditor = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmitForApproval();
+    if (!isSubmitting) {
+      onSubmitForApproval();
+    }
   };
 
   return (
@@ -86,16 +90,21 @@ export const LetterFormEditor = ({
             Ganti Template Cepat (Isi Otomatis)
           </label>
           <select
-            onChange={(e) => onSelectTemplatePreset(e.target.value)}
-            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) {
+                onSelectTemplatePreset(e.target.value);
+              }
+            }}
+            value=""
             className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+            disabled={isSubmitting}
           >
             <option value="" disabled>-- Pilih Preset Template --</option>
-            <option value="1">Surat Undangan</option>
-            <option value="2">Surat Tugas</option>
-            <option value="3">Surat Keterangan</option>
-            <option value="4">Surat Keputusan</option>
-            <option value="5">Surat Pemberitahuan</option>
+            <option value="Surat Undangan">Surat Undangan</option>
+            <option value="Surat Tugas">Surat Tugas</option>
+            <option value="Surat Keterangan">Surat Keterangan</option>
+            <option value="Surat Keputusan">Surat Keputusan</option>
+            <option value="Surat Pemberitahuan">Surat Pemberitahuan</option>
           </select>
         </div>
       )}
@@ -111,9 +120,10 @@ export const LetterFormEditor = ({
             <span className="text-[11px] text-stone-600 font-medium">Logo Kiri</span>
             <select
               name="leftLogo"
-              value={formData.leftLogo || "/logo_letris.png"}
+              value={formData.leftLogo ?? "/logo_letris.png"}
               onChange={handleChange}
-              className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+              disabled={isSubmitting}
+              className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 disabled:opacity-50"
             >
               <option value="/logo_letris.png">SMK Letris Indonesia 2</option>
               <option value="/logo_letris_kesehatan.png">SMK Letris Kesehatan</option>
@@ -126,9 +136,10 @@ export const LetterFormEditor = ({
             <span className="text-[11px] text-stone-600 font-medium">Logo Kanan</span>
             <select
               name="rightLogo"
-              value={formData.rightLogo || "/logo_banten.png"}
+              value={formData.rightLogo ?? "/logo_banten.png"}
               onChange={handleChange}
-              className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+              disabled={isSubmitting}
+              className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 disabled:opacity-50"
             >
               <option value="/logo_banten.png">Provinsi Banten</option>
               <option value="/logo_tangsel.png">Kota Tangerang Selatan</option>
@@ -150,8 +161,9 @@ export const LetterFormEditor = ({
           value={formData.institutionName}
           onChange={handleChange}
           placeholder="e.g. Guru Mata Pelajaran Matematika"
-          className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
+          className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white disabled:bg-stone-100"
           required
+          disabled={isSubmitting}
         />
         <p className="text-[11px] text-stone-500">Isi dengan nama jabatan atau unit penanggung jawab surat.</p>
       </div>
@@ -168,8 +180,9 @@ export const LetterFormEditor = ({
           value={formData.letterNumber}
           onChange={handleChange}
           placeholder="e.g. 001/UND/SMK-2/2026"
-          className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
+          className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white disabled:bg-stone-100"
           required
+          disabled={isSubmitting}
         />
         <p className="text-[11px] text-stone-500">Format standar: [No]/[KODE]/SMK-2/[TAHUN]</p>
       </div>
@@ -184,8 +197,9 @@ export const LetterFormEditor = ({
           name="date"
           value={formData.date}
           onChange={handleChange}
-          className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
+          className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white disabled:bg-stone-100"
           required
+          disabled={isSubmitting}
         />
       </div>
 
@@ -200,8 +214,9 @@ export const LetterFormEditor = ({
           value={formData.recipient}
           onChange={handleChange}
           placeholder="e.g. Orang Tua / Wali Murid Kelas X"
-          className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
+          className="w-full px-4 py-2.5 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white disabled:bg-stone-100"
           required
+          disabled={isSubmitting}
         />
       </div>
 
@@ -216,8 +231,9 @@ export const LetterFormEditor = ({
           value={formData.body}
           onChange={handleChange}
           placeholder="Tuliskan rincian kegiatan atau permohonan surat di sini..."
-          className="w-full px-4 py-3 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white resize-none"
+          className="w-full px-4 py-3 rounded-2xl border border-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white resize-none disabled:bg-stone-100"
           required
+          disabled={isSubmitting}
         />
       </div>
 
@@ -231,7 +247,8 @@ export const LetterFormEditor = ({
           type="file"
           accept="image/*"
           onChange={handleImageChange}
-          className="text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer"
+          disabled={isSubmitting}
+          className="text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer disabled:opacity-50"
         />
 
         {formData.attachmentUrl && (
@@ -240,7 +257,8 @@ export const LetterFormEditor = ({
             <button
               type="button"
               onClick={handleRemoveImage}
-              className="text-xs text-red-600 hover:text-red-800 font-medium underline"
+              disabled={isSubmitting}
+              className="text-xs text-red-600 hover:text-red-800 font-medium underline disabled:opacity-50"
             >
               Hapus Gambar
             </button>
@@ -252,22 +270,24 @@ export const LetterFormEditor = ({
       <div className="flex flex-col gap-2.5 mt-2">
         <button
           type="submit"
-          className="w-full py-3 px-4 rounded-2xl bg-[#0A4D3C] border border-black text-white font-serif text-sm font-semibold hover:bg-[#07382c] transition-colors shadow-sm flex items-center justify-center gap-2"
+          disabled={isSubmitting}
+          className="w-full py-3 px-4 rounded-2xl bg-[#0A4D3C] border border-black text-white font-serif text-sm font-semibold hover:bg-[#07382c] transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span>Kirim untuk Persetujuan Admin</span>
-          <span>→</span>
+          <span>{isSubmitting ? "Memproses..." : "Kirim untuk Persetujuan Admin"}</span>
+          {!isSubmitting && <span>→</span>}
         </button>
 
         {onSaveDraft && (
           <button
             type="button"
             onClick={onSaveDraft}
-            className="w-full py-2.5 px-4 rounded-2xl bg-[#FDF8F5] border border-black text-black font-serif text-sm font-semibold hover:bg-stone-100 transition-colors shadow-sm"
+            disabled={isSubmitting}
+            className="w-full py-2.5 px-4 rounded-2xl bg-[#FDF8F5] border border-black text-black font-serif text-sm font-semibold hover:bg-stone-100 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Simpan Draf Ke Memori Browser
+            {isSubmitting ? "Memproses..." : "Simpan Sebagai Draf"}
           </button>
         )}
       </div>
     </form>
   );
-};
+};``

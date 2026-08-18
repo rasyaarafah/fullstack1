@@ -74,6 +74,7 @@ function NewLetterContent() {
   const templateQuery = searchParams.get("template");
 
   const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [leftLogo, setLeftLogo] = useState<string>(LOGO_OPTIONS_LEFT[0].value);
   const [rightLogo, setRightLogo] = useState<string>(LOGO_OPTIONS_RIGHT[0].value);
@@ -87,13 +88,12 @@ function NewLetterContent() {
     body: TEMPLATE_PRESETS["Surat Undangan"].body,
   });
 
- const navItems = [
+  const navItems = [
     { label: "Overview", href: "/teacher", isActive: false },
     { label: "New letter", href: "/teacher/new-letter", isActive: true },
     { label: "History", href: "/teacher/history", isActive: false },
     { label: "Pending", href: "/teacher/pending", isActive: false },
   ];
-  
 
   const mockUser = {
     name: "Teacher",
@@ -140,9 +140,40 @@ function NewLetterContent() {
     }
   }, [templateQuery]);
 
-  const handleSubmitForApproval = () => {
-    alert("Surat berhasil dikirim ke Admin untuk diperiksa dan ditandatangani!");
-    router.push("/pending");
+  const handleSaveLetter = async (status: "PENDING" | "DRAFT") => {
+    try {
+      setIsSubmitting(true);
+      const res = await fetch("/api/letters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: selectedTemplate?.title || letterData.subject || "Surat",
+          letterNumber: letterData.letterNumber,
+          recipient: letterData.recipient,
+          subject: letterData.subject,
+          body: letterData.body,
+          status,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Gagal menyimpan surat.");
+      }
+
+      if (status === "PENDING") {
+        alert("Surat berhasil dikirim ke Admin untuk diperiksa dan ditandatangani!");
+        router.push("/teacher/pending");
+      } else {
+        alert("Draf surat berhasil disimpan!");
+        router.push("/teacher/history");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Terjadi kesalahan saat menyimpan surat.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleExportDocx = async () => {
@@ -420,8 +451,9 @@ function NewLetterContent() {
                   onChange={(updatedData) =>
                     setLetterData((prev) => ({ ...prev, ...updatedData }))
                   }
-                  onSubmitForApproval={handleSubmitForApproval}
-                  onSaveDraft={() => alert("Draf surat berhasil disimpan!")}
+                  onSubmitForApproval={() => handleSaveLetter("PENDING")}
+                  onSaveDraft={() => handleSaveLetter("DRAFT")}
+                  isSubmitting={isSubmitting}
                 />
               </div>
 

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 
 interface PendingLetter {
-  id: number;
+  id: string; // Database IDs are strings (UUIDs)
   username: string;
   title: string;
   date: string;
@@ -15,7 +15,7 @@ const PendingLetterRow = ({
   onActionSelect,
 }: {
   item: PendingLetter;
-  onActionSelect: (action: string, id: number) => void;
+  onActionSelect: (action: string, id: string) => void;
 }) => {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
 
@@ -34,7 +34,7 @@ const PendingLetterRow = ({
         </span>
       </div>
 
-      {/* Right: Orange Dot + Buttons */}
+      {/* Right: Status Dot + Buttons */}
       <div className="flex items-center gap-3 mt-2 sm:mt-0 self-end sm:self-center">
         {/* Status Dot */}
         <span className="w-3.5 h-3.5 rounded-full bg-orange-500 shrink-0" />
@@ -95,6 +95,9 @@ const PendingLetterRow = ({
 };
 
 export default function PendingApprovalsPage() {
+  const [letters, setLetters] = useState<PendingLetter[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const adminNavItems = [
     { label: "Overview", href: "/admin" },
     { label: "Pending Approval", href: "/admin/pending", isActive: true },
@@ -105,24 +108,70 @@ export default function PendingApprovalsPage() {
 
   const adminToolsItems = [
     { label: "Edit template", href: "/admin/templates/edit" },
-    { label: "Add template", href: "/admin/templates/new" }, // FIXED ROUTE HERE
+    { label: "Add template", href: "/admin/templates/new" },
     { label: "Broadcast notice", href: "/admin/notice" },
   ];
 
-  const initialPendingList: PendingLetter[] = [
-    { id: 1, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026" },
-    { id: 2, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026" },
-    { id: 3, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026" },
-    { id: 4, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026" },
-    { id: 5, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026" },
-    { id: 6, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026" },
-    { id: 7, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026" },
-    { id: 8, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026" },
-    { id: 9, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026" },
-  ];
+  // Fetch pending letters from MySQL API
+  const fetchPendingLetters = async () => {
+    try {
+      const res = await fetch("/api/letters?status=PENDING");
+      if (res.ok) {
+        const data = await res.json();
+        const formatted = data.map((item: any) => ({
+          id: item.id,
+          username: item.author?.name || "user",
+          title: item.title,
+          date: new Date(item.createdAt).toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric",
+          }),
+        }));
+        setLetters(formatted);
+      }
+    } catch (err) {
+      console.error("Failed to load pending letters", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleActionSelect = (action: string, id: number) => {
-    console.log(`Action triggered: ${action} for letter ID: ${id}`);
+  useEffect(() => {
+    fetchPendingLetters();
+  }, []);
+
+  // Handle dropdown actions
+  const handleActionSelect = async (action: string, id: string) => {
+    if (action === "View") {
+      // Navigate to preview/review page or show modal
+      window.location.href = `/admin/templates/preview/${id}`;
+      return;
+    }
+
+    let targetStatus = "";
+    if (action === "Approve") targetStatus = "APPROVED";
+    if (action === "Reject") targetStatus = "REJECTED";
+    if (action === "Revise") targetStatus = "REVISE";
+
+    if (!targetStatus) return;
+
+    try {
+      const res = await fetch(`/api/letters/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: targetStatus }),
+      });
+
+      if (res.ok) {
+        // Refetch updated list from DB
+        fetchPendingLetters();
+      } else {
+        alert("Failed to update status.");
+      }
+    } catch (err) {
+      console.error("Action error:", err);
+    }
   };
 
   return (
@@ -143,19 +192,30 @@ export default function PendingApprovalsPage() {
         {/* Page Title */}
         <div>
           <h2 className="text-2xl sm:text-3xl font-sans text-stone-900">
-            <span className="font-bold">{initialPendingList.length}</span> Letters waiting to be approved
+            <span className="font-bold">{letters.length}</span> Letters waiting
+            to be approved
           </h2>
         </div>
 
         {/* Letters List */}
         <div className="flex flex-col">
-          {initialPendingList.map((item) => (
-            <PendingLetterRow
-              key={item.id}
-              item={item}
-              onActionSelect={handleActionSelect}
-            />
-          ))}
+          {loading ? (
+            <p className="py-8 text-center text-stone-400 font-serif">
+              Loading pending letters...
+            </p>
+          ) : letters.length > 0 ? (
+            letters.map((item) => (
+              <PendingLetterRow
+                key={item.id}
+                item={item}
+                onActionSelect={handleActionSelect}
+              />
+            ))
+          ) : (
+            <p className="py-8 text-center text-stone-500 font-serif border border-stone-800">
+              No letters currently waiting for approval.
+            </p>
+          )}
         </div>
       </div>
     </DashboardLayout>

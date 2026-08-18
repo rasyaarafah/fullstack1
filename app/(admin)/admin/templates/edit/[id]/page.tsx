@@ -1,13 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 
 export default function TemplateEditorPage() {
   const params = useParams();
-  const templateId = params.id as string;
+  const router = useRouter();
+  const templateId = params?.id as string;
+
+  // Track currently active input/textarea for inserting variables
+  const [activeInput, setActiveInput] = useState<{
+    setter: React.Dispatch<React.SetStateAction<string>>;
+    value: string;
+  } | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // Active View Tab on Mobile (form vs preview)
   const [activeTab, setActiveTab] = useState<"form" | "preview">("form");
@@ -76,6 +86,114 @@ export default function TemplateEditorPage() {
     "{waktu}",
     "{nama_kepala_sekolah}",
   ];
+
+  // Fetch initial template data if templateId exists
+  useEffect(() => {
+    if (!templateId) {
+      setLoading(false);
+      return;
+    }
+
+    async function fetchTemplate() {
+      try {
+        const res = await fetch(`/api/templates/${templateId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.yayasan) setYayasan(data.yayasan);
+          if (data.schoolName) setSchoolName(data.schoolName);
+          if (data.npsnNss) setNpsnNss(data.npsnNss);
+          if (data.akreditasi) setAkreditasi(data.akreditasi);
+          if (data.jurusan) setJurusan(data.jurusan);
+          if (data.address) setAddress(data.address);
+          if (data.website) setWebsite(data.website);
+          if (data.cityDate) setCityDate(data.cityDate);
+          if (data.nomor) setNomor(data.nomor);
+          if (data.perihal) setPerihal(data.perihal);
+          if (data.recipient) setRecipient(data.recipient);
+          if (data.openingText) setOpeningText(data.openingText);
+          if (data.closingText) setClosingText(data.closingText);
+          if (data.eventDay) setEventDay(data.eventDay);
+          if (data.eventTime) setEventTime(data.eventTime);
+          if (data.eventLocation) setEventLocation(data.eventLocation);
+          if (data.signerTitle) setSignerTitle(data.signerTitle);
+          if (data.signerName) setSignerName(data.signerName);
+        }
+      } catch (err) {
+        console.error("Failed to fetch template details:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchTemplate();
+  }, [templateId]);
+
+  // Insert variable into selected input box
+  const handleInsertVariable = (variableStr: string) => {
+    if (activeInput) {
+      activeInput.setter(activeInput.value + " " + variableStr);
+    }
+  };
+
+  // Save template via PUT/POST API
+  const handleSave = async () => {
+    setSaving(true);
+    const payload = {
+      yayasan,
+      schoolName,
+      npsnNss,
+      akreditasi,
+      jurusan,
+      address,
+      website,
+      cityDate,
+      nomor,
+      perihal,
+      recipient,
+      openingText,
+      closingText,
+      eventDay,
+      eventTime,
+      eventLocation,
+      signerTitle,
+      signerName,
+    };
+
+    try {
+      const url = templateId
+        ? `/api/templates/${templateId}`
+        : "/api/templates";
+      const method = templateId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        alert("Template saved successfully!");
+        router.push("/admin/templates/edit");
+      } else {
+        alert("Failed to save template.");
+      }
+    } catch (err) {
+      console.error("Error saving template:", err);
+      alert("An error occurred while saving.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout navItems={adminNavItems} adminTools={adminToolsItems}>
+        <div className="py-20 text-center font-serif text-stone-600">
+          Loading template editor...
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout navItems={adminNavItems} adminTools={adminToolsItems}>
@@ -167,26 +285,29 @@ export default function TemplateEditorPage() {
             </Link>
 
             <button
-              onClick={() => alert("Template saved successfully!")}
-              className="px-3 py-1.5 bg-stone-900 text-white rounded-lg font-serif text-xs sm:text-sm hover:bg-stone-800 transition-colors"
+              onClick={handleSave}
+              disabled={saving}
+              className="px-3 py-1.5 bg-stone-900 text-white rounded-lg font-serif text-xs sm:text-sm hover:bg-stone-800 transition-colors disabled:opacity-50"
             >
-              Save
+              {saving ? "Saving..." : "Save"}
             </button>
           </div>
         </div>
 
-        {/* Dynamic Variable Pills */}
+        {/* Dynamic Variable Pills (Clickable to append to focused input) */}
         <div className="bg-stone-50 p-2.5 border border-stone-300 rounded-xl flex items-center gap-2 overflow-x-auto no-print">
           <span className="font-serif text-xs font-semibold text-stone-700 whitespace-nowrap">
-            Variables:
+            Click variable to insert:
           </span>
           {availableVariables.map((v) => (
-            <span
+            <button
               key={v}
-              className="px-2 py-0.5 text-xs font-mono bg-white border border-stone-400 rounded text-stone-800 shrink-0"
+              type="button"
+              onClick={() => handleInsertVariable(v)}
+              className="px-2 py-0.5 text-xs font-mono bg-white border border-stone-400 rounded text-stone-800 shrink-0 hover:bg-stone-200 active:scale-95 transition-all cursor-pointer"
             >
               {v}
-            </span>
+            </button>
           ))}
         </div>
 
@@ -238,8 +359,9 @@ export default function TemplateEditorPage() {
                 <input
                   type="text"
                   value={yayasan}
+                  onFocus={() => setActiveInput({ setter: setYayasan, value: yayasan })}
                   onChange={(e) => setYayasan(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div>
@@ -249,8 +371,9 @@ export default function TemplateEditorPage() {
                 <input
                   type="text"
                   value={schoolName}
+                  onFocus={() => setActiveInput({ setter: setSchoolName, value: schoolName })}
                   onChange={(e) => setSchoolName(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs font-bold"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs font-bold focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -261,8 +384,9 @@ export default function TemplateEditorPage() {
                   <input
                     type="text"
                     value={npsnNss}
+                    onFocus={() => setActiveInput({ setter: setNpsnNss, value: npsnNss })}
                     onChange={(e) => setNpsnNss(e.target.value)}
-                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -272,8 +396,9 @@ export default function TemplateEditorPage() {
                   <input
                     type="text"
                     value={akreditasi}
+                    onFocus={() => setActiveInput({ setter: setAkreditasi, value: akreditasi })}
                     onChange={(e) => setAkreditasi(e.target.value)}
-                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
               </div>
@@ -284,8 +409,9 @@ export default function TemplateEditorPage() {
                 <textarea
                   rows={2}
                   value={jurusan}
+                  onFocus={() => setActiveInput({ setter: setJurusan, value: jurusan })}
                   onChange={(e) => setJurusan(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div>
@@ -295,8 +421,9 @@ export default function TemplateEditorPage() {
                 <textarea
                   rows={2}
                   value={address}
+                  onFocus={() => setActiveInput({ setter: setAddress, value: address })}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
             </div>
@@ -314,8 +441,9 @@ export default function TemplateEditorPage() {
                   <input
                     type="text"
                     value={nomor}
+                    onFocus={() => setActiveInput({ setter: setNomor, value: nomor })}
                     onChange={(e) => setNomor(e.target.value)}
-                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -325,8 +453,9 @@ export default function TemplateEditorPage() {
                   <input
                     type="text"
                     value={cityDate}
+                    onFocus={() => setActiveInput({ setter: setCityDate, value: cityDate })}
                     onChange={(e) => setCityDate(e.target.value)}
-                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
               </div>
@@ -337,8 +466,9 @@ export default function TemplateEditorPage() {
                 <input
                   type="text"
                   value={perihal}
+                  onFocus={() => setActiveInput({ setter: setPerihal, value: perihal })}
                   onChange={(e) => setPerihal(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div>
@@ -348,8 +478,9 @@ export default function TemplateEditorPage() {
                 <textarea
                   rows={2}
                   value={recipient}
+                  onFocus={() => setActiveInput({ setter: setRecipient, value: recipient })}
                   onChange={(e) => setRecipient(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
             </div>
@@ -366,8 +497,9 @@ export default function TemplateEditorPage() {
                 <textarea
                   rows={4}
                   value={openingText}
+                  onFocus={() => setActiveInput({ setter: setOpeningText, value: openingText })}
                   onChange={(e) => setOpeningText(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs leading-relaxed"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs leading-relaxed focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div>
@@ -377,8 +509,9 @@ export default function TemplateEditorPage() {
                 <textarea
                   rows={3}
                   value={closingText}
+                  onFocus={() => setActiveInput({ setter: setClosingText, value: closingText })}
                   onChange={(e) => setClosingText(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs leading-relaxed"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs leading-relaxed focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
             </div>
@@ -395,8 +528,9 @@ export default function TemplateEditorPage() {
                 <input
                   type="text"
                   value={eventDay}
+                  onFocus={() => setActiveInput({ setter: setEventDay, value: eventDay })}
                   onChange={(e) => setEventDay(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -407,8 +541,9 @@ export default function TemplateEditorPage() {
                   <input
                     type="text"
                     value={eventTime}
+                    onFocus={() => setActiveInput({ setter: setEventTime, value: eventTime })}
                     onChange={(e) => setEventTime(e.target.value)}
-                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -418,8 +553,9 @@ export default function TemplateEditorPage() {
                   <input
                     type="text"
                     value={eventLocation}
+                    onFocus={() => setActiveInput({ setter: setEventLocation, value: eventLocation })}
                     onChange={(e) => setEventLocation(e.target.value)}
-                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                    className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
               </div>
@@ -437,8 +573,9 @@ export default function TemplateEditorPage() {
                 <input
                   type="text"
                   value={signerTitle}
+                  onFocus={() => setActiveInput({ setter: setSignerTitle, value: signerTitle })}
                   onChange={(e) => setSignerTitle(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div>
@@ -448,14 +585,15 @@ export default function TemplateEditorPage() {
                 <input
                   type="text"
                   value={signerName}
+                  onFocus={() => setActiveInput({ setter: setSignerName, value: signerName })}
                   onChange={(e) => setSignerName(e.target.value)}
-                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs font-bold"
+                  className="w-full p-2 border border-stone-300 rounded font-serif text-xs font-bold focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
             </div>
           </div>
 
-          {/* Clean Preview Wrapper (No CSS Scale Bugs) */}
+          {/* Clean Preview Wrapper */}
           <div
             className={`xl:col-span-7 bg-stone-200 p-2 sm:p-4 rounded-xl border border-stone-800 w-full xl:max-h-[85vh] xl:overflow-y-auto ${
               activeTab === "preview" ? "block" : "hidden xl:block"
