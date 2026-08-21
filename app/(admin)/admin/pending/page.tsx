@@ -113,31 +113,37 @@ export default function PendingApprovalsPage() {
   ];
 
   // Fetch pending letters from MySQL API
-  const fetchPendingLetters = async () => {
-    try {
-      const res = await fetch("/api/letters?status=PENDING");
-      if (res.ok) {
-        const data = await res.json();
-        const formatted = data.map((item: any) => ({
-          id: item.id,
-          username: item.author?.name || "user",
-          title: item.title,
-          date: new Date(item.createdAt).toLocaleDateString("en-US", {
-            month: "2-digit",
-            day: "2-digit",
-            year: "numeric",
-          }),
-        }));
-        setLetters(formatted);
-      } else {
-        console.error("Failed to load pending letters");
-      }
-    } catch (err) {
-      console.error("Failed to load pending letters", err);
-    } finally {
-      setLoading(false);
+// Replace lines 83–102 with this updated fetch block:
+const fetchPendingLetters = async () => {
+  try {
+    // 1. Added cache: "no-store" and timestamp cache-buster to enforce fresh server requests
+    const res = await fetch(`/api/letters?status=PENDING&t=${Date.now()}`, {
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const formatted = data.map((item: any) => ({
+        id: item.id,
+        // 2. Updated fallback hierarchy for username
+        username: item.author?.email?.split("@")[0] || item.author?.name || "Teacher",
+        title: item.title,
+        date: new Date(item.createdAt).toLocaleDateString("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          year: "numeric",
+        }),
+      }));
+      setLetters(formatted);
+    } else {
+      console.error("Failed to load pending letters");
     }
-  };
+  } catch (err) {
+    console.error("Failed to load pending letters", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchPendingLetters();

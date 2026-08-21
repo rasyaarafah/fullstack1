@@ -7,7 +7,7 @@ interface LetterRowItemProps {
     username: string;
     date: string;
     statusText?: string;
-    status: "approved" | "pending" | "rejected";
+    status: "approved" | "pending" | "rejected" |"revise";
     onSee?: () => void;
     onEdit?: () => void;
     onCancel?: () => void;

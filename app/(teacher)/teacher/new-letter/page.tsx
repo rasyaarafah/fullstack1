@@ -141,40 +141,41 @@ function NewLetterContent() {
   }, [templateQuery]);
 
   const handleSaveLetter = async (status: "PENDING" | "DRAFT") => {
-    try {
-      setIsSubmitting(true);
-      const res = await fetch("/api/letters", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: selectedTemplate?.title || letterData.subject || "Surat",
-          letterNumber: letterData.letterNumber,
-          recipient: letterData.recipient,
-          subject: letterData.subject,
-          body: letterData.body,
-          status,
-        }),
-      });
+  try {
+    setIsSubmitting(true);
+    const res = await fetch("/api/letters", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: selectedTemplate?.title || letterData.subject || "Surat",
+        letterNumber: letterData.letterNumber,
+        recipient: letterData.recipient,
+        subject: letterData.subject,
+        body: letterData.body,
+        status: status,
+        createdByRole: "TEACHER", // Pass role explicitly if required by your backend API
+      }),
+    });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Gagal menyimpan surat.");
-      }
-
-      if (status === "PENDING") {
-        alert("Surat berhasil dikirim ke Admin untuk diperiksa dan ditandatangani!");
-        router.push("/teacher/pending");
-      } else {
-        alert("Draf surat berhasil disimpan!");
-        router.push("/teacher/history");
-      }
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || "Terjadi kesalahan saat menyimpan surat.");
-    } finally {
-      setIsSubmitting(false);
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || "Gagal menyimpan surat.");
     }
-  };
+
+    if (status === "PENDING") {
+      alert("Surat berhasil dikirim ke Admin untuk diperiksa dan ditandatangani!");
+      router.push("/teacher/pending");
+    } else {
+      alert("Draf surat berhasil disimpan!");
+      router.push("/teacher/history");
+    }
+  } catch (err: any) {
+    console.error(err);
+    alert(err.message || "Terjadi kesalahan saat menyimpan surat.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleExportDocx = async () => {
     const formattedBody = letterData.body ? letterData.body.replace(/\n/g, "<br/>") : "";

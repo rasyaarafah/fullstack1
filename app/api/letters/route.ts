@@ -1,22 +1,31 @@
+// app/api/letters/route.ts
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// 1. Handle GET requests (Fetch letters, with optional status filtering)
+// 1. Handle GET requests (Fetch letters, supporting single or comma-separated statuses)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const statusFilter = searchParams.get('status');
 
-    // Filter by status if provided in the URL query (?status=PENDING)
-    const whereClause = statusFilter ? { status: statusFilter.toUpperCase() } : {};
+    let whereClause = {};
+
+    if (statusFilter) {
+      // Splits "PENDING,REJECTED,REVISE" into ["PENDING", "REJECTED", "REVISE"]
+      const statuses = statusFilter.split(',').map((s) => s.trim().toUpperCase());
+      whereClause = {
+        status: { in: statuses },
+      };
+    }
 
     const letters = await prisma.letter.findMany({
       where: whereClause,
+      orderBy: { createdAt: 'desc' },
       include: {
-        author: true, // Pulls in the user relation so you can see who made it
+        author: true,
       },
     });
-    
+
     return NextResponse.json(letters, { status: 200 });
   } catch (error) {
     console.error('Error fetching letters:', error);
@@ -42,19 +51,24 @@ export async function POST(request: Request) {
 
     let authorId: number | null = null;
 
-    // 1. Try finding user by email sent from frontend payload
     if (userEmail) {
       const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
       if (dbUser) authorId = dbUser.id;
     }
 
-    // 2. If not found, try getting user info from cookies or fallback gracefully
     if (!authorId) {
-      const activeUser = await prisma.user.findFirst({
-        where: { NOT: { name: { contains: "Ahmad" } } }
-      });
-      authorId = activeUser ? activeUser.id : 1;
-    }
+  const defaultUser = await prisma.user.findFirst({
+    where: createdByRole === "TEACHER" ? { role: "TEACHER" } : {},
+  });
+  
+  if (!defaultUser) {
+    return NextResponse.json(
+      { error: "No valid author user found to assign this letter to." },
+      { status: 400 }
+    );
+  }
+  authorId = defaultUser.id;
+}
 
     const finalStatus = createdByRole === "ADMIN" 
       ? "APPROVED" 

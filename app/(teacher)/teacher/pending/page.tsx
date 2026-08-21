@@ -29,6 +29,7 @@ export default function PendingPage() {
   const mockUser = {
     name: "Teacher",
     username: "teacher_dev",
+    email: "teacher@gmail.com",
     avatarUrl: "",
     role: "teacher",
   };
@@ -36,11 +37,27 @@ export default function PendingPage() {
   useEffect(() => {
     async function fetchPendingLetters() {
       try {
-        // Fetch both PENDING and REJECTED status letters
-        const res = await fetch("/api/letters?status=PENDING,REJECTED");
+        // Fetch both PENDING and REJECTED statuses in a single request using your API's comma-separated filter
+        const res = await fetch(`/api/letters?status=PENDING,REJECTED&t=${Date.now()}`, {
+          cache: "no-store",
+        });
+
         if (res.ok) {
-          const data = await res.json();
-          setLetters(data);
+          const data: Letter[] = await res.json();
+
+          // Filter by active teacher email (or fallback if author relation is null)
+          const teacherLetters = data.filter(
+            (item) => !item.author?.email || item.author?.email === mockUser.email
+          );
+
+          // Sort newest first
+          teacherLetters.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+
+          setLetters(teacherLetters);
+        } else {
+          console.error("Failed to load letters from API");
         }
       } catch (err) {
         console.error("Failed to fetch pending letters", err);
@@ -48,6 +65,7 @@ export default function PendingPage() {
         setLoading(false);
       }
     }
+
     fetchPendingLetters();
   }, []);
 
@@ -96,25 +114,30 @@ export default function PendingPage() {
               Loading letters...
             </div>
           ) : letters.length > 0 ? (
-            letters.map((item) => (
-              <LetterRowItem
-                key={item.id}
-                title={item.title}
-                username={item.author?.name || "user"}
-                date={new Date(item.createdAt).toLocaleDateString("en-US", {
-                  month: "2-digit",
-                  day: "2-digit",
-                  year: "numeric",
-                })}
-                status={item.status.toLowerCase() as "pending" | "rejected"}
-                onSee={() => console.log("See", item.id)}
-                onEdit={() => console.log("Edit", item.id)}
-                onCancel={() => console.log("Cancel", item.id)}
-              />
-            ))
+            letters.map((item) => {
+              const formattedStatus = item.status.toLowerCase();
+              const validStatus = (formattedStatus === "rejected" ? "rejected" : "pending") as "pending" | "rejected";
+
+              return (
+                <LetterRowItem
+                  key={item.id}
+                  title={item.title}
+                  username={mockUser.name} // or mockUser.name
+                  date={new Date(item.createdAt).toLocaleDateString("en-US", {
+                    month: "2-digit",
+                    day: "2-digit",
+                    year: "numeric",
+                  })}
+                  status={validStatus}
+                  onSee={() => (window.location.href = `/teacher/preview/${item.id}`)}
+                  onEdit={() => (window.location.href = `/teacher/edit/${item.id}`)}
+                  onCancel={() => console.log("Cancel", item.id)}
+                />
+              );
+            })
           ) : (
             <div className="text-center py-12 text-stone-400 font-sans text-sm">
-              No pending letters found.
+              No pending or rejected letters found.
             </div>
           )}
         </div>

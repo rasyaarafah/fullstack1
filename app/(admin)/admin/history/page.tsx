@@ -43,7 +43,7 @@ export default function ArchivePage() {
           const rawData = await res.json();
           const formatted: ArchiveLetter[] = rawData.map((item: any) => ({
             id: item.id,
-            username: item.author?.name || "Admin",
+            username: item.author?.email || "admin@example.com",
             title: item.title,
             date: new Date(item.createdAt).toLocaleDateString("en-US", {
               month: "2-digit",
