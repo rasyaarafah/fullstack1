@@ -1,44 +1,37 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextResponse, NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-// GET /api/letters - Fetch letters with flexible filtering
-export async function GET(request: Request) {
+// 1. Handle GET requests (Fetch letters, with optional status filtering)
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
+    const searchParams = request.nextUrl.searchParams;
+    const statusFilter = searchParams.get('status');
 
-    const whereCondition: any = {};
-    if (status) {
-      // Support comma-separated statuses e.g. status=PENDING,REJECTED
-      const statuses = status.split(",").map((s) => s.trim().toUpperCase());
-      whereCondition.status = statuses.length > 1 ? { in: statuses } : statuses[0];
-    }
+    // Filter by status if provided in the URL query (?status=PENDING)
+    const whereClause = statusFilter ? { status: statusFilter.toUpperCase() } : {};
 
     const letters = await prisma.letter.findMany({
-      where: whereCondition,
+      where: whereClause,
       include: {
-        author: {
-          select: { name: true, email: true },
-        },
+        author: true, // Pulls in the user relation so you can see who made it
       },
-      orderBy: { createdAt: "desc" },
     });
-
-    return NextResponse.json(letters);
+    
+    return NextResponse.json(letters, { status: 200 });
   } catch (error) {
-    console.error("Error fetching letters:", error);
+    console.error('Error fetching letters:', error);
     return NextResponse.json(
-      { error: "Gagal mengambil data surat" },
+      { error: 'Gagal mengambil data surat' },
       { status: 500 }
     );
   }
 }
 
-// POST /api/letters - Save a new letter (APPROVED for Admin, PENDING/DRAFT for Teacher)
+// 2. Handle POST requests (Create a letter)
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, letterNumber, recipient, subject, body: letterBody, status, createdByRole } = body;
+    const { title, letterNumber, recipient, subject, body: letterBody, status, createdByRole, userEmail } = body;
 
     if (!title || !recipient || !letterBody) {
       return NextResponse.json(
@@ -47,10 +40,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const firstUser = await prisma.user.findFirst();
-    const authorId = firstUser?.id || 1;
+    let authorId: number | null = null;
 
-    // Admin letters auto-approve directly into history/archive
+    // 1. Try finding user by email sent from frontend payload
+    if (userEmail) {
+      const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
+      if (dbUser) authorId = dbUser.id;
+    }
+
+    // 2. If not found, try getting user info from cookies or fallback gracefully
+    if (!authorId) {
+      const activeUser = await prisma.user.findFirst({
+        where: { NOT: { name: { contains: "Ahmad" } } }
+      });
+      authorId = activeUser ? activeUser.id : 1;
+    }
+
     const finalStatus = createdByRole === "ADMIN" 
       ? "APPROVED" 
       : status 

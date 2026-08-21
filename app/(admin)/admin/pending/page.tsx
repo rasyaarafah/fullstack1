@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 
 interface PendingLetter {
-  id: string; // Database IDs are strings (UUIDs)
+  id: string; // Database IDs are string UUIDs
   username: string;
   title: string;
   date: string;
@@ -129,6 +129,8 @@ export default function PendingApprovalsPage() {
           }),
         }));
         setLetters(formatted);
+      } else {
+        console.error("Failed to load pending letters");
       }
     } catch (err) {
       console.error("Failed to load pending letters", err);
@@ -142,9 +144,11 @@ export default function PendingApprovalsPage() {
   }, []);
 
   // Handle dropdown actions
+  // Handle dropdown actions
   const handleActionSelect = async (action: string, id: string) => {
+    console.log("--> DROPLET CLICKED:", action, "ID:", id);
+
     if (action === "View") {
-      // Navigate to preview/review page or show modal
       window.location.href = `/admin/templates/preview/${id}`;
       return;
     }
@@ -152,21 +156,30 @@ export default function PendingApprovalsPage() {
     let targetStatus = "";
     if (action === "Approve") targetStatus = "APPROVED";
     if (action === "Reject") targetStatus = "REJECTED";
-    if (action === "Revise") targetStatus = "REVISE";
+    if (action === "Revise") targetStatus = "REVISE"; // or "REVISED" depending on your Prisma schema
 
-    if (!targetStatus) return;
+    console.log("--> Target Status Determined:", targetStatus);
+
+    if (!targetStatus) {
+      console.error("--> Error: No target status found for action:", action);
+      return;
+    }
 
     try {
+      console.log("--> Sending PATCH request to:", `/api/letters/${id}`);
       const res = await fetch(`/api/letters/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: targetStatus }),
       });
 
+      console.log("--> PATCH RESPONSE STATUS:", res.status);
+
       if (res.ok) {
-        // Refetch updated list from DB
         fetchPendingLetters();
       } else {
+        const errData = await res.json();
+        console.error("--> Failed payload error:", errData);
         alert("Failed to update status.");
       }
     } catch (err) {

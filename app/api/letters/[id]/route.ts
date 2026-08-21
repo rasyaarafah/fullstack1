@@ -18,6 +18,7 @@ export async function GET(
 
     const letter = await prisma.letter.findUnique({
       where: { id },
+      include: { author: true },
     });
 
     if (!letter) {
@@ -67,6 +68,35 @@ export async function PATCH(
     console.error("Error updating letter status:", error);
     return NextResponse.json(
       { error: "Failed to update letter status" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE remove a letter
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Letter ID is required" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.letter.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ message: "Letter deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting letter:", error);
+    return NextResponse.json(
+      { error: "Failed to delete letter" },
       { status: 500 }
     );
   }

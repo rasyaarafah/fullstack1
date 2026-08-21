@@ -32,16 +32,18 @@ export default function ArchivePage() {
   const [letters, setLetters] = useState<ArchiveLetter[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch only APPROVED letters from DB
+  // Fetch only APPROVED letters from DB without caching
   useEffect(() => {
     async function fetchApprovedLetters() {
       try {
-        const res = await fetch("/api/letters?status=APPROVED");
+        const res = await fetch("/api/letters?status=APPROVED", {
+          cache: "no-store", // Prevents Next.js stale data caching
+        });
         if (res.ok) {
           const rawData = await res.json();
           const formatted: ArchiveLetter[] = rawData.map((item: any) => ({
             id: item.id,
-            username: item.author?.name || "useruseruser",
+            username: item.author?.name || "Admin",
             title: item.title,
             date: new Date(item.createdAt).toLocaleDateString("en-US", {
               month: "2-digit",

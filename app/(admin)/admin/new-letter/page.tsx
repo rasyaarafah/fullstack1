@@ -381,9 +381,35 @@ function AdminNewLetterContent() {
     URL.revokeObjectURL(url);
   };
 
-  const handleSubmitForApproval = () => {
-    alert("Surat berhasil dibuat dan diterbitkan!");
-    router.push("/admin/history");
+ const handleSubmitForApproval = async () => {
+    try {
+      const res = await fetch("/api/letters", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: selectedTemplate?.title || "Surat Baru",
+          letterNumber: letterData.letterNumber,
+          recipient: letterData.recipient,
+          subject: selectedTemplate?.title || "Surat",
+          body: letterData.body,
+          createdByRole: "ADMIN", // Ensures the backend status sets to APPROVED
+          status: "APPROVED",
+        }),
+      });
+
+      if (res.ok) {
+        alert("Surat berhasil dibuat dan diterbitkan!");
+        router.push("/admin/history");
+      } else {
+        const errorData = await res.json();
+        alert(`Gagal membuat surat: ${errorData.error || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error("Error submitting letter:", err);
+      alert("Terjadi kesalahan saat menyimpan surat.");
+    }
   };
 
   return (
