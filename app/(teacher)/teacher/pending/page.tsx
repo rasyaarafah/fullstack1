@@ -47,7 +47,7 @@ export default function PendingPage() {
 
           // Filter by active teacher email (or fallback if author relation is null)
           const teacherLetters = data.filter(
-            (item) => !item.author?.email || item.author?.email === mockUser.email
+            (item) => item.author?.email  === mockUser.email
           );
 
           // Sort newest first

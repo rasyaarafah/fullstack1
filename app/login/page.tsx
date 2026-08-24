@@ -31,6 +31,11 @@ export default function LoginPage() {
         return;
       }
 
+      // Save logged-in user info to localStorage for global client access
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+
       // Redirect based on role
       if (data.user.role === "ADMIN") {
         router.push("/admin"); 

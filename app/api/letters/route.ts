@@ -53,7 +53,10 @@ export async function POST(request: Request) {
 
     if (userEmail) {
       const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
-      if (dbUser) authorId = dbUser.id;
+      if (dbUser)
+         { 
+          authorId = dbUser.id;
+         }
     }
 
     if (!authorId) {

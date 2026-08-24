@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Create the response object
+    // 3. Create response object
     const response = NextResponse.json({
       message: 'Login successful',
       user: {
@@ -29,11 +29,15 @@ export async function POST(req: Request) {
       },
     });
 
-    // 4. Hand out the wristband (Cookie) so Next.js remembers them!
+    // 4. Set cookies on response object
     response.cookies.set('user_role', user.role, {
-      httpOnly: true, // Security: Prevents malicious client scripts from tampering with it
-      path: '/',      // Cookie works across the entire website
-      maxAge: 60 * 60 * 24, // Expire in 1 day (in seconds)
+      path: '/',
+      maxAge: 60 * 60 * 24,
+    });
+
+    response.cookies.set('user_email', user.email, {
+      path: '/',
+      maxAge: 60 * 60 * 24,
     });
 
     return response;

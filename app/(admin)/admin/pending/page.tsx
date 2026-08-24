@@ -24,7 +24,7 @@ const PendingLetterRow = ({
       {/* Left: Item Info */}
       <div className="flex items-center gap-1 text-stone-900">
         <span className="font-sans font-normal text-stone-900">
-          @{item.username},
+          {item.username},
         </span>{" "}
         <span className="font-serif font-semibold text-stone-900">
           {item.title},
@@ -112,48 +112,40 @@ export default function PendingApprovalsPage() {
     { label: "Broadcast notice", href: "/admin/notice" },
   ];
 
-  // Fetch pending letters from MySQL API
-// Replace lines 83–102 with this updated fetch block:
-const fetchPendingLetters = async () => {
-  try {
-    // 1. Added cache: "no-store" and timestamp cache-buster to enforce fresh server requests
-    const res = await fetch(`/api/letters?status=PENDING&t=${Date.now()}`, {
-      cache: "no-store",
-    });
+  const fetchPendingLetters = async () => {
+    try {
+      const res = await fetch(`/api/letters?status=PENDING&t=${Date.now()}`, {
+        cache: "no-store",
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      const formatted = data.map((item: any) => ({
-        id: item.id,
-        // 2. Updated fallback hierarchy for username
-        username: item.author?.email?.split("@")[0] || item.author?.name || "Teacher",
-        title: item.title,
-        date: new Date(item.createdAt).toLocaleDateString("en-US", {
-          month: "2-digit",
-          day: "2-digit",
-          year: "numeric",
-        }),
-      }));
-      setLetters(formatted);
-    } else {
-      console.error("Failed to load pending letters");
+      if (res.ok) {
+        const data = await res.json();
+        const formatted = data.map((item: any) => ({
+          id: item.id,
+          username: item.author?.name || item.author?.email?.split("@")[0] || "Teacher",
+          title: item.title,
+          date: new Date(item.createdAt).toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric",
+          }),
+        }));
+        setLetters(formatted);
+      } else {
+        console.error("Failed to load pending letters");
+      }
+    } catch (err) {
+      console.error("Failed to load pending letters", err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Failed to load pending letters", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     fetchPendingLetters();
   }, []);
 
-  // Handle dropdown actions
-  // Handle dropdown actions
   const handleActionSelect = async (action: string, id: string) => {
-    console.log("--> DROPLET CLICKED:", action, "ID:", id);
-
     if (action === "View") {
       window.location.href = `/admin/templates/preview/${id}`;
       return;
@@ -162,30 +154,20 @@ const fetchPendingLetters = async () => {
     let targetStatus = "";
     if (action === "Approve") targetStatus = "APPROVED";
     if (action === "Reject") targetStatus = "REJECTED";
-    if (action === "Revise") targetStatus = "REVISE"; // or "REVISED" depending on your Prisma schema
+    if (action === "Revise") targetStatus = "REVISE";
 
-    console.log("--> Target Status Determined:", targetStatus);
-
-    if (!targetStatus) {
-      console.error("--> Error: No target status found for action:", action);
-      return;
-    }
+    if (!targetStatus) return;
 
     try {
-      console.log("--> Sending PATCH request to:", `/api/letters/${id}`);
       const res = await fetch(`/api/letters/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: targetStatus }),
       });
 
-      console.log("--> PATCH RESPONSE STATUS:", res.status);
-
       if (res.ok) {
         fetchPendingLetters();
       } else {
-        const errData = await res.json();
-        console.error("--> Failed payload error:", errData);
         alert("Failed to update status.");
       }
     } catch (err) {
@@ -196,7 +178,6 @@ const fetchPendingLetters = async () => {
   return (
     <DashboardLayout navItems={adminNavItems} adminTools={adminToolsItems}>
       <div className="space-y-6 max-w-5xl mx-auto">
-        {/* Top Bar Header */}
         <div className="flex items-center justify-between">
           <h1 className="font-serif text-3xl font-normal text-stone-900">
             Welcome, <span className="italic">Admin</span>
@@ -208,7 +189,6 @@ const fetchPendingLetters = async () => {
           </div>
         </div>
 
-        {/* Page Title */}
         <div>
           <h2 className="text-2xl sm:text-3xl font-sans text-stone-900">
             <span className="font-bold">{letters.length}</span> Letters waiting
@@ -216,7 +196,6 @@ const fetchPendingLetters = async () => {
           </h2>
         </div>
 
-        {/* Letters List */}
         <div className="flex flex-col">
           {loading ? (
             <p className="py-8 text-center text-stone-400 font-serif">

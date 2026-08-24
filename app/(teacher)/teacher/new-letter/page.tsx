@@ -45,7 +45,6 @@ const TEMPLATE_PRESETS: Record<string, { letterNumber: string; recipient: string
   },
 };
 
-// Base64 Image Fetcher for DOCX exports
 async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
   if (!imageUrl) return "";
   try {
@@ -97,7 +96,8 @@ function NewLetterContent() {
 
   const mockUser = {
     name: "Teacher",
-    username: "teacher_dev",
+    username: "teacher",
+    email: "teacher@gmail.com",
     avatarUrl: "",
     role: "teacher",
   };
@@ -141,41 +141,53 @@ function NewLetterContent() {
   }, [templateQuery]);
 
   const handleSaveLetter = async (status: "PENDING" | "DRAFT") => {
-  try {
-    setIsSubmitting(true);
-    const res = await fetch("/api/letters", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: selectedTemplate?.title || letterData.subject || "Surat",
-        letterNumber: letterData.letterNumber,
-        recipient: letterData.recipient,
-        subject: letterData.subject,
-        body: letterData.body,
-        status: status,
-        createdByRole: "TEACHER", // Pass role explicitly if required by your backend API
-      }),
-    });
+    try {
+      setIsSubmitting(true);
+      
+      // Fetch active logged-in user from localStorage
+      const storedUserStr = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+      const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
+      const activeEmail = storedUser?.email;
 
-    if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.error || "Gagal menyimpan surat.");
-    }
+      if (!activeEmail) {
+        alert("Session invalid or user not found. Please log in again.");
+        return;
+      }
 
-    if (status === "PENDING") {
-      alert("Surat berhasil dikirim ke Admin untuk diperiksa dan ditandatangani!");
-      router.push("/teacher/pending");
-    } else {
-      alert("Draf surat berhasil disimpan!");
-      router.push("/teacher/history");
+      const res = await fetch("/api/letters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: selectedTemplate?.title || letterData.subject || "Surat",
+          letterNumber: letterData.letterNumber,
+          recipient: letterData.recipient,
+          subject: letterData.subject,
+          body: letterData.body,
+          status: status,
+          createdByRole: "TEACHER",
+          userEmail: activeEmail, // Sends exact logged-in user email
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Gagal menyimpan surat.");
+      }
+
+      if (status === "PENDING") {
+        alert("Surat berhasil dikirim ke Admin untuk diperiksa dan ditandatangani!");
+        router.push("/teacher/pending");
+      } else {
+        alert("Draf surat berhasil disimpan!");
+        router.push("/teacher/history");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Terjadi kesalahan saat menyimpan surat.");
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (err: any) {
-    console.error(err);
-    alert(err.message || "Terjadi kesalahan saat menyimpan surat.");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   const handleExportDocx = async () => {
     const formattedBody = letterData.body ? letterData.body.replace(/\n/g, "<br/>") : "";
@@ -270,7 +282,6 @@ function NewLetterContent() {
     URL.revokeObjectURL(url);
   };
 
-  /* Isolated Iframe Print Handler */
   const handlePrintPdf = () => {
     const printElement = document.getElementById("printable-letter");
     if (!printElement) return;
@@ -364,7 +375,6 @@ function NewLetterContent() {
           </>
         ) : (
           <div className="flex flex-col gap-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-semibold uppercase text-stone-500 tracking-wider">
@@ -384,9 +394,7 @@ function NewLetterContent() {
               </button>
             </div>
 
-            {/* Side-by-Side Form + Paper Preview */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-              {/* Left Column: Form Controls */}
               <div className="space-y-4">
                 <div className="bg-stone-50 p-3 rounded-xl border border-stone-200">
                   <label className="block text-xs font-bold text-stone-700 mb-1">
@@ -405,7 +413,6 @@ function NewLetterContent() {
                   </select>
                 </div>
 
-                {/* Logo Selector Section */}
                 <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 space-y-2">
                   <label className="block text-xs font-bold text-stone-700">
                     Pilih Logo Kop Surat
@@ -458,9 +465,7 @@ function NewLetterContent() {
                 />
               </div>
 
-              {/* Right Column: Clean Admin-Style Document Preview */}
               <div className="sticky top-6 w-full max-w-md mx-auto space-y-3">
-                {/* Standalone Action Bar Block */}
                 <div className="bg-[#1c1917] text-white px-5 py-3 rounded-2xl flex justify-between items-center text-xs font-sans shadow-md">
                   <span className="font-semibold text-sm tracking-tight">
                     A4 Live Document Export
@@ -483,13 +488,11 @@ function NewLetterContent() {
                   </div>
                 </div>
 
-                {/* Separated Paper Document Container */}
                 <div
                   id="printable-letter"
                   className="w-full min-h-145 bg-white rounded-3xl shadow-sm border border-stone-200 p-8 flex flex-col justify-between text-stone-900 font-serif text-[11px] leading-relaxed overflow-hidden"
                 >
                   <div className="flex flex-col flex-1 min-h-0">
-                    {/* Kop Surat Header */}
                     <div className="relative border-b-2 border-stone-900 pb-3 mb-4 text-center shrink-0 min-h-15 flex items-center justify-center">
                       {leftLogo && (
                         <img
@@ -531,7 +534,6 @@ function NewLetterContent() {
                       </div>
                     </div>
 
-                    {/* Letter Meta */}
                     <div className="flex justify-between text-[9.5px] mb-4 font-sans shrink-0">
                       <div className="space-y-0.5">
                         <p>
@@ -548,14 +550,12 @@ function NewLetterContent() {
                       </div>
                     </div>
 
-                    {/* Recipient */}
                     <div className="mb-4 font-sans text-[9.5px] space-y-0.5 shrink-0">
                       <p className="font-semibold">Kepada Yth.</p>
                       <p>{letterData.recipient || "Bapak/Ibu Penerima"}</p>
                       <p className="text-stone-500">Di Tempat</p>
                     </div>
 
-                    {/* Body Text */}
                     <div className="flex-1 overflow-y-auto pr-1 my-1 scrollbar-thin scrollbar-thumb-stone-300 min-h-0">
                       <p className="leading-relaxed whitespace-pre-wrap text-[9.5px] text-stone-800 font-sans">
                         {letterData.body || (
@@ -567,7 +567,6 @@ function NewLetterContent() {
                     </div>
                   </div>
 
-                  {/* Signature Section */}
                   <div className="flex justify-end pt-4 font-sans text-[8.5px] shrink-0">
                     <div className="text-center w-40 border border-dashed border-stone-200 p-2.5 rounded-xl bg-stone-50/30">
                       <p className="text-stone-500">Mengetahui,</p>
