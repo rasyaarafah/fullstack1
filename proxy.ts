@@ -4,13 +4,12 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const userRole = request.cookies.get('user_role')?.value;
 
-  // 1. If someone visits the root homepage '/'
+  // 1. If visiting root '/'
   if (pathname === '/') {
     if (!userRole) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
-    // Redirect logged in user to their dashboard
-    const redirectUrl = userRole === 'ADMIN' ? '/admin/users' : '/teacher';
+    const redirectUrl = userRole === 'ADMIN' ? '/admin' : '/teacher';
     return NextResponse.redirect(new URL(redirectUrl, request.url));
   }
 
@@ -30,20 +29,19 @@ export function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
     if (userRole !== 'TEACHER') {
-      return NextResponse.redirect(new URL('/admin/users', request.url));
+      return NextResponse.redirect(new URL('/admin', request.url));
     }
   }
 
   // 4. Prevent logged-in users from visiting /login again
   if (pathname === '/login' && userRole) {
-    const redirectUrl = userRole === 'ADMIN' ? '/admin/users' : '/teacher/history';
+    const redirectUrl = userRole === 'ADMIN' ? '/admin' : '/teacher';
     return NextResponse.redirect(new URL(redirectUrl, request.url));
   }
 
   return NextResponse.next();
 }
 
-// Added '/' to matcher so the homepage gets checked too!
 export const config = {
   matcher: ['/', '/admin/:path*', '/teacher/:path*', '/login'],
 };

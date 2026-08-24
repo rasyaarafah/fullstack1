@@ -30,14 +30,20 @@ export async function POST(req: Request) {
     });
 
     // 4. Set cookies on response object
+    const isProd = process.env.NODE_ENV === 'production';
+
     response.cookies.set('user_role', user.role, {
       path: '/',
       maxAge: 60 * 60 * 24,
+      sameSite: 'lax',
+      secure: isProd,
     });
 
     response.cookies.set('user_email', user.email, {
       path: '/',
       maxAge: 60 * 60 * 24,
+      sameSite: 'lax',
+      secure: isProd,
     });
 
     return response;

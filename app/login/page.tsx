@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { AuthLayout } from "@/components/templates/AuthLayout";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -36,12 +34,10 @@ export default function LoginPage() {
         localStorage.setItem("user", JSON.stringify(data.user));
       }
 
-      // Redirect based on role
-      if (data.user.role === "ADMIN") {
-        router.push("/admin"); 
-      } else {
-        router.push("/"); 
-      }
+      // Use window.location.href instead of router.push for mobile cookie synchronization
+      const targetPath = data.user.role === "ADMIN" ? "/admin" : "/";
+      window.location.href = targetPath;
+
     } catch (err) {
       console.error(err);
       setError("Something went wrong. Please try again.");
