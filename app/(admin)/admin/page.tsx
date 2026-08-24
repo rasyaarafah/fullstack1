@@ -1,8 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
+
+// Interfaces
+interface PendingLetter {
+  id: string;
+  title: string;
+  createdAt: string;
+  status: string;
+  author?: {
+    name?: string;
+    username?: string;
+    email?: string;
+  };
+}
+
+interface AdminStats {
+  pendingCount: number;
+  approvedCount: number;
+  myLettersCount: number;
+}
 
 // Custom Admin Stat Card
 const AdminStatCard = ({ count, label }: { count: number | string; label: string }) => (
@@ -73,17 +92,26 @@ const QuickCreateDropdown = () => {
 
 // Pending Queue Row with Actions Dropdown
 const PendingQueueRow = ({
+  id,
   username,
   title,
   date,
   status,
+  onStatusChange,
 }: {
+  id: string;
   username: string;
   title: string;
   date: string;
   status: string;
+  onStatusChange: (id: string, newStatus: string) => void;
 }) => {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+
+  const handleAction = (actionStatus: string) => {
+    setIsActionsOpen(false);
+    onStatusChange(id, actionStatus);
+  };
 
   return (
     <div className="flex items-center justify-between py-3.5 border-b border-stone-100 last:border-none text-base relative">
@@ -91,7 +119,7 @@ const PendingQueueRow = ({
         <span className="font-sans text-stone-700">@{username}</span>,{" "}
         <span className="font-serif font-bold">{title}</span>,{" "}
         <span className="font-serif font-bold">{date}</span>,{" "}
-        <span className="font-serif text-stone-500">({status})</span>
+        <span className="font-serif text-stone-500">({status.toLowerCase()})</span>
       </p>
 
       {/* Actions Button & Menu */}
@@ -114,29 +142,29 @@ const PendingQueueRow = ({
         {isActionsOpen && (
           <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-stone-300 rounded-xl shadow-md z-30 font-serif text-base overflow-hidden">
             <button
-              onClick={() => setIsActionsOpen(false)}
+              onClick={() => handleAction("APPROVED")}
               className="w-full text-left px-4 py-2 hover:bg-stone-50 text-stone-900 border-b border-stone-100"
             >
               Approve
             </button>
             <button
-              onClick={() => setIsActionsOpen(false)}
+              onClick={() => handleAction("REVISION")}
               className="w-full text-left px-4 py-2 hover:bg-stone-50 text-stone-900 border-b border-stone-100"
             >
               Revise
             </button>
             <button
-              onClick={() => setIsActionsOpen(false)}
+              onClick={() => handleAction("REJECTED")}
               className="w-full text-left px-4 py-2 hover:bg-stone-50 text-stone-900 border-b border-stone-100"
             >
               Reject
             </button>
-            <button
-              onClick={() => setIsActionsOpen(false)}
-              className="w-full text-left px-4 py-2 hover:bg-stone-50 text-stone-900"
+            <Link
+              href={`/admin/letters/${id}`}
+              className="block w-full text-left px-4 py-2 hover:bg-stone-50 text-stone-900"
             >
               View
-            </button>
+            </Link>
           </div>
         )}
       </div>
@@ -145,6 +173,15 @@ const PendingQueueRow = ({
 };
 
 export default function AdminOverviewPage() {
+  const [currentUser, setCurrentUser] = useState({ name: "Admin", email: "" });
+  const [stats, setStats] = useState<AdminStats>({
+    pendingCount: 0,
+    approvedCount: 0,
+    myLettersCount: 0,
+  });
+  const [pendingItems, setPendingItems] = useState<PendingLetter[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const adminNavItems = [
     { label: "Overview", href: "/admin", isActive: true },
     { label: "Pending Approval", href: "/admin/pending" },
@@ -159,16 +196,82 @@ export default function AdminOverviewPage() {
     { label: "Broadcast notice", href: "/admin/notice" },
   ];
 
-  const pendingItems = [
-    { id: 1, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026", status: "waiting" },
-    { id: 2, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026", status: "waiting" },
-    { id: 3, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026", status: "waiting" },
-    { id: 4, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026", status: "waiting" },
-    { id: 5, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026", status: "waiting" },
-    { id: 6, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026", status: "waiting" },
-    { id: 7, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026", status: "waiting" },
-    { id: 8, username: "useruseruser", title: "surat izin kegiatan", date: "07/20/2026", status: "waiting" },
-  ];
+  // Fetch Stats and Pending Data
+  const loadDashboardData = async (userEmail?: string) => {
+    try {
+      setLoading(true);
+
+      const [statsRes, pendingRes] = await Promise.all([
+        fetch(`/api/stats${userEmail ? `?email=${userEmail}` : ""}`),
+        fetch("/api/letters?status=PENDING"),
+      ]);
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats({
+          pendingCount: statsData.pendingCount || 0,
+          approvedCount: statsData.approvedCount || 0,
+          myLettersCount: statsData.myLettersCount || 0,
+        });
+      }
+
+      if (pendingRes.ok) {
+        const pendingData = await pendingRes.json();
+        setPendingItems(pendingData);
+      }
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    async function initSession() {
+      try {
+        const res = await fetch("/api/me");
+        if (res.ok) {
+          const user = await res.json();
+          setCurrentUser({ name: user.name || "Admin", email: user.email });
+          await loadDashboardData(user.email);
+        } else {
+          await loadDashboardData();
+        }
+      } catch (err) {
+        console.error("Session error:", err);
+        await loadDashboardData();
+      }
+    }
+
+    initSession();
+  }, []);
+
+  // Handler for Actions (Approve, Revise, Reject)
+  const handleStatusUpdate = async (id: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/letters/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (res.ok) {
+        // Remove item from pending list immediately
+        setPendingItems((prev) => prev.filter((item) => item.id !== id));
+
+        // Adjust local counters
+        setStats((prev) => ({
+          ...prev,
+          pendingCount: Math.max(0, prev.pendingCount - 1),
+          approvedCount: newStatus === "APPROVED" ? prev.approvedCount + 1 : prev.approvedCount,
+        }));
+      } else {
+        alert("Gagal memperbarui status surat.");
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+    }
+  };
 
   return (
     <DashboardLayout navItems={adminNavItems} adminTools={adminToolsItems}>
@@ -176,7 +279,7 @@ export default function AdminOverviewPage() {
         {/* Top Header */}
         <div className="flex items-center justify-between">
           <h1 className="font-serif text-3xl font-normal text-stone-900">
-            Welcome, <span className="italic">Admin</span>
+            Welcome, <span className="italic">{currentUser.name}</span>
           </h1>
           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-stone-300 text-stone-700">
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -187,29 +290,54 @@ export default function AdminOverviewPage() {
 
         {/* Top 4-card Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <AdminStatCard count={15} label="Pending approval" />
-          <AdminStatCard count={420} label="Total letters approved" />
-          <AdminStatCard count={21} label="Your letters" />
+          <AdminStatCard count={loading ? "..." : stats.pendingCount} label="Pending approval" />
+          <AdminStatCard count={loading ? "..." : stats.approvedCount} label="Total letters approved" />
+          <AdminStatCard count={loading ? "..." : stats.myLettersCount} label="Your letters" />
           <QuickCreateDropdown />
         </div>
 
         {/* Pending Queue List Card */}
         <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
           <h2 className="font-serif text-2xl font-normal text-stone-900 mb-2">
-            Pending Queue (15)
+            Pending Queue ({pendingItems.length})
           </h2>
 
-          <div className="divide-y divide-stone-100">
-            {pendingItems.map((item) => (
-              <PendingQueueRow
-                key={item.id}
-                username={item.username}
-                title={item.title}
-                date={item.date}
-                status={item.status}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="py-8 text-center text-stone-400 font-serif text-base">Loading data...</div>
+          ) : pendingItems.length === 0 ? (
+            <div className="py-8 text-center text-stone-400 font-serif text-base">
+              Tidak ada antrean pending saat ini.
+            </div>
+          ) : (
+            <div className="divide-y divide-stone-100">
+              {pendingItems.map((item) => {
+                const username =
+                  item.author?.username ||
+                  item.author?.name ||
+                  (item.author?.email ? item.author.email.split("@")[0] : "useruseruser");
+
+                const formattedDate = item.createdAt
+                  ? new Date(item.createdAt).toLocaleDateString("en-US", {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "numeric",
+                    })
+                  : "07/20/2026";
+
+                return (
+                  <PendingQueueRow
+                    key={item.id}
+                    id={item.id}
+                    username={username}
+                    title={item.title}
+                    date={formattedDate}
+                    status={item.status === "PENDING" ? "waiting" : item.status}
+                    onStatusChange={handleStatusUpdate}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
