@@ -31,7 +31,7 @@ export const LetterRowItem = ({
           {title} <span className="font-normal">{date}</span>
         </span>
         <span className="text-gray-600 font-mono">
-          @{username}{statusText ? `, ${statusText}` : ""}
+          {username}{statusText ? `, ${statusText}` : ""}
         </span>
       </div>
 

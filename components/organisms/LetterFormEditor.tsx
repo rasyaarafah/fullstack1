@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export interface LetterFormData {
   institutionName: string;
@@ -17,7 +18,8 @@ export interface LetterFormData {
 interface LetterFormEditorProps {
   formData: LetterFormData;
   onChange: (updatedData: LetterFormData) => void;
-  onSubmitForApproval: () => void;
+  currentUser?: { name?: string; username?: string; email?: string };
+  onSubmitForApproval?: () => void;
   onSaveDraft?: () => void;
   onSelectTemplatePreset?: (templateTitle: string) => void;
   isSubmitting?: boolean;
@@ -26,11 +28,16 @@ interface LetterFormEditorProps {
 export const LetterFormEditor = ({
   formData,
   onChange,
+  currentUser,
   onSubmitForApproval,
   onSaveDraft,
   onSelectTemplatePreset,
-  isSubmitting = false,
+  isSubmitting: externalIsSubmitting = false,
 }: LetterFormEditorProps) => {
+  const router = useRouter();
+  const [internalSubmitting, setInternalSubmitting] = useState(false);
+  const isSubmitting = externalIsSubmitting || internalSubmitting;
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -74,10 +81,65 @@ export const LetterFormEditor = ({
     });
   };
 
+  const submitToApi = async (status: "approved" | "draft") => {
+    setInternalSubmitting(true);
+    try {
+      // Dynamic admin identifier fallback chain
+      const adminName =
+        currentUser?.name || currentUser?.username || currentUser?.email || "Admin";
+
+      const payload = {
+        title: formData.subject || "Surat Permohonan",
+        letterNumber: formData.letterNumber,
+        recipient: formData.recipient,
+        subject: formData.subject || "Tanpa Perihal",
+        body: formData.body,
+        author: adminName,
+        createdByRole: "ADMIN",
+        status: status.toUpperCase(),
+      };
+
+      const res = await fetch("/api/letters", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to save letter");
+      }
+
+      router.push("/admin/history");
+      router.refresh();
+    } catch (error: any) {
+      console.error("Submission error:", error);
+      alert(`Gagal menyimpan surat: ${error.message}`);
+    } finally {
+      setInternalSubmitting(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSubmitting) {
-      onSubmitForApproval();
+      if (onSubmitForApproval) {
+        onSubmitForApproval();
+      } else {
+        submitToApi("approved");
+      }
+    }
+  };
+
+  const handleDraft = () => {
+    if (!isSubmitting) {
+      if (onSaveDraft) {
+        onSaveDraft();
+      } else {
+        submitToApi("draft");
+      }
     }
   };
 
@@ -277,17 +339,15 @@ export const LetterFormEditor = ({
           {!isSubmitting && <span>→</span>}
         </button>
 
-        {onSaveDraft && (
-          <button
-            type="button"
-            onClick={onSaveDraft}
-            disabled={isSubmitting}
-            className="w-full py-2.5 px-4 rounded-2xl bg-[#FDF8F5] border border-black text-black font-serif text-sm font-semibold hover:bg-stone-100 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Memproses..." : "Simpan Sebagai Draf"}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={handleDraft}
+          disabled={isSubmitting}
+          className="w-full py-2.5 px-4 rounded-2xl bg-[#FDF8F5] border border-black text-black font-serif text-sm font-semibold hover:bg-stone-100 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? "Memproses..." : "Simpan Sebagai Draf"}
+        </button>
       </div>
     </form>
   );
-};``
+};

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 import { LetterFormEditor, LetterFormData } from "@/components/organisms/LetterFormEditor";
@@ -12,6 +12,9 @@ interface Template {
   defaultRecipient?: string;
   defaultBody?: string;
 }
+
+const DEFAULT_LEFT_LOGO = "/logo_letris.png";
+const DEFAULT_RIGHT_LOGO = "/logo_banten.png";
 
 const templates: Template[] = [
   {
@@ -56,7 +59,6 @@ const templates: Template[] = [
   },
 ];
 
-// Helper to convert image URL or local public path to Base64 Data URL
 async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
   if (!imageUrl) return "";
   try {
@@ -80,21 +82,25 @@ async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
 }
 
 function MiniPaperThumbnail({ template }: { template: Template }) {
-  const currentDate = new Date().toISOString().split("T")[0];
+  const [currentDate, setCurrentDate] = useState<string>("");
+
+  useEffect(() => {
+    setCurrentDate(new Date().toISOString().split("T")[0]);
+  }, []);
 
   return (
     <div className="w-full aspect-3/4 bg-stone-200/60 rounded-2xl border border-stone-300 overflow-hidden relative shadow-sm group-hover:shadow-md transition-all flex items-center justify-center p-2 select-none">
       <div className="w-[190%] h-[190%] scale-[0.52] shrink-0 pointer-events-none bg-white p-6 shadow-md border border-stone-200 text-[10px] font-serif leading-tight text-stone-900 flex flex-col justify-between origin-center">
         <div>
           <div className="relative border-b-2 border-double border-stone-900 pb-2 mb-3 text-center flex items-center justify-between">
-            <img src="/logo_letris.png" alt="Logo Left" className="w-8 h-8 object-contain" />
+            <img src={DEFAULT_LEFT_LOGO} alt="Logo Left" className="w-8 h-8 object-contain" />
             <div className="px-2">
               <p className="font-bold text-[8px] uppercase tracking-tighter">YAYASAN LEO SUTRISNO</p>
               <p className="font-bold text-[10px] uppercase">SMK LETRIS INDONESIA 2</p>
               <p className="text-[6px] font-sans text-stone-600">NPSN: 69894185 | NSS: 402286303080</p>
               <p className="text-[5px] font-sans text-blue-700 underline">www.smkletrisdua.sch.id</p>
             </div>
-            <img src="/logo_banten.png" alt="Logo Right" className="w-8 h-8 object-contain" />
+            <img src={DEFAULT_RIGHT_LOGO} alt="Logo Right" className="w-8 h-8 object-contain" />
           </div>
 
           <div className="flex justify-between text-[8px] font-sans mb-3">
@@ -103,7 +109,7 @@ function MiniPaperThumbnail({ template }: { template: Template }) {
               <p><span className="font-semibold">Hal:</span> {template.title}</p>
             </div>
             <div className="text-right">
-              <p>Tangsel, {currentDate}</p>
+              <p>Tangsel, {currentDate || "..."}</p>
             </div>
           </div>
 
@@ -136,19 +142,56 @@ function AdminNewLetterContent() {
   const searchParams = useSearchParams();
   const templateQuery = searchParams.get("template");
 
+  const [currentUser, setCurrentUser] = useState({
+    name: "Siti Rahma",
+    username: "siti_admin",
+    email: "siti@letris.sch.id",
+    avatarUrl: "",
+    role: "admin",
+  });
+
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [leftLogoSrc, setLeftLogoSrc] = useState(DEFAULT_LEFT_LOGO);
+  const [rightLogoSrc, setRightLogoSrc] = useState(DEFAULT_RIGHT_LOGO);
 
   const [letterData, setLetterData] = useState<LetterFormData>({
     institutionName: "",
     letterNumber: "",
     recipient: "",
     subject: "",
-    date: new Date().toISOString().split("T")[0],
+    date: "",
     body: "",
     attachmentUrl: null,
-    leftLogo: "/logo_letris.png",
-    rightLogo: "/logo_banten.png",
+    leftLogo: DEFAULT_LEFT_LOGO,
+    rightLogo: DEFAULT_RIGHT_LOGO,
   });
+
+  useEffect(() => {
+    async function loadUserSession() {
+      try {
+        const res = await fetch("/api/me");
+        if (res.ok) {
+          const user = await res.json();
+          setCurrentUser({
+            name: user.name,
+            username: user.email ? user.email.split("@")[0] : "admin",
+            email: user.email,
+            avatarUrl: "",
+            role: user.role ? user.role.toLowerCase() : "admin",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load active session:", error);
+      }
+    }
+
+    loadUserSession();
+  }, []);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    setLetterData((prev) => ({ ...prev, date: today }));
+  }, []);
 
   const navItems = [
     { label: "Overview", href: "/admin", isActive: false },
@@ -164,14 +207,7 @@ function AdminNewLetterContent() {
     { label: "Broadcast notice", href: "/admin/notice", isActive: false },
   ];
 
-  const mockUser = {
-    name: "Admin",
-    username: "admin_dev",
-    avatarUrl: "",
-    role: "admin",
-  };
-
-  const handleSelectTemplate = (templateObj: Template | null) => {
+  const handleSelectTemplate = useCallback((templateObj: Template | null) => {
     setSelectedTemplate(templateObj);
     if (templateObj) {
       setLetterData((prev) => ({
@@ -181,7 +217,7 @@ function AdminNewLetterContent() {
         body: templateObj.defaultBody || prev.body,
       }));
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!templateQuery) return;
@@ -191,24 +227,15 @@ function AdminNewLetterContent() {
     );
 
     if (matched) {
-      setSelectedTemplate(matched);
-      setLetterData((prev) => ({
-        ...prev,
-        letterNumber: matched.defaultNumber || prev.letterNumber,
-        recipient: matched.defaultRecipient || prev.recipient,
-        body: matched.defaultBody || prev.body,
-      }));
+      handleSelectTemplate(matched);
     } else {
       setSelectedTemplate({ id: "custom", title: templateQuery });
     }
-  }, [templateQuery]);
+  }, [templateQuery, handleSelectTemplate]);
 
   const handlePrintPdf = () => {
     const printElement = document.getElementById("printable-letter");
-    if (!printElement) {
-      console.warn("Print element #printable-letter not found!");
-      return;
-    }
+    if (!printElement) return;
 
     const iframe = document.createElement("iframe");
     iframe.style.position = "fixed";
@@ -234,37 +261,17 @@ function AdminNewLetterContent() {
           <title>Print Letter</title>
           ${styles}
           <style>
-            @page {
-              size: A4 portrait;
-              margin: 0;
-            }
-            body {
-              background: #ffffff !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              display: flex;
-              justify-content: center;
-            }
+            @page { size: A4 portrait; margin: 0; }
+            body { background: #ffffff !important; margin: 0 !important; padding: 0 !important; display: flex; justify-content: center; }
             #print-root {
               width: 210mm !important;
               min-height: 297mm !important;
-              max-height: 297mm !important;
               padding: 20mm 25mm !important;
               box-sizing: border-box !important;
               background: white !important;
               display: flex !important;
               flex-direction: column !important;
               justify-content: space-between !important;
-              overflow: hidden !important;
-            }
-            #print-root h3 { font-size: 13pt !important; }
-            #print-root h4 { font-size: 10.5pt !important; }
-            #print-root p, #print-root span, #print-root div { font-size: 10pt !important; line-height: 1.5 !important; }
-            #print-root img { max-height: 50px !important; object-fit: contain !important; }
-            #print-root .border-dashed {
-              border: none !important;
-              background: transparent !important;
-              padding: 0 !important;
             }
           </style>
         </head>
@@ -283,10 +290,7 @@ function AdminNewLetterContent() {
   };
 
   const handleExportDocx = async () => {
-    const formattedBody = letterData.body
-      ? letterData.body.replace(/\n/g, "<br/>")
-      : "";
-
+    const formattedBody = letterData.body ? letterData.body.replace(/\n/g, "<br/>") : "";
     const leftLogoBase64 = letterData.leftLogo ? await getBase64ImageFromUrl(letterData.leftLogo) : "";
     const rightLogoBase64 = letterData.rightLogo ? await getBase64ImageFromUrl(letterData.rightLogo) : "";
     const attachmentBase64 = letterData.attachmentUrl ? await getBase64ImageFromUrl(letterData.attachmentUrl) : "";
@@ -295,73 +299,53 @@ function AdminNewLetterContent() {
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
         <meta charset='utf-8'>
-        <title>${selectedTemplate?.title || "Surat"}</title>
         <style>
           @page { size: A4; margin: 2.5cm 2cm; }
           body { font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: #000; }
-          p { margin: 0 0 6pt 0; }
-          table { border-collapse: collapse; }
           .kop-table { width: 100%; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 20px; }
           .logo-cell { width: 80px; text-align: center; vertical-align: middle; }
-          .logo-img { max-width: 70px; max-height: 70px; height: auto; }
+          .logo-img { max-width: 70px; max-height: 70px; }
           .header-text { text-align: center; }
           .meta-table { width: 100%; margin-bottom: 20px; font-size: 10pt; }
-          .body-text { font-size: 10.5pt; text-align: left; line-height: 1.6; margin-bottom: 30px; word-wrap: break-word; }
+          .body-text { font-size: 10.5pt; text-align: left; line-height: 1.6; margin-bottom: 30px; }
           .sig-table { width: 100%; font-size: 10pt; margin-top: 30px; }
         </style>
       </head>
       <body>
         <table class="kop-table" border="0" cellpadding="0" cellspacing="0">
           <tr>
-            <td class="logo-cell">
-              ${leftLogoBase64 ? `<img src="${leftLogoBase64}" class="logo-img" alt="Logo Kiri" />` : ""}
-            </td>
+            <td class="logo-cell">${leftLogoBase64 ? `<img src="${leftLogoBase64}" class="logo-img" alt="Logo" />` : ""}</td>
             <td class="header-text">
               <div style="font-size: 10pt; font-weight: bold;">YAYASAN LEO SUTRISNO</div>
               <div style="font-size: 14pt; font-weight: bold;">SMK LETRIS INDONESIA 2</div>
               <div style="font-size: 8pt;">NPSN : 69894185 &nbsp;&nbsp; NSS : 402286303080</div>
               <div style="font-size: 8pt; font-weight: bold;">( AKREDITASI " A " )</div>
-              <div style="font-size: 7.5pt;">Kompetensi Keahlian : DKV, TJKT, PPLG, MPLB, PM, Akuntansi</div>
               <div style="font-size: 7.5pt;">Jl. Raya Siliwangi No. 55 Pamulang, Kota Tangerang Selatan</div>
-              <div style="font-size: 7.5pt; color: #0000FF; text-decoration: underline;">www.smkletrisdua.sch.id</div>
             </td>
-            <td class="logo-cell">
-              ${rightLogoBase64 ? `<img src="${rightLogoBase64}" class="logo-img" alt="Logo Kanan" />` : ""}
-            </td>
+            <td class="logo-cell">${rightLogoBase64 ? `<img src="${rightLogoBase64}" class="logo-img" alt="Logo" />` : ""}</td>
           </tr>
         </table>
-
-        <table class="meta-table" border="0" cellpadding="0" cellspacing="0">
+        <table class="meta-table" border="0">
           <tr>
             <td valign="top" width="60%">
               <b>Nomor:</b> ${letterData.letterNumber || "-"}<br/>
               <b>Hal:</b> ${selectedTemplate?.title || "Surat"}
             </td>
-            <td align="right" valign="top" width="40%">
-              Tangerang Selatan, ${letterData.date}
-            </td>
+            <td align="right" valign="top" width="40%">Tangerang Selatan, ${letterData.date}</td>
           </tr>
         </table>
-
         <div style="font-size: 10pt; margin-bottom: 20px;">
-          <b>Kepada Yth.</b><br/>
-          ${letterData.recipient || "Penerima"}<br/>
-          Di Tempat
+          <b>Kepada Yth.</b><br/>${letterData.recipient || "Penerima"}<br/>Di Tempat
         </div>
-
-        ${letterData.institutionName ? `<p style="font-size: 10pt;"><b>Pengirim:</b> ${letterData.institutionName}</p>` : ""}
-
         <div class="body-text">${formattedBody}</div>
-
-        ${attachmentBase64 ? `<div style="margin-bottom:20px;"><p><b>Lampiran:</b></p><img src="${attachmentBase64}" style="max-width:300px; max-height:200px;" /></div>` : ""}
-
-        <table class="sig-table" border="0" cellpadding="0" cellspacing="0">
+        ${attachmentBase64 ? `<div style="margin-bottom:20px;"><img src="${attachmentBase64}" style="max-width:300px;" /></div>` : ""}
+        <table class="sig-table" border="0">
           <tr>
             <td width="60%"></td>
             <td width="40%" align="center">
               <p>Mengetahui,</p>
               <p><b>Kepala Sekolah / Admin</b></p>
-              <br/><br/><br/>
+              <br/><br/>
               <p><u><b>NIP. ....................</b></u></p>
             </td>
           </tr>
@@ -381,22 +365,13 @@ function AdminNewLetterContent() {
     URL.revokeObjectURL(url);
   };
 
-  const handleSubmitForApproval = () => {
-    alert("Surat berhasil dibuat dan diterbitkan!");
-    router.push("/admin/history");
-  };
-
   return (
-    <DashboardLayout
-      navItems={navItems}
-      adminTools={adminTools}
-      currentUser={mockUser}
-    >
+    <DashboardLayout navItems={navItems} adminTools={adminTools} currentUser={currentUser}>
       <div className="flex flex-col gap-6">
         {!selectedTemplate ? (
           <>
             <h1 className="text-3xl font-serif text-stone-900">
-              Welcome, <span className="italic">{mockUser.name}</span>
+              Welcome, <span className="italic">{currentUser.name}</span>
             </h1>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -442,7 +417,39 @@ function AdminNewLetterContent() {
                   onChange={(updatedData) =>
                     setLetterData((prev) => ({ ...prev, ...updatedData }))
                   }
-                  onSubmitForApproval={handleSubmitForApproval}
+                  currentUser={currentUser}
+                  onSubmitForApproval={async () => {
+                    try {
+                      const res = await fetch("/api/letters", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          title: selectedTemplate?.title || "Surat Baru",
+                          letterNumber: letterData.letterNumber,
+                          recipient: letterData.recipient,
+                          subject: letterData.subject,
+                          body: letterData.body,
+                          attachmentUrl: letterData.attachmentUrl,
+                          userEmail: currentUser.email,
+                          createdByRole: "ADMIN",
+                          status: "APPROVED",
+                        }),
+                      });
+
+                      if (res.ok) {
+                        alert("Surat berhasil diterbitkan dan masuk ke Archive!");
+                        router.push("/admin/history");
+                      } else {
+                        const errorData = await res.json();
+                        alert(`Gagal membuat surat: ${errorData.error || "Terjadi kesalahan"}`);
+                      }
+                    } catch (err) {
+                      console.error("Error creating letter:", err);
+                      alert("Terjadi kesalahan koneksi saat membuat surat.");
+                    }
+                  }}
                   onSaveDraft={() => alert("Draf surat berhasil disimpan!")}
                   onSelectTemplatePreset={(id) => {
                     const match = templates.find((t) => t.id === id);
@@ -477,19 +484,16 @@ function AdminNewLetterContent() {
                   className="w-full min-h-145 bg-white rounded-xl shadow-2xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[10.5px] leading-relaxed"
                 >
                   <div className="flex flex-col flex-1 min-h-0">
-                    {/* Header / Kop Surat */}
                     <div className="relative border-b-2 border-solid border-stone-900 pb-2 mb-4 flex items-center justify-between shrink-0">
                       <div className="w-10 h-10 flex items-center justify-center">
-                        {letterData.leftLogo ? (
+                        {letterData.leftLogo && (
                           <img
-                            src={letterData.leftLogo}
+                            src={leftLogoSrc}
                             alt="Logo Left"
                             className="w-10 h-10 object-contain"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/logo_letris.png";
-                            }}
+                            onError={() => setLeftLogoSrc(DEFAULT_LEFT_LOGO)}
                           />
-                        ) : null}
+                        )}
                       </div>
 
                       <div className="px-4 text-center flex-1">
@@ -517,16 +521,14 @@ function AdminNewLetterContent() {
                       </div>
 
                       <div className="w-10 h-10 flex items-center justify-center">
-                        {letterData.rightLogo ? (
+                        {letterData.rightLogo && (
                           <img
-                            src={letterData.rightLogo}
+                            src={rightLogoSrc}
                             alt="Logo Right"
                             className="w-10 h-10 object-contain"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/logo_banten.png";
-                            }}
+                            onError={() => setRightLogoSrc(DEFAULT_RIGHT_LOGO)}
                           />
-                        ) : null}
+                        )}
                       </div>
                     </div>
 
@@ -585,15 +587,11 @@ function AdminNewLetterContent() {
                   <div className="flex justify-end pt-4 mt-6 border-t border-stone-100 font-sans text-[9px] shrink-0">
                     <div className="text-center w-40 border border-dashed border-stone-200 p-2 rounded bg-stone-50/50">
                       <p className="text-stone-500">Mengetahui,</p>
-                      <p className="font-semibold text-stone-800">
-                        Kepala Sekolah / Admin
-                      </p>
+                      <p className="font-semibold text-stone-800">Kepala Sekolah / Admin</p>
                       <div className="h-12 flex items-center justify-center italic text-stone-400 text-[8px]">
                         [Belum Ditandatangani]
                       </div>
-                      <p className="font-bold underline text-stone-700">
-                        NIP. ....................
-                      </p>
+                      <p className="font-bold underline text-stone-700">NIP. ....................</p>
                     </div>
                   </div>
                 </div>

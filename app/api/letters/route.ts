@@ -50,34 +50,44 @@ export async function POST(request: Request) {
     }
 
     let authorId: number | null = null;
+    let userRole = createdByRole ? createdByRole.toUpperCase() : null;
 
+    // Resolve author and role from DB using userEmail
     if (userEmail) {
       const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
-      if (dbUser)
-         { 
-          authorId = dbUser.id;
-         }
+      if (dbUser) { 
+        authorId = dbUser.id;
+        if (!userRole && dbUser.role) {
+          userRole = dbUser.role.toUpperCase();
+        }
+      }
     }
 
+    // Fallback to default user if no author found
     if (!authorId) {
-  const defaultUser = await prisma.user.findFirst({
-    where: createdByRole === "TEACHER" ? { role: "TEACHER" } : {},
-  });
-  
-  if (!defaultUser) {
-    return NextResponse.json(
-      { error: "No valid author user found to assign this letter to." },
-      { status: 400 }
-    );
-  }
-  authorId = defaultUser.id;
-}
+      const defaultUser = await prisma.user.findFirst({
+        where: userRole === "TEACHER" ? { role: "TEACHER" } : {},
+      });
+      
+      if (!defaultUser) {
+        return NextResponse.json(
+          { error: "No valid author user found to assign this letter to." },
+          { status: 400 }
+        );
+      }
+      authorId = defaultUser.id;
+      if (!userRole && defaultUser.role) {
+        userRole = defaultUser.role.toUpperCase();
+      }
+    }
 
-    const finalStatus = createdByRole === "ADMIN" 
-      ? "APPROVED" 
-      : status 
-      ? status.toUpperCase() 
-      : "PENDING";
+    // Determine final letter status: ADMIN or explicitly requested APPROVED -> APPROVED, otherwise PENDING
+    const finalStatus =
+      userRole === "ADMIN" || status?.toUpperCase() === "APPROVED"
+        ? "APPROVED"
+        : status
+        ? status.toUpperCase()
+        : "PENDING";
 
     const newLetter = await prisma.letter.create({
       data: {

@@ -41,16 +41,24 @@ export default function ArchivePage() {
         });
         if (res.ok) {
           const rawData = await res.json();
-          const formatted: ArchiveLetter[] = rawData.map((item: any) => ({
-            id: item.id,
-            username: item.author?.email || "admin@example.com",
-            title: item.title,
-            date: new Date(item.createdAt).toLocaleDateString("en-US", {
-              month: "2-digit",
-              day: "2-digit",
-              year: "numeric",
-            }),
-          }));
+          const formatted: ArchiveLetter[] = rawData.map((item: any) => {
+            // Extract display name/username safely without showing full email address
+            const authorName =
+              item.author?.name ||
+              item.author?.username ||
+              (item.author?.email ? item.author.email.split("@")[0] : "admin");
+
+            return {
+              id: item.id,
+              username: authorName,
+              title: item.title,
+              date: new Date(item.createdAt).toLocaleDateString("en-US", {
+                month: "2-digit",
+                day: "2-digit",
+                year: "numeric",
+              }),
+            };
+          });
           setLetters(formatted);
         }
       } catch (err) {
