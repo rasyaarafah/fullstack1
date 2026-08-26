@@ -18,6 +18,7 @@ interface Letter {
 
 export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [letters, setLetters] = useState<Letter[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +39,6 @@ export default function HistoryPage() {
   useEffect(() => {
     async function fetchLetters() {
       try {
-        // Fetch all letters for the teacher's history view
         const res = await fetch("/api/letters");
         if (res.ok) {
           const data = await res.json();
@@ -54,22 +54,65 @@ export default function HistoryPage() {
     fetchLetters();
   }, []);
 
-  const filteredLetters = letters.filter(
-    (item) =>
+  // Step 2: Delete / Cancel letter handler
+  const handleCancel = async (id: string) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this letter?"
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/letters/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setLetters((prev) => prev.filter((letter) => letter.id !== id));
+      } else {
+        alert("Failed to cancel the letter.");
+      }
+    } catch (err) {
+      console.error("Error cancelling letter:", err);
+    }
+  };
+
+  // Step 3: Filter by Search Query & Selected Status
+  const filteredLetters = letters.filter((item) => {
+    const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.author?.name || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      (item.author?.name || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus =
+      selectedStatus === "all" ||
+      item.status.toLowerCase() === selectedStatus.toLowerCase();
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <DashboardLayout navItems={navItems} currentUser={mockUser}>
       <div className="flex flex-col gap-6">
-        {/* Search Bar */}
-        <div className="w-full">
-          <SearchBar
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search..."
-          />
+        {/* Search Bar & Status Dropdown Filter */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center w-full">
+          <div className="flex-1 w-full">
+            <SearchBar
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+            />
+          </div>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="w-full sm:w-auto px-4 py-2 border border-stone-200 rounded-xl bg-white text-sm font-sans text-stone-700 focus:outline-none focus:border-emerald-500 shadow-sm"
+          >
+            <option value="all">All Statuses</option>
+            <option value="draft">Draft</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="revise">Revise</option>
+            <option value="rejected">Rejected</option>
+          </select>
         </div>
 
         {/* Letter List */}
@@ -83,7 +126,15 @@ export default function HistoryPage() {
               const formattedStatus = item.status.toLowerCase() as
                 | "pending"
                 | "rejected"
-                | "approved";
+                | "approved"
+                | "revise"
+                | "draft";
+
+              const canModify =
+                formattedStatus === "pending" ||
+                formattedStatus === "draft" ||
+                formattedStatus === "rejected" ||
+                formattedStatus === "revise";
 
               return (
                 <LetterRowItem
@@ -99,18 +150,15 @@ export default function HistoryPage() {
                   onSee={() =>
                     (window.location.href = `/admin/templates/preview/${item.id}`)
                   }
+                  // Step 1: Navigates to edit page
                   onEdit={
-                    formattedStatus === "pending" ||
-                    formattedStatus === "rejected"
-                      ? () => console.log("Edit", item.id)
+                    canModify
+                      ? () =>
+                          (window.location.href = `/teacher/templates/edit/${item.id}`)
                       : undefined
                   }
-                  onCancel={
-                    formattedStatus === "pending" ||
-                    formattedStatus === "rejected"
-                      ? () => console.log("Cancel", item.id)
-                      : undefined
-                  }
+                  // Step 2: Calls delete API
+                  onCancel={canModify ? () => handleCancel(item.id) : undefined}
                 />
               );
             })

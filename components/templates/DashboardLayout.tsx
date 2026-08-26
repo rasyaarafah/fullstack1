@@ -1,18 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar, NavItem } from "@/components/organisms/Sidebar";
 import { MobileHeader } from "@/components/organisms/MobileHeader";
+import { EditProfileModal } from "@/components/organisms/EditProfileModal";
+
+export interface UserProfile {
+  name: string;
+  username: string;
+  avatarUrl?: string;
+}
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   navItems?: NavItem[];
   adminTools?: NavItem[];
-  currentUser?: {
-    name: string;
-    username: string;
-    avatarUrl?: string;
-  };
+  currentUser?: UserProfile;
   title?: string;
   description?: string;
 }
@@ -21,11 +25,33 @@ export const DashboardLayout = ({
   children,
   navItems = [],
   adminTools = [],
-  currentUser,
+  currentUser: initialUser,
   title,
   description,
 }: DashboardLayoutProps) => {
+  const router = useRouter();
+  const [user, setUser] = useState<UserProfile | undefined>(initialUser);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Keep state in sync if parent initialUser prop updates
+  useEffect(() => {
+    if (initialUser) {
+      setUser(initialUser);
+    }
+  }, [initialUser]);
+
+  const handleProfileSuccess = (updatedUser: { name: string; email: string; avatarUrl?: string }) => {
+    // 1. Instantly update client UI state
+    setUser({
+      name: updatedUser.name,
+      username: updatedUser.email,
+      avatarUrl: updatedUser.avatarUrl || user?.avatarUrl,
+    });
+
+    // 2. Re-evaluate server components across the current page
+    router.refresh();
+  };
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#FDF8F5] relative print:h-auto print:w-auto print:overflow-visible print:bg-white print:block">
@@ -44,7 +70,12 @@ export const DashboardLayout = ({
 
       {/* Desktop Sidebar Wrapper - Hidden on print */}
       <div className="hidden md:block h-full w-64 shrink-0 border-r border-stone-200 bg-white print:hidden">
-        <Sidebar navItems={navItems} adminTools={adminTools} />
+        <Sidebar
+          navItems={navItems}
+          adminTools={adminTools}
+          currentUser={user}
+          onProfileClick={() => setIsProfileOpen(true)}
+        />
       </div>
 
       {/* Mobile Floating Drawer - Hidden on print */}
@@ -53,6 +84,8 @@ export const DashboardLayout = ({
           <Sidebar
             navItems={navItems}
             adminTools={adminTools}
+            currentUser={user}
+            onProfileClick={() => setIsProfileOpen(true)}
             onItemClick={() => setIsMobileOpen(false)}
           />
         </div>
@@ -60,6 +93,7 @@ export const DashboardLayout = ({
 
       {/* Main Content Area - Expands fully on print */}
       <main className="flex-1 h-full overflow-y-auto p-4 sm:p-8 relative z-0 print:p-0 print:m-0 print:overflow-visible print:h-auto print:w-full print:block">
+        {/* Title Header */}
         {(title || description) && (
           <div className="mb-6 print:hidden">
             {title && (
@@ -68,12 +102,31 @@ export const DashboardLayout = ({
               </h1>
             )}
             {description && (
-              <p className="text-stone-600 text-sm sm:text-base">{description}</p>
+              <p className="text-stone-600 text-sm sm:text-base mt-1">
+                {description}
+              </p>
             )}
           </div>
         )}
+
         {children}
       </main>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        onSuccess={handleProfileSuccess}
+        currentUser={
+          user
+            ? {
+                name: user.name,
+                email: user.username,
+                avatarUrl: user.avatarUrl,
+              }
+            : undefined
+        }
+      />
     </div>
   );
 };

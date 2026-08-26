@@ -9,6 +9,7 @@ interface ArchiveLetter {
   username: string;
   title: string;
   date: string;
+  status: "approved" | "pending" | "rejected" | "revise";
 }
 
 export default function ArchivePage() {
@@ -29,36 +30,41 @@ export default function ArchivePage() {
   ];
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [letters, setLetters] = useState<ArchiveLetter[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch only APPROVED letters from DB without caching
+  // Fetch letters and exclude "DRAFT" from Admin view
   useEffect(() => {
-    async function fetchApprovedLetters() {
+    async function fetchAdminLetters() {
       try {
-        const res = await fetch("/api/letters?status=APPROVED", {
-          cache: "no-store", // Prevents Next.js stale data caching
+        const res = await fetch("/api/letters", {
+          cache: "no-store",
         });
         if (res.ok) {
           const rawData = await res.json();
-          const formatted: ArchiveLetter[] = rawData.map((item: any) => {
-            // Extract display name/username safely without showing full email address
-            const authorName =
-              item.author?.name ||
-              item.author?.username ||
-              (item.author?.email ? item.author.email.split("@")[0] : "admin");
+          const formatted: ArchiveLetter[] = rawData
+            .filter((item: any) => item.status.toLowerCase() !== "draft")
+            .map((item: any) => {
+              const authorName =
+                item.author?.name ||
+                item.author?.username ||
+                (item.author?.email ? item.author.email.split("@")[0] : "admin");
 
-            return {
-              id: item.id,
-              username: authorName,
-              title: item.title,
-              date: new Date(item.createdAt).toLocaleDateString("en-US", {
-                month: "2-digit",
-                day: "2-digit",
-                year: "numeric",
-              }),
-            };
-          });
+              const formattedStatus = item.status.toLowerCase() as ArchiveLetter["status"];
+
+              return {
+                id: item.id,
+                username: authorName,
+                title: item.title,
+                status: formattedStatus,
+                date: new Date(item.createdAt).toLocaleDateString("en-US", {
+                  month: "2-digit",
+                  day: "2-digit",
+                  year: "numeric",
+                }),
+              };
+            });
           setLetters(formatted);
         }
       } catch (err) {
@@ -68,7 +74,7 @@ export default function ArchivePage() {
       }
     }
 
-    fetchApprovedLetters();
+    fetchAdminLetters();
   }, []);
 
   // Delete letter from database
@@ -90,12 +96,34 @@ export default function ArchivePage() {
     }
   };
 
-  const filteredLetters = letters.filter(
-    (item) =>
+  // Status Dot Color Helper
+  const getStatusColor = (status: ArchiveLetter["status"]) => {
+    switch (status) {
+      case "approved":
+        return "bg-emerald-500";
+      case "pending":
+        return "bg-amber-500";
+      case "rejected":
+        return "bg-rose-500";
+      case "revise":
+        return "bg-orange-400";
+      default:
+        return "bg-stone-300";
+    }
+  };
+
+  // Filter Logic by Search & Status Dropdown
+  const filteredLetters = letters.filter((item) => {
+    const matchesSearch =
       item.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.date.includes(searchQuery)
-  );
+      item.date.includes(searchQuery);
+
+    const matchesStatus =
+      selectedStatus === "all" || item.status === selectedStatus;
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <DashboardLayout navItems={adminNavItems} adminTools={adminToolsItems}>
@@ -112,15 +140,26 @@ export default function ArchivePage() {
           </div>
         </div>
 
-        {/* Search Input */}
-        <div className="relative">
+        {/* Search Input & Status Filter */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
           <input
             type="text"
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full py-3 px-6 bg-white border border-stone-800 rounded-full text-center text-stone-600 placeholder-stone-400 font-sans text-lg focus:outline-none focus:ring-1 focus:ring-stone-800"
+            className="w-full py-3 px-6 bg-white border border-stone-800 rounded-full text-center sm:text-left text-stone-600 placeholder-stone-400 font-sans text-lg focus:outline-none focus:ring-1 focus:ring-stone-800"
           />
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="w-full sm:w-auto px-4 py-3 bg-white border border-stone-800 rounded-full font-serif text-base text-stone-900 focus:outline-none"
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="revise">Revise</option>
+            <option value="rejected">Rejected</option>
+          </select>
         </div>
 
         {/* Archive List */}
@@ -136,7 +175,7 @@ export default function ArchivePage() {
                 className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-white border border-stone-800 rounded-none -mt-px first:mt-0 font-serif text-base"
               >
                 {/* Item Details */}
-                <div className="flex items-center gap-1 text-stone-900">
+                <div className="flex items-center gap-1 text-stone-900 flex-wrap">
                   <span className="font-sans font-normal text-stone-900">
                     @{item.username},
                   </span>{" "}
@@ -148,14 +187,21 @@ export default function ArchivePage() {
                   </span>
                 </div>
 
-                {/* Action Buttons & Status Dot */}
+                {/* Action Buttons & Dynamic Status Dot */}
                 <div className="flex items-center gap-3 mt-2 sm:mt-0 self-end sm:self-center">
-                  {/* Green Status Dot */}
-                  <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shrink-0" />
+                  {/* Dynamic Color Status Dot */}
+                  <span
+                    className={`w-3.5 h-3.5 rounded-full shrink-0 ${getStatusColor(
+                      item.status
+                    )}`}
+                    title={`Status: ${item.status}`}
+                  />
 
                   {/* See Button */}
                   <button
-                    onClick={() => router.push(`/admin/templates/preview/${item.id}`)}
+                    onClick={() =>
+                      router.push(`/admin/templates/preview/${item.id}`)
+                    }
                     className="px-4 py-1 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 font-serif text-base transition-colors"
                   >
                     See

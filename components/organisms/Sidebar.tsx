@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { Avatar } from "@/components/atoms/Avatar";
 
 export interface NavItem {
   label: string;
@@ -14,6 +15,12 @@ export interface NavItem {
 interface SidebarProps {
   navItems?: NavItem[];
   adminTools?: NavItem[];
+  currentUser?: {
+    name: string;
+    username: string;
+    avatarUrl?: string;
+  };
+  onProfileClick?: () => void;
   onLogout?: () => void;
   onItemClick?: () => void;
 }
@@ -21,6 +28,8 @@ interface SidebarProps {
 export const Sidebar = ({
   navItems = [],
   adminTools = [],
+  currentUser,
+  onProfileClick,
   onLogout,
   onItemClick,
 }: SidebarProps) => {
@@ -32,17 +41,14 @@ export const Sidebar = ({
 
   const handleLogout = async () => {
     try {
-      // 1. Tell backend to delete the user_role cookie
       await fetch("/api/logout", {
         method: "POST",
       });
 
-      // 2. Run custom prop if passed (optional cleanup)
       if (onLogout) {
         onLogout();
       }
 
-      // 3. Force a hard browser navigation to /login to wipe all state clean
       window.location.href = "/login";
     } catch (error) {
       console.error("Logout error:", error);
@@ -66,12 +72,21 @@ export const Sidebar = ({
   };
 
   return (
-    // FIXED: Changed `min-h-screen` to `h-full overflow-y-auto`
     <aside className="w-64 bg-white border-r border-stone-200 h-full overflow-y-auto flex flex-col justify-between p-6 shrink-0 font-sans">
       <div className="flex flex-col gap-6">
-        {/* Brand Logo */}
-        <div className="text-2xl font-serif font-bold text-stone-900 tracking-tight">
-          Let2Kop
+        {/* Brand Logo & Top Right Avatar */}
+        <div className="flex items-center justify-between">
+          <div className="text-2xl font-serif font-bold text-stone-900 tracking-tight">
+            Let2Kop
+          </div>
+          <button
+            onClick={onProfileClick}
+            type="button"
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity focus:outline-none"
+            title="Edit Profile"
+          >
+            <Avatar src={currentUser?.avatarUrl} size="md" />
+          </button>
         </div>
 
         {/* Main Menu Section */}

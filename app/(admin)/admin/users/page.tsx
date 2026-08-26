@@ -29,6 +29,7 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"ALL" | "ADMIN" | "TEACHER">("ALL");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,7 +43,7 @@ export default function UserManagementPage() {
   const [modalError, setModalError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch users from MySQL on mount
+  // Fetch users from API on mount
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -94,8 +95,8 @@ export default function UserManagementPage() {
       setNewPassword("");
       setNewRole("TEACHER");
       setIsModalOpen(false);
-      
-      // Refresh database table
+
+      // Refresh table
       fetchUsers();
     } catch (err) {
       setModalError("Something went wrong. Please try again.");
@@ -158,11 +159,15 @@ export default function UserManagementPage() {
     setEditingRoleId(null);
   };
 
-  const filteredUsers = users.filter(
-    (u) =>
+  // Filter users by both Role Tabs (ALL / ADMIN / TEACHER) and Search Query
+  const filteredUsers = users.filter((u) => {
+    const matchesTab =
+      activeTab === "ALL" || u.role.toUpperCase() === activeTab;
+    const matchesSearch =
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
   return (
     <DashboardLayout navItems={adminNavItems} adminTools={adminToolsItems}>
@@ -179,11 +184,38 @@ export default function UserManagementPage() {
           </div>
         </div>
 
-        {/* Tab Header */}
-        <div className="border-b border-stone-800 pb-2">
-          <span className="font-serif text-2xl text-stone-900 border-b-2 border-stone-900 pb-2">
+        {/* Role Navigation Tabs (All Users / Admin / Teacher) */}
+        <div className="flex border-b border-stone-800 gap-8">
+          <button
+            onClick={() => setActiveTab("ALL")}
+            className={`pb-2 font-serif text-2xl transition-colors relative cursor-pointer ${
+              activeTab === "ALL"
+                ? "text-stone-900 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-stone-900"
+                : "text-stone-400 hover:text-stone-700"
+            }`}
+          >
             All Users
-          </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("ADMIN")}
+            className={`pb-2 font-serif text-2xl transition-colors relative cursor-pointer ${
+              activeTab === "ADMIN"
+                ? "text-stone-900 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-stone-900"
+                : "text-stone-400 hover:text-stone-700"
+            }`}
+          >
+            Admin
+          </button>
+          <button
+            onClick={() => setActiveTab("TEACHER")}
+            className={`pb-2 font-serif text-2xl transition-colors relative cursor-pointer ${
+              activeTab === "TEACHER"
+                ? "text-stone-900 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-stone-900"
+                : "text-stone-400 hover:text-stone-700"
+            }`}
+          >
+            Teacher
+          </button>
         </div>
 
         {/* Action Controls */}
@@ -215,7 +247,12 @@ export default function UserManagementPage() {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </div>
         </div>
@@ -258,9 +295,9 @@ export default function UserManagementPage() {
                         onChange={() => toggleSelectUser(user.id)}
                         className="w-5 h-5 border-stone-800 rounded cursor-pointer accent-stone-800 shrink-0"
                       />
-                      <div className="w-10 h-10 rounded-full bg-stone-300 flex items-center justify-center shrink-0 text-stone-600">
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                      <div className="w-10 h-10 rounded-full bg-stone-300 flex items-center justify-center shrink-0 text-stone-600 overflow-hidden">
+                        <svg className="w-full h-full p1.5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                         </svg>
                       </div>
                       <div className="flex flex-col min-w-0 flex-1 truncate">
