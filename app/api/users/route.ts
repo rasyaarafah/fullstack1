@@ -10,13 +10,14 @@ export async function GET() {
         name: true,
         email: true,
         role: true,
-        image: true, // <-- Added image selection
+        image: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json(users);
   } catch (error) {
+    console.error("GET /api/users error:", error);
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
 }
@@ -47,12 +48,21 @@ export async function POST(req: Request) {
         email,
         password,
         role: role || 'TEACHER',
-        image: image || null, // <-- Added image field
+        image: image || null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        image: true,
+        createdAt: true,
       },
     });
 
     return NextResponse.json(newUser, { status: 201 });
   } catch (error) {
+    console.error("POST /api/users error:", error);
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
   }
 }
@@ -70,18 +80,26 @@ export async function PATCH(req: Request) {
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: Number(id) }, // Ensured Int conversion to match DB
+      where: { id: Number(id) },
       data: {
         ...(role && { role }),
         ...(name && { name }),
         ...(email && { email }),
-        ...(image !== undefined && { image }), // <-- Added image update handling
+        ...(image !== undefined && { image }),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        image: true,
+        createdAt: true,
       },
     });
 
     return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error("PATCH Error:", error);
+    console.error("PATCH /api/users error:", error);
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }
@@ -102,7 +120,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error) {
-    console.error("DELETE Error:", error);
+    console.error("DELETE /api/users error:", error);
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
   }
 }

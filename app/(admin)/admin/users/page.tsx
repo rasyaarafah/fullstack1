@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
+import { Avatar } from "@/components/atoms/Avatar";
 
 interface UserData {
   id: string;
   name: string;
   email: string;
-  role: "TEACHER" | "ADMIN";
+  role: "TEACHER" | "ADMIN" | string;
+  image?: string | null;
   createdAt?: string;
 }
 
@@ -39,6 +41,7 @@ export default function UserManagementPage() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [newImageUrl, setNewImageUrl] = useState("");
   const [newRole, setNewRole] = useState<"TEACHER" | "ADMIN">("TEACHER");
   const [modalError, setModalError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -78,6 +81,7 @@ export default function UserManagementPage() {
           email: newEmail,
           password: newPassword,
           role: newRole,
+          image: newImageUrl || null,
         }),
       });
 
@@ -93,6 +97,7 @@ export default function UserManagementPage() {
       setNewName("");
       setNewEmail("");
       setNewPassword("");
+      setNewImageUrl("");
       setNewRole("TEACHER");
       setIsModalOpen(false);
 
@@ -179,43 +184,26 @@ export default function UserManagementPage() {
           </h1>
           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-stone-300 text-stone-700 shrink-0">
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>
           </div>
         </div>
 
-        {/* Role Navigation Tabs (All Users / Admin / Teacher) */}
+        {/* Role Navigation Tabs */}
         <div className="flex border-b border-stone-800 gap-8">
-          <button
-            onClick={() => setActiveTab("ALL")}
-            className={`pb-2 font-serif text-2xl transition-colors relative cursor-pointer ${
-              activeTab === "ALL"
-                ? "text-stone-900 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-stone-900"
-                : "text-stone-400 hover:text-stone-700"
-            }`}
-          >
-            All Users
-          </button>
-          <button
-            onClick={() => setActiveTab("ADMIN")}
-            className={`pb-2 font-serif text-2xl transition-colors relative cursor-pointer ${
-              activeTab === "ADMIN"
-                ? "text-stone-900 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-stone-900"
-                : "text-stone-400 hover:text-stone-700"
-            }`}
-          >
-            Admin
-          </button>
-          <button
-            onClick={() => setActiveTab("TEACHER")}
-            className={`pb-2 font-serif text-2xl transition-colors relative cursor-pointer ${
-              activeTab === "TEACHER"
-                ? "text-stone-900 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-stone-900"
-                : "text-stone-400 hover:text-stone-700"
-            }`}
-          >
-            Teacher
-          </button>
+          {(["ALL", "ADMIN", "TEACHER"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-2 font-serif text-2xl transition-colors relative cursor-pointer ${
+                activeTab === tab
+                  ? "text-stone-900 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-stone-900"
+                  : "text-stone-400 hover:text-stone-700"
+              }`}
+            >
+              {tab === "ALL" ? "All Users" : tab.charAt(0) + tab.slice(1).toLowerCase()}
+            </button>
+          ))}
         </div>
 
         {/* Action Controls */}
@@ -295,10 +283,8 @@ export default function UserManagementPage() {
                         onChange={() => toggleSelectUser(user.id)}
                         className="w-5 h-5 border-stone-800 rounded cursor-pointer accent-stone-800 shrink-0"
                       />
-                      <div className="w-10 h-10 rounded-full bg-stone-300 flex items-center justify-center shrink-0 text-stone-600 overflow-hidden">
-                        <svg className="w-full h-full p1.5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                        </svg>
+                      <div className="shrink-0">
+                        <Avatar src={user.image || undefined} alt={user.name} />
                       </div>
                       <div className="flex flex-col min-w-0 flex-1 truncate">
                         <span className="font-serif font-bold text-stone-900 leading-tight truncate">
@@ -318,7 +304,9 @@ export default function UserManagementPage() {
                     {/* Created Date & Action Icons */}
                     <div className="col-span-3 flex items-center justify-between pl-4 relative shrink-0">
                       <span className="font-serif text-stone-900 text-sm whitespace-nowrap">
-                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+                        {user.createdAt
+                          ? new Date(user.createdAt).toLocaleDateString()
+                          : "N/A"}
                       </span>
 
                       <div className="flex items-center gap-2 pr-2 relative shrink-0">
@@ -330,8 +318,18 @@ export default function UserManagementPage() {
                           className="p-1 hover:text-stone-600 transition-colors cursor-pointer"
                           title="Change Role"
                         >
-                          <svg className="w-5 h-5 text-stone-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          <svg
+                            className="w-5 h-5 text-stone-900"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="1.5"
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
                           </svg>
                         </button>
 
@@ -341,7 +339,9 @@ export default function UserManagementPage() {
                             <button
                               onClick={() => handleRoleChange(user.id, "TEACHER")}
                               className={`px-3 py-1.5 text-left hover:bg-stone-100 transition-colors border-b border-stone-100 ${
-                                user.role === "TEACHER" ? "font-bold text-stone-900" : "text-stone-600"
+                                user.role === "TEACHER"
+                                  ? "font-bold text-stone-900"
+                                  : "text-stone-600"
                               }`}
                             >
                               Teacher
@@ -349,7 +349,9 @@ export default function UserManagementPage() {
                             <button
                               onClick={() => handleRoleChange(user.id, "ADMIN")}
                               className={`px-3 py-1.5 text-left hover:bg-stone-100 transition-colors ${
-                                user.role === "ADMIN" ? "font-bold text-stone-900" : "text-stone-600"
+                                user.role === "ADMIN"
+                                  ? "font-bold text-stone-900"
+                                  : "text-stone-600"
                               }`}
                             >
                               Admin
@@ -363,8 +365,18 @@ export default function UserManagementPage() {
                           className="p-1 hover:text-red-600 transition-colors cursor-pointer"
                           title="Delete user"
                         >
-                          <svg className="w-5 h-5 text-stone-900 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg
+                            className="w-5 h-5 text-stone-900 hover:text-red-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="1.5"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
                           </svg>
                         </button>
                       </div>
@@ -406,7 +418,7 @@ export default function UserManagementPage() {
               <h2 className="text-xl font-bold text-stone-900">Add New User</h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-stone-500 hover:text-stone-800 text-lg font-bold"
+                className="text-stone-500 hover:text-stone-800 text-lg font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -463,6 +475,19 @@ export default function UserManagementPage() {
 
               <div>
                 <label className="block text-xs font-bold text-stone-700 uppercase mb-1">
+                  Profile Image URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/avatar.jpg"
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  className="w-full px-3 py-2 border border-stone-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-black"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase mb-1">
                   Role
                 </label>
                 <select
@@ -479,14 +504,14 @@ export default function UserManagementPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="w-1/2 py-2 border border-stone-400 rounded-lg hover:bg-stone-100 font-serif"
+                  className="w-1/2 py-2 border border-stone-400 rounded-lg hover:bg-stone-100 font-serif cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-1/2 py-2 bg-black text-white rounded-lg hover:bg-stone-800 font-serif disabled:opacity-50"
+                  className="w-1/2 py-2 bg-black text-white rounded-lg hover:bg-stone-800 font-serif disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? "Creating..." : "Save User"}
                 </button>

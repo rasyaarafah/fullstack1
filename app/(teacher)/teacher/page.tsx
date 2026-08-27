@@ -15,12 +15,27 @@ type LetterItem = {
   authorUsername: string;
 };
 
+type UserProfile = {
+  name: string;
+  username: string;
+  avatarUrl?: string;
+  role: string;
+};
+
 export default function OverviewPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [recentLetters, setRecentLetters] = useState<LetterItem[]>([]);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+
+  // Dynamic user state with fallback during initial load
+  const [currentUser, setCurrentUser] = useState<UserProfile>({
+    name: "",
+    username: "",
+    avatarUrl: "",
+    role: "teacher",
+  });
 
   // Broadcast Notice state
   const [adminNotice] = useState(
@@ -34,19 +49,44 @@ export default function OverviewPage() {
     { label: "Pending", href: "/teacher/pending", isActive: false },
   ];
 
-  const mockUser = {
-    name: "Teacher",
-    username: "teacher_dev",
-    avatarUrl: "",
-    role: "teacher",
-  };
-
   useEffect(() => {
     async function fetchOverviewData() {
       try {
-        const res = await fetch("/api/letters");
-        if (res.ok) {
-          const rawData = await res.json();
+        setLoading(true);
+
+        // Fetch session user and letters concurrently
+        const [userRes, lettersRes] = await Promise.all([
+          fetch("/api/me"),
+          fetch("/api/letters"),
+        ]);
+
+        let activeUserName = "Teacher";
+
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          console.log("User API payload:", userData);
+          
+          activeUserName =
+            userData?.name ||
+            userData?.user?.name ||
+            userData?.username ||
+            userData?.user?.username ||
+            userData?.email?.split("@")[0] ||
+            "Teacher";
+
+          setCurrentUser({
+            name: activeUserName,
+            username: userData?.username || userData?.email || activeUserName,
+            avatarUrl: userData?.image || userData?.avatarUrl || "",
+            role: userData?.role || "teacher",
+          });
+        } else {
+          // If endpoint fails/unauthorized, fallback to default display
+          setCurrentUser((prev) => ({ ...prev, name: "Teacher" }));
+        }
+
+        if (lettersRes.ok) {
+          const rawData = await lettersRes.json();
 
           // Map API payload to match RecentLetterList prop types
           const formattedData: LetterItem[] = rawData.map((item: any) => ({
@@ -59,10 +99,10 @@ export default function OverviewPage() {
               year: "numeric",
             }),
             status: item.status.toLowerCase() as "approved" | "pending" | "rejected",
-            authorUsername: item.author?.name || "teacher_dev",
+            authorUsername: item.author?.name || item.creatorName || activeUserName,
           }));
 
-          // Calculate real summary numbers
+          // Calculate summary numbers
           const pending = formattedData.filter(
             (l) => l.status === "pending"
           ).length;
@@ -75,6 +115,7 @@ export default function OverviewPage() {
         }
       } catch (err) {
         console.error("Failed to fetch overview data:", err);
+        setCurrentUser((prev) => ({ ...prev, name: "Teacher" }));
       } finally {
         setLoading(false);
       }
@@ -92,12 +133,12 @@ export default function OverviewPage() {
   );
 
   return (
-    <DashboardLayout navItems={navItems} currentUser={mockUser}>
+    <DashboardLayout navItems={navItems} currentUser={currentUser}>
       <div className="flex flex-col gap-8">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-serif text-stone-900">
-            Welcome back, <span className="italic">{mockUser.name}</span>
+            Welcome back, <span className="italic">{currentUser.name || "..."}</span>
           </h1>
           <p className="text-stone-500 text-sm mt-1 font-sans">
             Here is a summary of your letter activities today.

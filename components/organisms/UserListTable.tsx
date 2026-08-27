@@ -10,8 +10,8 @@ export interface UserData {
   name: string;
   username: string;
   email?: string;
-  role: "Admin" | "Pembuat";
-  avatarUrl?: string;
+  role: "Admin" | "Pembuat" | "Teacher" | string;
+  image?: string; // Updated from avatarUrl to image
 }
 
 interface UserListTableProps {
@@ -20,7 +20,7 @@ interface UserListTableProps {
   onRemoveAccess: (userid: string) => void;
 }
 
-export const UserlistTable = ({
+export const UserListTable = ({
   users,
   onChangeRole,
   onRemoveAccess,
@@ -57,7 +57,7 @@ export const UserlistTable = ({
                   username={user.username}
                   email={user.email}
                   role={user.role}
-                  avatarUrl={user.avatarUrl}
+                  image={user.image} // Passed image instead of avatarUrl
                   onChangeRole={() => onChangeRole(user.id)}
                   onRemoveAccess={() => onRemoveAccess(user.id)}
                 />

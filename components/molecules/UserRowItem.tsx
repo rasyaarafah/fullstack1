@@ -6,8 +6,8 @@ interface UserRowItemProps {
   name: string;
   username: string;
   email?: string;
-  role: "Admin" | "Pembuat";
-  avatarUrl?: string;
+  role: "Admin" | "Pembuat" | "Teacher" | string;
+  image?: string; // Standardized from avatarUrl to image
   onChangeRole?: () => void;
   onRemoveAccess?: () => void;
 }
@@ -17,18 +17,18 @@ export const UserRowItem = ({
   username,
   email,
   role,
-  avatarUrl,
+  image,
   onChangeRole,
   onRemoveAccess,
 }: UserRowItemProps) => {
-  const isAdmin = role === "Admin";
+  const isAdmin = role.toLowerCase() === "admin";
 
   return (
     <div className="flex items-center justify-between p-3 px-4 rounded-xl border border-black/10 bg-white hover:border-black/20 transition-all gap-3">
       {/* User Info */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div className="shrink-0">
-          <Avatar src={avatarUrl} alt={name} />
+          <Avatar src={image} alt={name} />
         </div>
         <div className="flex flex-col min-w-0 truncate">
           <div className="flex items-center gap-1.5 truncate">
