@@ -9,7 +9,7 @@ import { EditProfileModal } from "@/components/organisms/EditProfileModal";
 export interface UserProfile {
   name: string;
   username: string;
-  avatarUrl?: string;
+  image?: string; // Standardized to image
 }
 
 interface DashboardLayoutProps {
@@ -34,19 +34,32 @@ export const DashboardLayout = ({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Keep state in sync if parent initialUser prop updates
+  // Fetch active session from API on mount if not passed via props
   useEffect(() => {
-    if (initialUser) {
+    if (!initialUser) {
+      fetch("/api/me")
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.error) {
+            setUser({
+              name: data.name,
+              username: data.email,
+              image: data.image,
+            });
+          }
+        })
+        .catch((err) => console.error("Failed to load user:", err));
+    } else {
       setUser(initialUser);
     }
   }, [initialUser]);
 
-  const handleProfileSuccess = (updatedUser: { name: string; email: string; avatarUrl?: string }) => {
+  const handleProfileSuccess = (updatedUser: { name: string; email: string; image?: string }) => {
     // 1. Instantly update client UI state
     setUser({
       name: updatedUser.name,
       username: updatedUser.email,
-      avatarUrl: updatedUser.avatarUrl || user?.avatarUrl,
+      image: updatedUser.image || user?.image,
     });
 
     // 2. Re-evaluate server components across the current page
@@ -122,7 +135,7 @@ export const DashboardLayout = ({
             ? {
                 name: user.name,
                 email: user.username,
-                avatarUrl: user.avatarUrl,
+                image: user.image,
               }
             : undefined
         }

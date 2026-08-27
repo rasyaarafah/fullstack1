@@ -4,6 +4,7 @@ interface AvatarProps {
   src?: string;
   alt?: string;
   size?: number | "sm" | "md" | "lg";
+  onClick?: () => void; 
 }
 
 const SIZE_MAP: Record<"sm" | "md" | "lg", number> = {

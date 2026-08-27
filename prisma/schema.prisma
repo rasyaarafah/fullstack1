@@ -12,6 +12,7 @@ model User {
   email     String   @unique
   password  String
   role      String   @default("TEACHER")
+  image     String?  @db.LongText
   createdAt DateTime @default(now()) @map("created_at")
   letters   Letter[]
 

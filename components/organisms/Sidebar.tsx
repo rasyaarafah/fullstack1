@@ -18,7 +18,7 @@ interface SidebarProps {
   currentUser?: {
     name: string;
     username: string;
-    avatarUrl?: string;
+    image?: string; // Updated from avatarUrl to image
   };
   onProfileClick?: () => void;
   onLogout?: () => void;
@@ -85,7 +85,8 @@ export const Sidebar = ({
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity focus:outline-none"
             title="Edit Profile"
           >
-            <Avatar src={currentUser?.avatarUrl} size="md" />
+            {/* Updated src prop to use currentUser.image */}
+            <Avatar src={currentUser?.image} size="md" />
           </button>
         </div>
 

@@ -10,6 +10,7 @@ export async function GET() {
         name: true,
         email: true,
         role: true,
+        image: true, // <-- Added image selection
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -23,7 +24,7 @@ export async function GET() {
 // 2. POST: Add a new user
 export async function POST(req: Request) {
   try {
-    const { name, email, password, role } = await req.json();
+    const { name, email, password, role, image } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
         email,
         password,
         role: role || 'TEACHER',
+        image: image || null, // <-- Added image field
       },
     });
 
@@ -55,29 +57,32 @@ export async function POST(req: Request) {
   }
 }
 
-// 3. PATCH: Update user role
+// 3. PATCH: Update user role & profile details
 export async function PATCH(req: Request) {
   try {
-    const { id, role } = await req.json();
+    const { id, role, name, email, image } = await req.json();
 
-    if (!id || !role) {
+    if (!id) {
       return NextResponse.json(
-        { error: 'User ID and new role are required' },
+        { error: 'User ID is required' },
         { status: 400 }
       );
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id },
-      data: { role },
+      where: { id: Number(id) }, // Ensured Int conversion to match DB
+      data: {
+        ...(role && { role }),
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(image !== undefined && { image }), // <-- Added image update handling
+      },
     });
-
-    console.log("Updated user in DB:", updatedUser);
 
     return NextResponse.json(updatedUser);
   } catch (error) {
     console.error("PATCH Error:", error);
-    return NextResponse.json({ error: 'Failed to update user role' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }
 
