@@ -29,13 +29,30 @@ export default function ArchivePage() {
     { label: "Broadcast notice", href: "/admin/notice" },
   ];
 
+  const [currentUser, setCurrentUser] = useState({ name: "Admin", email: "", image: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [letters, setLetters] = useState<ArchiveLetter[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch letters and exclude "DRAFT" from Admin view
+  // Fetch session & archive letters
   useEffect(() => {
+    async function initSession() {
+      try {
+        const res = await fetch("/api/me");
+        if (res.ok) {
+          const user = await res.json();
+          setCurrentUser({
+            name: user.name || "Admin",
+            email: user.email || "",
+            image: user.image || user.avatarUrl || "",
+          });
+        }
+      } catch (err) {
+        console.error("Session error:", err);
+      }
+    }
+
     async function fetchAdminLetters() {
       try {
         const res = await fetch("/api/letters", {
@@ -74,6 +91,7 @@ export default function ArchivePage() {
       }
     }
 
+    initSession();
     fetchAdminLetters();
   }, []);
 
@@ -131,12 +149,20 @@ export default function ArchivePage() {
         {/* Top Header */}
         <div className="flex items-center justify-between">
           <h1 className="font-serif text-3xl font-normal text-stone-900">
-            Welcome, <span className="italic">Admin</span>
+            Welcome, <span className="italic">{currentUser.name}</span>
           </h1>
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-stone-300 text-stone-700">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-            </svg>
+          <div className="w-10 h-10 rounded-full bg-stone-200 border border-stone-300 overflow-hidden flex items-center justify-center shrink-0">
+            {currentUser.image ? (
+              <img
+                src={currentUser.image}
+                alt={currentUser.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <svg className="w-6 h-6 text-stone-600" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
+            )}
           </div>
         </div>
 

@@ -3,13 +3,18 @@
 import React, { useState } from "react";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 
+interface PlaceholderItem {
+  label: string;
+  key: string;
+}
+
 export default function AddTemplatePage() {
   const [templateName, setTemplateName] = useState("");
   const [category, setCategory] = useState("Surat Keterangan");
   const [description, setDescription] = useState("");
   const [fieldLabel, setFieldLabel] = useState("");
   const [fieldType, setFieldType] = useState("Text");
-  const [placeholders, setPlaceholders] = useState([
+  const [placeholders, setPlaceholders] = useState<PlaceholderItem[]>([
     { label: "Nama Penerima", key: "nama_penerima" },
     { label: "Jabatan", key: "jabatan" },
   ]);
@@ -44,8 +49,19 @@ export default function AddTemplatePage() {
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]/g, "_");
+
+    // Prevent duplicate keys
+    if (placeholders.some((p) => p.key === key)) {
+      setFieldLabel("");
+      return;
+    }
+
     setPlaceholders((prev) => [...prev, { label: fieldLabel, key }]);
     setFieldLabel("");
+  };
+
+  const handleRemovePlaceholder = (keyToRemove: string) => {
+    setPlaceholders((prev) => prev.filter((p) => p.key !== keyToRemove));
   };
 
   const insertVariableToBody = (key: string) => {
@@ -60,7 +76,7 @@ export default function AddTemplatePage() {
     >
       <div className="flex flex-col gap-6">
         {/* Header Title Bar */}
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-serif font-bold text-stone-900">
               Add New Template
@@ -72,13 +88,13 @@ export default function AddTemplatePage() {
           <div className="flex gap-3">
             <button
               type="button"
-              className="px-5 py-2 rounded-2xl border border-stone-400 bg-white text-stone-800 text-xs font-semibold hover:bg-stone-50 transition-colors"
+              className="px-5 py-2 rounded-2xl border border-stone-400 bg-white text-stone-800 text-xs font-semibold hover:bg-stone-50 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="button"
-              className="px-5 py-2 rounded-2xl bg-[#0A4D3C] text-white text-xs font-semibold hover:bg-[#07382c] transition-colors shadow-sm"
+              className="px-5 py-2 rounded-2xl bg-[#0A4D3C] text-white text-xs font-semibold hover:bg-[#07382c] transition-colors shadow-sm cursor-pointer"
             >
               Save Template
             </button>
@@ -107,7 +123,7 @@ export default function AddTemplatePage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
                     CATEGORY
@@ -151,12 +167,13 @@ export default function AddTemplatePage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <input
                   type="text"
                   value={fieldLabel}
                   onChange={(e) => setFieldLabel(e.target.value)}
                   placeholder="Field label (e.g. Tanggal Mulai)"
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddPlaceholder())}
                   className="flex-1 px-4 py-2.5 rounded-2xl border border-stone-300 text-xs focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
                 />
                 <select
@@ -171,7 +188,7 @@ export default function AddTemplatePage() {
                 <button
                   type="button"
                   onClick={handleAddPlaceholder}
-                  className="px-4 py-2.5 rounded-2xl bg-black text-white text-xs font-semibold hover:bg-stone-800 transition-colors"
+                  className="px-4 py-2.5 rounded-2xl bg-black text-white text-xs font-semibold hover:bg-stone-800 transition-colors cursor-pointer"
                 >
                   + Add
                 </button>
@@ -180,15 +197,30 @@ export default function AddTemplatePage() {
               {/* Placeholder Badges */}
               <div className="flex flex-wrap gap-2 pt-1">
                 {placeholders.map((item) => (
-                  <button
+                  <div
                     key={item.key}
-                    type="button"
-                    onClick={() => insertVariableToBody(item.key)}
-                    className="px-3 py-1.5 rounded-xl bg-stone-100 border border-stone-300 text-[11px] font-sans flex items-center gap-1.5 hover:bg-stone-200 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 border border-stone-300 text-[11px] font-sans"
                   >
-                    <span className="font-medium text-stone-800">{item.label}</span>
-                    <span className="text-stone-500 text-[10px]">{"{{" + item.key + "}}"}</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => insertVariableToBody(item.key)}
+                      className="flex items-center gap-1.5 hover:text-stone-900 text-stone-800 font-medium cursor-pointer"
+                      title="Click to insert into body"
+                    >
+                      <span>{item.label}</span>
+                      <span className="text-stone-500 text-[10px]">
+                        {`{{${item.key}}}`}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePlaceholder(item.key)}
+                      className="text-stone-400 hover:text-red-500 ml-1 font-bold text-xs cursor-pointer"
+                      title="Remove placeholder"
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -199,16 +231,16 @@ export default function AddTemplatePage() {
                 Document Body Content
               </h2>
               <textarea
-                rows={6}
+                rows={8}
                 value={bodyContent}
                 onChange={(e) => setBodyContent(e.target.value)}
-                className="w-full p-4 rounded-2xl border border-stone-300 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/50 resize-none leading-relaxed"
+                className="w-full p-4 rounded-2xl border border-stone-300 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/50 resize-y leading-relaxed"
               />
             </div>
           </div>
 
           {/* Right Column: Live SMK Letris 2 Kop Surat Document Preview */}
-          <div className="lg:col-span-5 bg-stone-100/70 p-6 rounded-3xl border border-stone-200 flex flex-col gap-3">
+          <div className="lg:col-span-5 bg-stone-100/70 p-6 rounded-3xl border border-stone-200 flex flex-col gap-3 sticky top-6">
             <div className="flex justify-between items-center">
               <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider font-sans">
                 LIVE DOCUMENT PREVIEW
@@ -218,7 +250,7 @@ export default function AddTemplatePage() {
               </span>
             </div>
 
-            <div className="w-full bg-white rounded-2xl shadow-xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[11px] min-h-145">
+            <div className="w-full bg-white rounded-2xl shadow-xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[11px] min-h-125">
               <div>
                 {/* SMK Letris Indonesia 2 Kop Surat Header */}
                 <div className="relative border-b-4 border-double border-stone-900 pb-2 mb-4 text-center">
@@ -281,7 +313,7 @@ export default function AddTemplatePage() {
               {/* Signature Block */}
               <div className="flex justify-end pt-4 font-sans text-[9px]">
                 <div className="text-center w-36">
-                  <p>Tangerang Selatan, 7/8/2026</p>
+                  <p>Tangerang Selatan, {new Date().toLocaleDateString("id-ID")}</p>
                   <p className="font-semibold mt-1">Kepala Sekolah</p>
                   <div className="h-10 flex items-center justify-center italic text-stone-400 text-[8px]">
                     [Tanda Tangan & Stempel]

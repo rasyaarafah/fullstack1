@@ -5,16 +5,43 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 
+// Interface to keep track of active field focus and selection details
+interface ActiveInputState {
+  setter: React.Dispatch<React.SetStateAction<string>>;
+  value: string;
+  ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
+  selectionStart: number;
+  selectionEnd: number;
+}
+
 export default function TemplateEditorPage() {
   const params = useParams();
   const router = useRouter();
   const templateId = params?.id as string;
 
-  // Track currently active input/textarea for inserting variables
-  const [activeInput, setActiveInput] = useState<{
-    setter: React.Dispatch<React.SetStateAction<string>>;
-    value: string;
-  } | null>(null);
+  // Ref mapping for input and textarea controls
+  const inputRefs = {
+    yayasan: useRef<HTMLInputElement>(null),
+    schoolName: useRef<HTMLInputElement>(null),
+    npsnNss: useRef<HTMLInputElement>(null),
+    akreditasi: useRef<HTMLInputElement>(null),
+    jurusan: useRef<HTMLTextAreaElement>(null),
+    address: useRef<HTMLTextAreaElement>(null),
+    cityDate: useRef<HTMLInputElement>(null),
+    nomor: useRef<HTMLInputElement>(null),
+    perihal: useRef<HTMLInputElement>(null),
+    recipient: useRef<HTMLTextAreaElement>(null),
+    openingText: useRef<HTMLTextAreaElement>(null),
+    closingText: useRef<HTMLTextAreaElement>(null),
+    eventDay: useRef<HTMLInputElement>(null),
+    eventTime: useRef<HTMLInputElement>(null),
+    eventLocation: useRef<HTMLInputElement>(null),
+    signerTitle: useRef<HTMLInputElement>(null),
+    signerName: useRef<HTMLInputElement>(null),
+  };
+
+  // Track currently active input/textarea for inserting variables accurately
+  const [activeInput, setActiveInput] = useState<ActiveInputState | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -128,11 +155,53 @@ export default function TemplateEditorPage() {
     fetchTemplate();
   }, [templateId]);
 
-  // Insert variable into selected input box
-  const handleInsertVariable = (variableStr: string) => {
-    if (activeInput) {
-      activeInput.setter(activeInput.value + " " + variableStr);
+  // Handle setting focused/selected state on inputs
+  const handleInputFocusOrSelect = (
+    setter: React.Dispatch<React.SetStateAction<string>>,
+    value: string,
+    ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>
+  ) => {
+    const el = ref.current;
+    if (el) {
+      setActiveInput({
+        setter,
+        value,
+        ref,
+        selectionStart: el.selectionStart ?? value.length,
+        selectionEnd: el.selectionEnd ?? value.length,
+      });
     }
+  };
+
+  // Smart Insert Variable into Active Input at exact cursor position
+  const handleInsertVariable = (variableStr: string) => {
+    if (!activeInput || !activeInput.ref.current) return;
+
+    const el = activeInput.ref.current;
+    const start = activeInput.selectionStart;
+    const end = activeInput.selectionEnd;
+    const currentValue = activeInput.value;
+
+    const newValue =
+      currentValue.substring(0, start) + variableStr + currentValue.substring(end);
+
+    // Update state using the setter
+    activeInput.setter(newValue);
+
+    // Calculate new cursor position
+    const newCursorPos = start + variableStr.length;
+
+    // Restore focus and cursor position after re-render
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(newCursorPos, newCursorPos);
+      setActiveInput({
+        ...activeInput,
+        value: newValue,
+        selectionStart: newCursorPos,
+        selectionEnd: newCursorPos,
+      });
+    }, 0);
   };
 
   // Save template via PUT/POST API
@@ -294,16 +363,20 @@ export default function TemplateEditorPage() {
           </div>
         </div>
 
-        {/* Dynamic Variable Pills (Clickable to append to focused input) */}
+        {/* Dynamic Variable Pills (Clickable to append/insert at cursor) */}
         <div className="bg-stone-50 p-2.5 border border-stone-300 rounded-xl flex items-center gap-2 overflow-x-auto no-print">
           <span className="font-serif text-xs font-semibold text-stone-700 whitespace-nowrap">
-            Click variable to insert:
+            Click variable to insert at cursor:
           </span>
           {availableVariables.map((v) => (
             <button
               key={v}
               type="button"
-              onClick={() => handleInsertVariable(v)}
+              onMouseDown={(e) => {
+                // Prevent focus shift away from input field
+                e.preventDefault();
+                handleInsertVariable(v);
+              }}
               className="px-2 py-0.5 text-xs font-mono bg-white border border-stone-400 rounded text-stone-800 shrink-0 hover:bg-stone-200 active:scale-95 transition-all cursor-pointer"
             >
               {v}
@@ -353,76 +426,112 @@ export default function TemplateEditorPage() {
                 Header (Kop Surat)
               </h3>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="yayasan" className="block text-xs font-semibold text-stone-600 mb-1">
                   Yayasan
                 </label>
                 <input
+                  id="yayasan"
+                  ref={inputRefs.yayasan}
                   type="text"
                   value={yayasan}
-                  onFocus={() => setActiveInput({ setter: setYayasan, value: yayasan })}
-                  onChange={(e) => setYayasan(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setYayasan, yayasan, inputRefs.yayasan)}
+                  onSelect={() => handleInputFocusOrSelect(setYayasan, yayasan, inputRefs.yayasan)}
+                  onChange={(e) => {
+                    setYayasan(e.target.value);
+                    handleInputFocusOrSelect(setYayasan, e.target.value, inputRefs.yayasan);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="schoolName" className="block text-xs font-semibold text-stone-600 mb-1">
                   Nama Sekolah
                 </label>
                 <input
+                  id="schoolName"
+                  ref={inputRefs.schoolName}
                   type="text"
                   value={schoolName}
-                  onFocus={() => setActiveInput({ setter: setSchoolName, value: schoolName })}
-                  onChange={(e) => setSchoolName(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setSchoolName, schoolName, inputRefs.schoolName)}
+                  onSelect={() => handleInputFocusOrSelect(setSchoolName, schoolName, inputRefs.schoolName)}
+                  onChange={(e) => {
+                    setSchoolName(e.target.value);
+                    handleInputFocusOrSelect(setSchoolName, e.target.value, inputRefs.schoolName);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs font-bold focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">
+                  <label htmlFor="npsnNss" className="block text-xs font-semibold text-stone-600 mb-1">
                     NPSN / NSS
                   </label>
                   <input
+                    id="npsnNss"
+                    ref={inputRefs.npsnNss}
                     type="text"
                     value={npsnNss}
-                    onFocus={() => setActiveInput({ setter: setNpsnNss, value: npsnNss })}
-                    onChange={(e) => setNpsnNss(e.target.value)}
+                    onFocus={() => handleInputFocusOrSelect(setNpsnNss, npsnNss, inputRefs.npsnNss)}
+                    onSelect={() => handleInputFocusOrSelect(setNpsnNss, npsnNss, inputRefs.npsnNss)}
+                    onChange={(e) => {
+                      setNpsnNss(e.target.value);
+                      handleInputFocusOrSelect(setNpsnNss, e.target.value, inputRefs.npsnNss);
+                    }}
                     className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">
+                  <label htmlFor="akreditasi" className="block text-xs font-semibold text-stone-600 mb-1">
                     Akreditasi
                   </label>
                   <input
+                    id="akreditasi"
+                    ref={inputRefs.akreditasi}
                     type="text"
                     value={akreditasi}
-                    onFocus={() => setActiveInput({ setter: setAkreditasi, value: akreditasi })}
-                    onChange={(e) => setAkreditasi(e.target.value)}
+                    onFocus={() => handleInputFocusOrSelect(setAkreditasi, akreditasi, inputRefs.akreditasi)}
+                    onSelect={() => handleInputFocusOrSelect(setAkreditasi, akreditasi, inputRefs.akreditasi)}
+                    onChange={(e) => {
+                      setAkreditasi(e.target.value);
+                      handleInputFocusOrSelect(setAkreditasi, e.target.value, inputRefs.akreditasi);
+                    }}
                     className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="jurusan" className="block text-xs font-semibold text-stone-600 mb-1">
                   Jurusan / Keahlian
                 </label>
                 <textarea
+                  id="jurusan"
+                  ref={inputRefs.jurusan}
                   rows={2}
                   value={jurusan}
-                  onFocus={() => setActiveInput({ setter: setJurusan, value: jurusan })}
-                  onChange={(e) => setJurusan(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setJurusan, jurusan, inputRefs.jurusan)}
+                  onSelect={() => handleInputFocusOrSelect(setJurusan, jurusan, inputRefs.jurusan)}
+                  onChange={(e) => {
+                    setJurusan(e.target.value);
+                    handleInputFocusOrSelect(setJurusan, e.target.value, inputRefs.jurusan);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="address" className="block text-xs font-semibold text-stone-600 mb-1">
                   Alamat
                 </label>
                 <textarea
+                  id="address"
+                  ref={inputRefs.address}
                   rows={2}
                   value={address}
-                  onFocus={() => setActiveInput({ setter: setAddress, value: address })}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setAddress, address, inputRefs.address)}
+                  onSelect={() => handleInputFocusOrSelect(setAddress, address, inputRefs.address)}
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    handleInputFocusOrSelect(setAddress, e.target.value, inputRefs.address);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
@@ -435,51 +544,75 @@ export default function TemplateEditorPage() {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">
+                  <label htmlFor="nomor" className="block text-xs font-semibold text-stone-600 mb-1">
                     Nomor Surat
                   </label>
                   <input
+                    id="nomor"
+                    ref={inputRefs.nomor}
                     type="text"
                     value={nomor}
-                    onFocus={() => setActiveInput({ setter: setNomor, value: nomor })}
-                    onChange={(e) => setNomor(e.target.value)}
+                    onFocus={() => handleInputFocusOrSelect(setNomor, nomor, inputRefs.nomor)}
+                    onSelect={() => handleInputFocusOrSelect(setNomor, nomor, inputRefs.nomor)}
+                    onChange={(e) => {
+                      setNomor(e.target.value);
+                      handleInputFocusOrSelect(setNomor, e.target.value, inputRefs.nomor);
+                    }}
                     className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">
+                  <label htmlFor="cityDate" className="block text-xs font-semibold text-stone-600 mb-1">
                     Kota & Tanggal
                   </label>
                   <input
+                    id="cityDate"
+                    ref={inputRefs.cityDate}
                     type="text"
                     value={cityDate}
-                    onFocus={() => setActiveInput({ setter: setCityDate, value: cityDate })}
-                    onChange={(e) => setCityDate(e.target.value)}
+                    onFocus={() => handleInputFocusOrSelect(setCityDate, cityDate, inputRefs.cityDate)}
+                    onSelect={() => handleInputFocusOrSelect(setCityDate, cityDate, inputRefs.cityDate)}
+                    onChange={(e) => {
+                      setCityDate(e.target.value);
+                      handleInputFocusOrSelect(setCityDate, e.target.value, inputRefs.cityDate);
+                    }}
                     className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="perihal" className="block text-xs font-semibold text-stone-600 mb-1">
                   Perihal
                 </label>
                 <input
+                  id="perihal"
+                  ref={inputRefs.perihal}
                   type="text"
                   value={perihal}
-                  onFocus={() => setActiveInput({ setter: setPerihal, value: perihal })}
-                  onChange={(e) => setPerihal(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setPerihal, perihal, inputRefs.perihal)}
+                  onSelect={() => handleInputFocusOrSelect(setPerihal, perihal, inputRefs.perihal)}
+                  onChange={(e) => {
+                    setPerihal(e.target.value);
+                    handleInputFocusOrSelect(setPerihal, e.target.value, inputRefs.perihal);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="recipient" className="block text-xs font-semibold text-stone-600 mb-1">
                   Penerima (Recipient)
                 </label>
                 <textarea
+                  id="recipient"
+                  ref={inputRefs.recipient}
                   rows={2}
                   value={recipient}
-                  onFocus={() => setActiveInput({ setter: setRecipient, value: recipient })}
-                  onChange={(e) => setRecipient(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setRecipient, recipient, inputRefs.recipient)}
+                  onSelect={() => handleInputFocusOrSelect(setRecipient, recipient, inputRefs.recipient)}
+                  onChange={(e) => {
+                    setRecipient(e.target.value);
+                    handleInputFocusOrSelect(setRecipient, e.target.value, inputRefs.recipient);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
@@ -491,26 +624,38 @@ export default function TemplateEditorPage() {
                 Body Paragraphs
               </h3>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="openingText" className="block text-xs font-semibold text-stone-600 mb-1">
                   Paragraf Pembuka (Opening)
                 </label>
                 <textarea
+                  id="openingText"
+                  ref={inputRefs.openingText}
                   rows={4}
                   value={openingText}
-                  onFocus={() => setActiveInput({ setter: setOpeningText, value: openingText })}
-                  onChange={(e) => setOpeningText(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setOpeningText, openingText, inputRefs.openingText)}
+                  onSelect={() => handleInputFocusOrSelect(setOpeningText, openingText, inputRefs.openingText)}
+                  onChange={(e) => {
+                    setOpeningText(e.target.value);
+                    handleInputFocusOrSelect(setOpeningText, e.target.value, inputRefs.openingText);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs leading-relaxed focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="closingText" className="block text-xs font-semibold text-stone-600 mb-1">
                   Paragraf Penutup (Closing)
                 </label>
                 <textarea
+                  id="closingText"
+                  ref={inputRefs.closingText}
                   rows={3}
                   value={closingText}
-                  onFocus={() => setActiveInput({ setter: setClosingText, value: closingText })}
-                  onChange={(e) => setClosingText(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setClosingText, closingText, inputRefs.closingText)}
+                  onSelect={() => handleInputFocusOrSelect(setClosingText, closingText, inputRefs.closingText)}
+                  onChange={(e) => {
+                    setClosingText(e.target.value);
+                    handleInputFocusOrSelect(setClosingText, e.target.value, inputRefs.closingText);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs leading-relaxed focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
@@ -522,39 +667,57 @@ export default function TemplateEditorPage() {
                 Event Schedule
               </h3>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="eventDay" className="block text-xs font-semibold text-stone-600 mb-1">
                   Hari / Tanggal
                 </label>
                 <input
+                  id="eventDay"
+                  ref={inputRefs.eventDay}
                   type="text"
                   value={eventDay}
-                  onFocus={() => setActiveInput({ setter: setEventDay, value: eventDay })}
-                  onChange={(e) => setEventDay(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setEventDay, eventDay, inputRefs.eventDay)}
+                  onSelect={() => handleInputFocusOrSelect(setEventDay, eventDay, inputRefs.eventDay)}
+                  onChange={(e) => {
+                    setEventDay(e.target.value);
+                    handleInputFocusOrSelect(setEventDay, e.target.value, inputRefs.eventDay);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">
+                  <label htmlFor="eventTime" className="block text-xs font-semibold text-stone-600 mb-1">
                     Waktu
                   </label>
                   <input
+                    id="eventTime"
+                    ref={inputRefs.eventTime}
                     type="text"
                     value={eventTime}
-                    onFocus={() => setActiveInput({ setter: setEventTime, value: eventTime })}
-                    onChange={(e) => setEventTime(e.target.value)}
+                    onFocus={() => handleInputFocusOrSelect(setEventTime, eventTime, inputRefs.eventTime)}
+                    onSelect={() => handleInputFocusOrSelect(setEventTime, eventTime, inputRefs.eventTime)}
+                    onChange={(e) => {
+                      setEventTime(e.target.value);
+                      handleInputFocusOrSelect(setEventTime, e.target.value, inputRefs.eventTime);
+                    }}
                     className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">
+                  <label htmlFor="eventLocation" className="block text-xs font-semibold text-stone-600 mb-1">
                     Tempat
                   </label>
                   <input
+                    id="eventLocation"
+                    ref={inputRefs.eventLocation}
                     type="text"
                     value={eventLocation}
-                    onFocus={() => setActiveInput({ setter: setEventLocation, value: eventLocation })}
-                    onChange={(e) => setEventLocation(e.target.value)}
+                    onFocus={() => handleInputFocusOrSelect(setEventLocation, eventLocation, inputRefs.eventLocation)}
+                    onSelect={() => handleInputFocusOrSelect(setEventLocation, eventLocation, inputRefs.eventLocation)}
+                    onChange={(e) => {
+                      setEventLocation(e.target.value);
+                      handleInputFocusOrSelect(setEventLocation, e.target.value, inputRefs.eventLocation);
+                    }}
                     className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                   />
                 </div>
@@ -567,26 +730,38 @@ export default function TemplateEditorPage() {
                 Signer
               </h3>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="signerTitle" className="block text-xs font-semibold text-stone-600 mb-1">
                   Jabatan Penandatangan
                 </label>
                 <input
+                  id="signerTitle"
+                  ref={inputRefs.signerTitle}
                   type="text"
                   value={signerTitle}
-                  onFocus={() => setActiveInput({ setter: setSignerTitle, value: signerTitle })}
-                  onChange={(e) => setSignerTitle(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setSignerTitle, signerTitle, inputRefs.signerTitle)}
+                  onSelect={() => handleInputFocusOrSelect(setSignerTitle, signerTitle, inputRefs.signerTitle)}
+                  onChange={(e) => {
+                    setSignerTitle(e.target.value);
+                    handleInputFocusOrSelect(setSignerTitle, e.target.value, inputRefs.signerTitle);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">
+                <label htmlFor="signerName" className="block text-xs font-semibold text-stone-600 mb-1">
                   Nama Penandatangan
                 </label>
                 <input
+                  id="signerName"
+                  ref={inputRefs.signerName}
                   type="text"
                   value={signerName}
-                  onFocus={() => setActiveInput({ setter: setSignerName, value: signerName })}
-                  onChange={(e) => setSignerName(e.target.value)}
+                  onFocus={() => handleInputFocusOrSelect(setSignerName, signerName, inputRefs.signerName)}
+                  onSelect={() => handleInputFocusOrSelect(setSignerName, signerName, inputRefs.signerName)}
+                  onChange={(e) => {
+                    setSignerName(e.target.value);
+                    handleInputFocusOrSelect(setSignerName, e.target.value, inputRefs.signerName);
+                  }}
                   className="w-full p-2 border border-stone-300 rounded font-serif text-xs font-bold focus:ring-1 focus:ring-stone-800 focus:outline-none"
                 />
               </div>

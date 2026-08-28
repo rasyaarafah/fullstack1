@@ -1,11 +1,13 @@
+// File: src/app/admin/notice/page.tsx
+
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 
 type UserOption = {
-  id: string;
+  id: string | number;
   name: string;
   username: string;
   role: "teacher" | "admin";
@@ -27,59 +29,59 @@ type BroadcastHistoryItem = {
 export default function AdminNoticePage() {
   const pathname = usePathname();
 
-  // Standardized Admin Navigation
+  // Navigation Setup
   const navItems = [
     { label: "Overview", href: "/admin", isActive: pathname === "/admin" },
-    { label: "Pending Approval", href: "/admin/pending", isActive: pathname === "/admin/pending" },
-    { label: "Archive", href: "/admin/history", isActive: pathname === "/admin/history" },
-    { label: "User Management", href: "/admin/users", isActive: pathname === "/admin/users" },
-    { label: "New letter", href: "/admin/new-letter", isActive: pathname === "/admin/new-letter" },
+    {
+      label: "Pending Approval",
+      href: "/admin/pending",
+      isActive: pathname === "/admin/pending",
+    },
+    {
+      label: "Archive",
+      href: "/admin/history",
+      isActive: pathname === "/admin/history",
+    },
+    {
+      label: "User Management",
+      href: "/admin/users",
+      isActive: pathname === "/admin/users",
+    },
+    {
+      label: "New letter",
+      href: "/admin/new-letter",
+      isActive: pathname === "/admin/new-letter",
+    },
   ];
 
   const adminTools = [
-    { label: "Edit template", href: "/admin/templates/edit", isActive: pathname === "/admin/templates/edit" },
-    { label: "Add template", href: "/admin/templates/new", isActive: pathname === "/admin/templates/new" },
-    { label: "Broadcast notice", href: "/admin/notice", isActive: pathname === "/admin/notice" },
+    {
+      label: "Edit template",
+      href: "/admin/templates/edit",
+      isActive: pathname === "/admin/templates/edit",
+    },
+    {
+      label: "Add template",
+      href: "/admin/templates/new",
+      isActive: pathname === "/admin/templates/new",
+    },
+    {
+      label: "Broadcast notice",
+      href: "/admin/notice",
+      isActive: pathname === "/admin/notice",
+    },
   ];
 
-  const mockUsers: UserOption[] = [
-    { id: "1", name: "Ahmad Suherman", username: "teacher_dev", role: "teacher" },
-    { id: "2", name: "Siti Rahma", username: "siti_teacher", role: "teacher" },
-    { id: "3", name: "Budi Santoso", username: "budi_admin", role: "admin" },
-    { id: "4", name: "Dewi Lestari", username: "dewi_teacher", role: "teacher" },
-  ];
-
+  // State Management
+  const [users, setUsers] = useState<UserOption[]>([]);
   const [message, setMessage] = useState("");
-  const [audienceType, setAudienceType] = useState<"all" | "teachers" | "admins" | "custom">("all");
+  const [audienceType, setAudienceType] = useState<
+    "all" | "teachers" | "admins" | "custom"
+  >("all");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [activeNotice, setActiveNotice] = useState<string | null>(
-    "Scheduled maintenance will take place this Saturday at 22:00 WIB."
-  );
-
-  const [history, setHistory] = useState<BroadcastHistoryItem[]>([
-    {
-      id: "h-1",
-      message: "Scheduled maintenance will take place this Saturday at 22:00 WIB.",
-      audienceType: "teachers",
-      targetUsers: ["teacher_dev", "siti_teacher", "dewi_teacher"],
-      createdAt: "2026-08-06 09:00",
-      isActive: true,
-      readStatus: [
-        { username: "teacher_dev", hasRead: true },
-        { username: "siti_teacher", hasRead: false },
-        { username: "dewi_teacher", hasRead: true },
-      ],
-    },
-    {
-      id: "h-2",
-      message: "Please complete your pending letter reviews before Friday.",
-      audienceType: "custom",
-      targetUsers: ["teacher_dev"],
-      createdAt: "2026-08-01 14:20",
-      isActive: false,
-      readStatus: [{ username: "teacher_dev", hasRead: true }],
-    },
-  ]);
+  const [activeNotice, setActiveNotice] = useState<string | null>(null);
+  const [history, setHistory] = useState<BroadcastHistoryItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const adminUser = {
     name: "Admin User",
@@ -88,57 +90,139 @@ export default function AdminNoticePage() {
     role: "admin",
   };
 
-  const handleSelectUser = (userId: string) => {
-    if (selectedUserIds.includes(userId)) {
-      setSelectedUserIds(selectedUserIds.filter((id) => id !== userId));
-    } else {
-      setSelectedUserIds([...selectedUserIds, userId]);
+  // Fetch Users & Notice Data on Load
+  useEffect(() => {
+    fetchUsers();
+    fetchNotices();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
     }
   };
 
-  const handlePublish = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim()) return;
+  const fetchNotices = async () => {
+    try {
+      const res = await fetch("/api/notice");
+      if (res.ok) {
+        const data = await res.json();
+        const historyList = Array.isArray(data) ? data : data.history || [];
+        setHistory(historyList);
 
-    let targets: string[] = [];
-    if (audienceType === "all") targets = mockUsers.map((u) => u.username);
-    else if (audienceType === "teachers")
-      targets = mockUsers.filter((u) => u.role === "teacher").map((u) => u.username);
-    else if (audienceType === "admins")
-      targets = mockUsers.filter((u) => u.role === "admin").map((u) => u.username);
-    else
-      targets = mockUsers
-        .filter((u) => selectedUserIds.includes(u.id))
-        .map((u) => u.username);
-
-    const newBroadcast: BroadcastHistoryItem = {
-      id: `h-${Date.now()}`,
-      message,
-      audienceType,
-      targetUsers: targets,
-      createdAt: new Date().toISOString().replace("T", " ").substring(0, 16),
-      isActive: true,
-      readStatus: targets.map((username) => ({ username, hasRead: false })),
-    };
-
-    setActiveNotice(message);
-    setHistory([newBroadcast, ...history]);
-    setMessage("");
+        const active = historyList.find(
+          (item: BroadcastHistoryItem) => item.isActive
+        );
+        setActiveNotice(active ? active.message : null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch notices:", err);
+    }
   };
 
-  const handleStopNotice = () => {
-    setActiveNotice(null);
-    setHistory((prev) =>
-      prev.map((item) => (item.isActive ? { ...item, isActive: false } : item))
+  const handleSelectUser = (userId: string | number) => {
+    const idStr = String(userId);
+    setSelectedUserIds((prev) =>
+      prev.includes(idStr) ? prev.filter((id) => id !== idStr) : [...prev, idStr]
     );
   };
 
+  const handlePublish = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    if (audienceType === "custom" && selectedUserIds.length === 0) {
+      alert("Please select at least one recipient for custom audience broadcasts.");
+      return;
+    }
+
+    setLoading(true);
+
+    let targets: string[] = [];
+
+    if (audienceType === "custom") {
+      const selectedUsers = users.filter((u) =>
+        selectedUserIds.includes(String(u.id))
+      );
+
+      targets = selectedUsers
+        .flatMap((u) => [String(u.id), u.username || u.name, u.name])
+        .filter(Boolean)
+        .map((str) => String(str).toLowerCase().trim());
+
+      if (targets.length === 0) {
+        targets = selectedUserIds.map((id) => String(id).toLowerCase().trim());
+      }
+    }
+
+    try {
+      const res = await fetch("/api/notice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message,
+          audienceType,
+          targetAudience: audienceType,
+          targetUsers: targets,
+        }),
+      });
+
+      const responseText = await res.text();
+      let responseData: any = {};
+
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        responseData = { error: responseText || "Unknown server error" };
+      }
+
+      if (res.ok) {
+        setMessage("");
+        setSelectedUserIds([]);
+        fetchNotices();
+      } else {
+        console.error("Server error response:", responseData);
+        alert(`Failed to broadcast notice: ${responseData.error || responseText}`);
+      }
+    } catch (err) {
+      console.error("Failed to publish notice:", err);
+      alert("Network error: Unable to reach notice endpoint.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Stop Notice
+  const handleStopNotice = async () => {
+    try {
+      const res = await fetch("/api/notice/stop", { method: "POST" });
+      if (res.ok) {
+        setActiveNotice(null);
+        fetchNotices();
+      }
+    } catch (err) {
+      console.error("Failed to stop notice:", err);
+    }
+  };
+
   return (
-    <DashboardLayout navItems={navItems} adminTools={adminTools} currentUser={adminUser}>
+    <DashboardLayout
+      navItems={navItems}
+      adminTools={adminTools}
+      currentUser={adminUser}
+    >
       <div className="flex flex-col gap-8 pb-16 font-sans">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-serif text-stone-900">Broadcast Notice</h1>
+          <h1 className="text-3xl font-serif text-stone-900">
+            Broadcast Notice
+          </h1>
           <p className="text-stone-500 text-sm mt-1">
             Send real-time banner announcements and track recipient engagement.
           </p>
@@ -150,7 +234,9 @@ export default function AdminNoticePage() {
             <div className="flex items-center gap-3">
               <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <div className="text-sm text-stone-800">
-                <span className="font-bold text-amber-900 mr-2">Active Broadcast:</span>
+                <span className="font-bold text-amber-900 mr-2">
+                  Active Broadcast:
+                </span>
                 "{activeNotice}"
               </div>
             </div>
@@ -201,15 +287,17 @@ export default function AdminNoticePage() {
               </div>
             </div>
 
-            {/* Multiselect */}
+            {/* Target Selection */}
             {audienceType === "custom" && (
               <div className="flex flex-col gap-2 p-4 bg-stone-50 border border-stone-200 rounded-2xl">
                 <span className="text-xs font-semibold text-stone-600">
                   Select Specific Recipients:
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {mockUsers.map((user) => {
-                    const isSelected = selectedUserIds.includes(user.id);
+                  {users.map((user) => {
+                    const isSelected = selectedUserIds.includes(String(user.id));
+                    const displayUsername =
+                      user.username || user.name.toLowerCase().replace(/\s+/g, "");
                     return (
                       <button
                         key={user.id}
@@ -223,8 +311,12 @@ export default function AdminNoticePage() {
                       >
                         <div>
                           <p className="font-semibold">{user.name}</p>
-                          <p className={`text-[10px] ${isSelected ? "text-stone-300" : "text-stone-400"}`}>
-                            @{user.username} • {user.role}
+                          <p
+                            className={`text-[10px] ${
+                              isSelected ? "text-stone-300" : "text-stone-400"
+                            }`}
+                          >
+                            @{displayUsername} • {user.role}
                           </p>
                         </div>
                         {isSelected && <span>✓</span>}
@@ -235,7 +327,7 @@ export default function AdminNoticePage() {
               </div>
             )}
 
-            {/* Message */}
+            {/* Message Area */}
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
                 Message
@@ -253,14 +345,15 @@ export default function AdminNoticePage() {
             <div className="flex items-center justify-end pt-2">
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-2xl bg-[#0A4D3C] text-white font-medium text-sm hover:bg-[#07382c] transition-all cursor-pointer shadow-xs active:scale-95"
+                disabled={loading}
+                className="px-6 py-2.5 rounded-2xl bg-[#0A4D3C] text-white font-medium text-sm hover:bg-[#07382c] transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
               >
-                Broadcast Now →
+                {loading ? "Broadcasting..." : "Broadcast Now →"}
               </button>
             </div>
           </form>
 
-          {/* Preview */}
+          {/* Banner Preview */}
           <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-xs flex flex-col gap-4">
             <h2 className="text-xl font-serif font-semibold text-stone-900">
               User Banner Preview
@@ -275,71 +368,83 @@ export default function AdminNoticePage() {
               </div>
               <div className="text-xs font-sans text-stone-800 leading-relaxed">
                 <span className="font-bold text-stone-900 mr-1">Admin:</span>
-                {message || "Your broadcast text preview will render right here..."}
+                {message ||
+                  "Your broadcast text preview will render right here..."}
               </div>
             </div>
           </div>
         </div>
 
-        {/* History */}
+        {/* History Table */}
         <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-xs flex flex-col gap-6">
           <h2 className="text-xl font-serif font-semibold text-stone-900">
             Broadcast History & Read Receipts
           </h2>
 
           <div className="flex flex-col gap-4">
-            {history.map((item) => (
-              <div
-                key={item.id}
-                className="border border-stone-200 rounded-2xl p-5 flex flex-col gap-4"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                        item.isActive
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-stone-100 text-stone-500"
-                      }`}
-                    >
-                      {item.isActive ? "Active" : "Archived"}
-                    </span>
-                    <span className="text-xs text-stone-400">{item.createdAt}</span>
-                  </div>
-
-                  <span className="text-xs font-medium text-stone-600 bg-stone-100 px-3 py-1 rounded-full w-fit">
-                    Audience: {item.audienceType} ({item.targetUsers.length} users)
-                  </span>
-                </div>
-
-                <p className="text-sm text-stone-800 font-medium">"{item.message}"</p>
-
-                <div className="flex flex-col gap-2 pt-1">
-                  <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">
-                    Recipient Status:
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {item.readStatus.map((st, idx) => (
+            {history.length === 0 ? (
+              <p className="text-stone-400 text-sm">
+                No notices broadcasted yet.
+              </p>
+            ) : (
+              history.map((item) => (
+                <div
+                  key={item.id}
+                  className="border border-stone-200 rounded-2xl p-5 flex flex-col gap-4"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+                    <div className="flex items-center gap-2">
                       <span
-                        key={idx}
-                        className={`text-xs px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${
-                          st.hasRead
-                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                            : "bg-amber-50 border-amber-200 text-amber-700"
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                          item.isActive
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-stone-100 text-stone-500"
                         }`}
                       >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            st.hasRead ? "bg-emerald-500" : "bg-amber-500"
-                          }`}
-                        />
-                        @{st.username}: {st.hasRead ? "Read" : "Unread"}
+                        {item.isActive ? "Active" : "Archived"}
                       </span>
-                    ))}
+                      <span className="text-xs text-stone-400">
+                        {item.createdAt}
+                      </span>
+                    </div>
+
+                    <span className="text-xs font-medium text-stone-600 bg-stone-100 px-3 py-1 rounded-full w-fit">
+                      Audience: {item.audienceType} (
+                      {item.targetUsers?.length || 0} users)
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-stone-800 font-medium">
+                    "{item.message}"
+                  </p>
+
+                  <div className="flex flex-col gap-2 pt-1">
+                    <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">
+                      Recipient Status:
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {item.readStatus?.map((st, idx) => (
+                        <span
+                          key={idx}
+                          className={`text-xs px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${
+                            st.hasRead
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                              : "bg-amber-50 border-amber-200 text-amber-700"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              st.hasRead ? "bg-emerald-500" : "bg-amber-500"
+                            }`}
+                          />
+                          @{st.username}: {st.hasRead ? "Read" : "Unread"}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 datasource db {
   provider = "mysql"
+
 }
 
 generator client {
@@ -31,4 +32,27 @@ model Letter {
   authorId        Int
   author          User     @relation(fields: [authorId], references: [id])
   createdAt       DateTime @default(now())
+}
+
+model Template {
+  id           String   @id @default(uuid())
+  title        String
+  category     String?
+  description  String?
+  placeholders String   @db.Text
+  bodyContent  String   @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("templates")
+}
+
+model Notice {
+  id             String   @id @default(uuid())
+  targetAudience String   @map("target_audience")
+  targetUsers    String?  @db.Text @map("target_users")
+  message        String   @db.Text
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("notices")
 }

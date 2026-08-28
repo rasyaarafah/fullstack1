@@ -23,12 +23,12 @@ export default function TemplateGalleryPage() {
 
   const adminToolsItems = [
     { label: "Edit template", href: "/admin/templates/edit", isActive: true },
-    { label: "Add template", href: "/admin/templates/new" }, // Fixed route here
+    { label: "Add template", href: "/admin/templates/new" },
     { label: "Broadcast notice", href: "/admin/notice" },
   ];
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Semua"); // Fixed initial state to match array
+  const [selectedCategory, setSelectedCategory] = useState("Semua");
 
   const templates: TemplateItem[] = [
     {
@@ -94,6 +94,7 @@ export default function TemplateGalleryPage() {
             {categories.map((cat) => (
               <button
                 key={cat}
+                type="button"
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-3 py-1.5 font-serif text-sm border rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                   selectedCategory === cat

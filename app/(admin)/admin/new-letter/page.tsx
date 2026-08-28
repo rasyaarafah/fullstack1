@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 import { LetterFormEditor, LetterFormData } from "@/components/organisms/LetterFormEditor";
+import { Avatar } from "@/components/atoms/Avatar";
 
 interface Template {
   id: string;
@@ -143,10 +144,10 @@ function AdminNewLetterContent() {
   const templateQuery = searchParams.get("template");
 
   const [currentUser, setCurrentUser] = useState({
-    name: "Siti Rahma",
-    username: "siti_admin",
-    email: "siti@letris.sch.id",
-    avatarUrl: "",
+    name: "Rasya",
+    username: "rasya",
+    email: "",
+    image: "",
     role: "admin",
   });
 
@@ -173,10 +174,10 @@ function AdminNewLetterContent() {
         if (res.ok) {
           const user = await res.json();
           setCurrentUser({
-            name: user.name,
-            username: user.email ? user.email.split("@")[0] : "admin",
-            email: user.email,
-            avatarUrl: "",
+            name: user.name || "Rasya",
+            username: user.email ? user.email.split("@")[0] : "rasya",
+            email: user.email || "",
+            image: user.image || user.avatarUrl || "",
             role: user.role ? user.role.toLowerCase() : "admin",
           });
         }
@@ -368,34 +369,46 @@ function AdminNewLetterContent() {
   return (
     <DashboardLayout navItems={navItems} adminTools={adminTools} currentUser={currentUser}>
       <div className="flex flex-col gap-6">
-        {!selectedTemplate ? (
-          <>
-            <h1 className="text-3xl font-serif text-stone-900">
-              Welcome, <span className="italic">{currentUser.name}</span>
-            </h1>
+        {/* Top Header with Avatar component explicitly rendered if needed, matching your layout behavior */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-serif text-stone-900">
+            Welcome, <span className="italic">{currentUser.name}</span>
+          </h1>
+          <div className="w-10 h-10 rounded-full border border-stone-300 overflow-hidden flex items-center justify-center shrink-0 bg-stone-200">
+            {currentUser.image ? (
+              <img
+                src={currentUser.image}
+                alt={currentUser.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Avatar src={undefined} alt={currentUser.name} />
+            )}
+          </div>
+        </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {templates.map((template) => (
-                <button
-                  key={template.id}
-                  onClick={() => handleSelectTemplate(template)}
-                  className="group flex flex-col items-center gap-3 text-center transition-transform hover:-translate-y-1"
-                >
-                  <MiniPaperThumbnail template={template} />
-                  <span className="font-serif text-base text-stone-900 font-medium group-hover:underline">
-                    {template.title}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </>
+        {!selectedTemplate ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4">
+            {templates.map((template) => (
+              <button
+                key={template.id}
+                onClick={() => handleSelectTemplate(template)}
+                className="group flex flex-col items-center gap-3 text-center transition-transform hover:-translate-y-1 cursor-pointer"
+              >
+                <MiniPaperThumbnail template={template} />
+                <span className="font-serif text-base text-stone-900 font-medium group-hover:underline">
+                  {template.title}
+                </span>
+              </button>
+            ))}
+          </div>
         ) : (
           <div className="flex flex-col gap-6">
             <div>
               <button
                 type="button"
                 onClick={() => setSelectedTemplate(null)}
-                className="px-4 py-1.5 rounded-full bg-black text-white text-xs font-medium hover:bg-stone-800 transition-colors"
+                className="px-4 py-1.5 rounded-full bg-black text-white text-xs font-medium hover:bg-stone-800 transition-colors cursor-pointer"
               >
                 ← Change Template
               </button>
@@ -465,14 +478,14 @@ function AdminNewLetterContent() {
                     <button
                       type="button"
                       onClick={handleExportDocx}
-                      className="px-2.5 py-1 bg-stone-700 hover:bg-stone-600 text-white rounded-lg text-[11px] font-medium transition-colors"
+                      className="px-2.5 py-1 bg-stone-700 hover:bg-stone-600 text-white rounded-lg text-[11px] font-medium transition-colors cursor-pointer"
                     >
                       ↓ DOCX
                     </button>
                     <button
                       type="button"
                       onClick={handlePrintPdf}
-                      className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-medium transition-colors"
+                      className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-medium transition-colors cursor-pointer"
                     >
                       🖨 Print / PDF
                     </button>

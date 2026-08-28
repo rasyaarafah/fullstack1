@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 import { RecentLetterList } from "@/components/organisms/RecentLetterList";
 import { SearchBar } from "@/components/molecules/SearchBar";
+import { NoticeBanner } from "@/components/molecules/NoticeBanner";
 
 type LetterItem = {
   id: string;
@@ -16,6 +17,7 @@ type LetterItem = {
 };
 
 type UserProfile = {
+  id?: string | number;
   name: string;
   username: string;
   avatarUrl?: string;
@@ -31,16 +33,12 @@ export default function OverviewPage() {
 
   // Dynamic user state with fallback during initial load
   const [currentUser, setCurrentUser] = useState<UserProfile>({
+    id: "",
     name: "",
     username: "",
     avatarUrl: "",
     role: "teacher",
   });
-
-  // Broadcast Notice state
-  const [adminNotice] = useState(
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-  );
 
   const navItems = [
     { label: "Overview", href: "/teacher", isActive: true },
@@ -64,31 +62,28 @@ export default function OverviewPage() {
 
         if (userRes.ok) {
           const userData = await userRes.json();
-          console.log("User API payload:", userData);
-          
+          const userObj = userData?.user || userData;
+
           activeUserName =
-            userData?.name ||
-            userData?.user?.name ||
-            userData?.username ||
-            userData?.user?.username ||
-            userData?.email?.split("@")[0] ||
+            userObj?.name ||
+            userObj?.username ||
+            userObj?.email?.split("@")[0] ||
             "Teacher";
 
           setCurrentUser({
+            id: userObj?.id || "",
             name: activeUserName,
-            username: userData?.username || userData?.email || activeUserName,
-            avatarUrl: userData?.image || userData?.avatarUrl || "",
-            role: userData?.role || "teacher",
+            username: userObj?.username || userObj?.email || activeUserName,
+            avatarUrl: userObj?.image || userObj?.avatarUrl || "",
+            role: userObj?.role || "teacher",
           });
         } else {
-          // If endpoint fails/unauthorized, fallback to default display
           setCurrentUser((prev) => ({ ...prev, name: "Teacher" }));
         }
 
         if (lettersRes.ok) {
           const rawData = await lettersRes.json();
 
-          // Map API payload to match RecentLetterList prop types
           const formattedData: LetterItem[] = rawData.map((item: any) => ({
             id: item.id,
             title: item.title,
@@ -98,11 +93,14 @@ export default function OverviewPage() {
               day: "2-digit",
               year: "numeric",
             }),
-            status: item.status.toLowerCase() as "approved" | "pending" | "rejected",
-            authorUsername: item.author?.name || item.creatorName || activeUserName,
+            status: item.status.toLowerCase() as
+              | "approved"
+              | "pending"
+              | "rejected",
+            authorUsername:
+              item.author?.name || item.creatorName || activeUserName,
           }));
 
-          // Calculate summary numbers
           const pending = formattedData.filter(
             (l) => l.status === "pending"
           ).length;
@@ -110,13 +108,12 @@ export default function OverviewPage() {
           setPendingCount(pending);
           setTotalCount(formattedData.length);
 
-          // Get top 5 most recent letters
           setRecentLetters(formattedData.slice(0, 5));
         }
       } catch (err) {
         console.error("Failed to fetch overview data:", err);
         setCurrentUser((prev) => ({ ...prev, name: "Teacher" }));
-      } finally {
+      }  finally {
         setLoading(false);
       }
     }
@@ -124,7 +121,6 @@ export default function OverviewPage() {
     fetchOverviewData();
   }, []);
 
-  // Filtering logic based on Search Input
   const filteredLetters = recentLetters.filter(
     (letter) =>
       letter.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -135,6 +131,9 @@ export default function OverviewPage() {
   return (
     <DashboardLayout navItems={navItems} currentUser={currentUser}>
       <div className="flex flex-col gap-8">
+        {/* Pass currentUser explicitly so audience checks match */}
+        <NoticeBanner currentUser={currentUser} />
+
         {/* Header */}
         <div>
           <h1 className="text-3xl font-serif text-stone-900">
@@ -221,7 +220,6 @@ export default function OverviewPage() {
               Recent Letters
             </h2>
 
-            {/* Connected Search Bar */}
             <div className="w-full md:w-72">
               <SearchBar
                 value={searchQuery}
@@ -239,19 +237,6 @@ export default function OverviewPage() {
             <RecentLetterList letters={filteredLetters} />
           )}
         </div>
-
-        {/* Admin Broadcast Notice Box */}
-        {adminNotice && (
-          <div className="bg-white border border-stone-300 rounded-3xl p-5 shadow-sm flex items-start sm:items-center gap-4">
-            <div className="w-8 h-8 rounded-full bg-red-500 border-2 border-white flex items-center justify-center text-white font-bold text-base shrink-0 shadow-sm">
-              !
-            </div>
-            <div className="text-sm font-sans text-stone-800 leading-relaxed">
-              <span className="font-bold text-stone-900 mr-1">Admin:</span>
-              {adminNotice}
-            </div>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );
