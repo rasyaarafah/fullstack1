@@ -35,6 +35,10 @@ export default function ArchivePage() {
   const [letters, setLetters] = useState<ArchiveLetter[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Modal State
+  const [itemToDelete, setItemToDelete] = useState<ArchiveLetter | null>(null);
+  const [showClearModal, setShowClearModal] = useState(false);
+
   // Fetch session & archive letters
   useEffect(() => {
     async function initSession() {
@@ -95,22 +99,44 @@ export default function ArchivePage() {
     fetchAdminLetters();
   }, []);
 
-  // Delete letter from database
-  const handleRemove = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this archived letter?")) return;
+  // Delete individual letter
+  const confirmSingleDelete = async () => {
+    if (!itemToDelete) return;
 
     try {
-      const res = await fetch(`/api/letters/${id}`, {
+      const res = await fetch(`/api/letters/${itemToDelete.id}`, {
         method: "DELETE",
       });
 
       if (res.ok) {
-        setLetters((prev) => prev.filter((item) => item.id !== id));
+        setLetters((prev) => prev.filter((item) => item.id !== itemToDelete.id));
       } else {
         console.error("Failed to delete letter from backend");
       }
     } catch (err) {
       console.error("Error deleting letter:", err);
+    } finally {
+      setItemToDelete(null);
+    }
+  };
+
+  // Bulk delete / Clear history
+  const confirmClearHistory = async () => {
+    try {
+      const idsToDelete = filteredLetters.map((item) => item.id);
+
+      // Perform deletion calls for displayed letters
+      await Promise.all(
+        idsToDelete.map((id) =>
+          fetch(`/api/letters/${id}`, { method: "DELETE" })
+        )
+      );
+
+      setLetters((prev) => prev.filter((item) => !idsToDelete.includes(item.id)));
+    } catch (err) {
+      console.error("Error clearing history:", err);
+    } finally {
+      setShowClearModal(false);
     }
   };
 
@@ -145,10 +171,10 @@ export default function ArchivePage() {
 
   return (
     <DashboardLayout navItems={adminNavItems} adminTools={adminToolsItems}>
-      <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="space-y-6 max-w-5xl mx-auto font-serif">
         {/* Top Header */}
         <div className="flex items-center justify-between">
-          <h1 className="font-serif text-3xl font-normal text-stone-900">
+          <h1 className="text-3xl font-normal text-stone-900">
             Welcome, <span className="italic">{currentUser.name}</span>
           </h1>
           <div className="w-10 h-10 rounded-full bg-stone-200 border border-stone-300 overflow-hidden flex items-center justify-center shrink-0">
@@ -166,56 +192,66 @@ export default function ArchivePage() {
           </div>
         </div>
 
-        {/* Search Input & Status Filter */}
-        <div className="flex flex-col sm:flex-row gap-4 items-center">
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full py-3 px-6 bg-white border border-stone-800 rounded-full text-center sm:text-left text-stone-600 placeholder-stone-400 font-sans text-lg focus:outline-none focus:ring-1 focus:ring-stone-800"
-          />
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full sm:w-auto px-4 py-3 bg-white border border-stone-800 rounded-full font-serif text-base text-stone-900 focus:outline-none"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="revise">Revise</option>
-            <option value="rejected">Rejected</option>
-          </select>
+        {/* Search Input, Filter, & Clear History Action */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto flex-1">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-2/3 py-3 px-6 bg-white border border-stone-800 rounded-full text-center sm:text-left text-stone-600 placeholder-stone-400 font-sans text-base focus:outline-none focus:ring-1 focus:ring-stone-800"
+            />
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full sm:w-auto px-4 py-3 bg-white border border-stone-800 rounded-full text-base text-stone-900 focus:outline-none cursor-pointer"
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="revise">Revise</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          {filteredLetters.length > 0 && (
+            <button
+              onClick={() => setShowClearModal(true)}
+              className="w-full sm:w-auto px-5 py-3 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 text-base transition-colors shrink-0"
+            >
+              Clear History
+            </button>
+          )}
         </div>
 
         {/* Archive List */}
         <div className="flex flex-col">
           {loading ? (
-            <div className="text-center py-12 text-stone-500 font-serif text-lg">
+            <div className="text-center py-12 text-stone-500 text-lg">
               Loading archived letters...
             </div>
           ) : filteredLetters.length > 0 ? (
             filteredLetters.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-white border border-stone-800 rounded-none -mt-px first:mt-0 font-serif text-base"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-white border border-stone-800 rounded-none -mt-px first:mt-0 text-base"
               >
                 {/* Item Details */}
                 <div className="flex items-center gap-1 text-stone-900 flex-wrap">
                   <span className="font-sans font-normal text-stone-900">
                     @{item.username},
                   </span>{" "}
-                  <span className="font-serif font-semibold text-stone-900">
+                  <span className="font-semibold text-stone-900">
                     {item.title},
                   </span>{" "}
-                  <span className="font-serif font-semibold text-stone-900">
+                  <span className="font-semibold text-stone-900">
                     {item.date}
                   </span>
                 </div>
 
                 {/* Action Buttons & Dynamic Status Dot */}
                 <div className="flex items-center gap-3 mt-2 sm:mt-0 self-end sm:self-center">
-                  {/* Dynamic Color Status Dot */}
                   <span
                     className={`w-3.5 h-3.5 rounded-full shrink-0 ${getStatusColor(
                       item.status
@@ -223,20 +259,18 @@ export default function ArchivePage() {
                     title={`Status: ${item.status}`}
                   />
 
-                  {/* See Button */}
                   <button
                     onClick={() =>
                       router.push(`/admin/templates/preview/${item.id}`)
                     }
-                    className="px-4 py-1 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 font-serif text-base transition-colors"
+                    className="px-4 py-1 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 text-base transition-colors cursor-pointer"
                   >
                     See
                   </button>
 
-                  {/* Remove Button */}
                   <button
-                    onClick={() => handleRemove(item.id)}
-                    className="px-3 py-1 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 font-serif text-base transition-colors"
+                    onClick={() => setItemToDelete(item)}
+                    className="px-3 py-1 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 text-base transition-colors cursor-pointer"
                   >
                     Remove
                   </button>
@@ -244,12 +278,78 @@ export default function ArchivePage() {
               </div>
             ))
           ) : (
-            <div className="text-center py-12 text-stone-500 font-serif text-lg">
+            <div className="text-center py-12 text-stone-500 text-lg border border-stone-800 bg-white">
               No archived letters found.
             </div>
           )}
         </div>
       </div>
+
+      {/* Single Delete Confirmation Modal */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-stone-800 p-6 max-w-md w-full flex flex-col gap-4 font-serif">
+            <div>
+              <h3 className="text-xl text-stone-900">Confirm Deletion</h3>
+              <p className="text-stone-600 text-sm mt-2 font-sans">
+                Are you sure you want to delete the letter entry for{" "}
+                <span className="font-semibold text-stone-900">
+                  @{itemToDelete.username} ({itemToDelete.title})
+                </span>
+                ? This operation cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setItemToDelete(null)}
+                className="px-4 py-1.5 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSingleDelete}
+                className="px-4 py-1.5 bg-stone-900 text-white hover:bg-stone-800 text-sm transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All History Confirmation Modal */}
+      {showClearModal && (
+        <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-stone-800 p-6 max-w-md w-full flex flex-col gap-4 font-serif">
+            <div>
+              <h3 className="text-xl text-stone-900">Clear History</h3>
+              <p className="text-stone-600 text-sm mt-2 font-sans">
+                Are you sure you want to remove all{" "}
+                <span className="font-semibold text-stone-900">
+                  {filteredLetters.length}
+                </span>{" "}
+                currently displayed records from the history?
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowClearModal(false)}
+                className="px-4 py-1.5 bg-white border border-stone-800 text-stone-900 hover:bg-stone-100 text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmClearHistory}
+                className="px-4 py-1.5 bg-stone-900 text-white hover:bg-stone-800 text-sm transition-colors"
+              >
+                Confirm Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
