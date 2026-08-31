@@ -1,6 +1,5 @@
 datasource db {
   provider = "mysql"
-
 }
 
 generator client {
@@ -22,8 +21,8 @@ model User {
 
 model Letter {
   id              String   @id @default(uuid())
-  title           String   // e.g., "Surat Undangan Rapat Orang Tua"
-  letterNumber    String?  // Optional until approved by Admin
+  title           String // e.g., "Surat Undangan Rapat Orang Tua"
+  letterNumber    String? // Optional until approved by Admin
   recipient       String
   subject         String?
   body            String   @db.Text
@@ -47,12 +46,26 @@ model Template {
 }
 
 model Notice {
-  id             String   @id @default(uuid())
-  targetAudience String   @map("target_audience")
-  targetUsers    String?  @db.Text @map("target_users")
-  message        String   @db.Text
-  isActive       Boolean  @default(true) @map("is_active")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id             String       @id @default(uuid())
+  targetAudience String       @map("target_audience")
+  targetUsers    String?      @map("target_users") @db.Text
+  message        String       @db.Text
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  noticeReads    NoticeRead[]
 
   @@map("notices")
+}
+
+model NoticeRead {
+  id       String   @id @default(uuid())
+  noticeId String   @map("notice_id")
+  username String
+  hasRead  Boolean  @default(true) @map("has_read")
+  readAt   DateTime @default(now()) @map("read_at")
+
+  notice Notice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
+  @@unique([noticeId, username])
+  @@map("notice_reads")
 }

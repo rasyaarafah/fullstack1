@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from "react";
 
 export function NoticeBanner({ currentUser }: { currentUser?: any }) {
-  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
+  const [activeNotice, setActiveNotice] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState<any>(currentUser);
 
   useEffect(() => {
     async function loadNotice() {
@@ -15,7 +17,10 @@ export function NoticeBanner({ currentUser }: { currentUser?: any }) {
           if (meRes.ok) {
             const meData = await meRes.json();
             user = meData.user || meData;
+            setUserData(user);
           }
+        } else {
+          setUserData(user);
         }
 
         const res = await fetch("/api/notice");
@@ -40,7 +45,25 @@ export function NoticeBanner({ currentUser }: { currentUser?: any }) {
 
           if (!isActive) return false;
 
-          // 2. Audience Decoding
+          // 2. Read / Acknowledged Check
+          const userIdentifiers = [
+            user?.id !== undefined ? String(user.id).toLowerCase().trim() : "",
+            user?.username ? String(user.username).toLowerCase().trim() : "",
+            user?.email ? String(user.email).toLowerCase().trim() : "",
+            user?.email ? String(user.email.split("@")[0]).toLowerCase().trim() : "",
+            user?.name ? String(user.name).toLowerCase().trim() : "",
+          ].filter(Boolean);
+
+          const readList: any[] = item.readStatus || item.read_status || item.reads || [];
+          const hasAlreadyRead = readList.some((r: any) => {
+            const readerName = String(r.username || r.user || r.userId || r).toLowerCase().trim();
+            const isRead = r.hasRead !== false && r.read !== false;
+            return userIdentifiers.includes(readerName) && isRead;
+          });
+
+          if (hasAlreadyRead) return false;
+
+          // 3. Audience Decoding
           const rawAud = String(
             item.targetAudience || item.audienceType || item.audience || "all"
           ).toLowerCase();
@@ -51,7 +74,7 @@ export function NoticeBanner({ currentUser }: { currentUser?: any }) {
           if ((rawAud === "teachers" || rawAud === "teacher") && (role === "teacher" || role === "teachers")) return true;
           if ((rawAud === "admins" || rawAud === "admin") && (role === "admin" || role === "admins")) return true;
 
-          // 3. Encoded Custom Match (custom:[...])
+          // 4. Encoded Custom Match (custom:[...])
           if (rawAud.startsWith("custom:") || rawAud.startsWith("specific:")) {
             const jsonPart = rawAud.slice(rawAud.indexOf(":") + 1);
             let targets: string[] = [];
@@ -62,14 +85,6 @@ export function NoticeBanner({ currentUser }: { currentUser?: any }) {
               targets = [jsonPart];
             }
 
-            const userIdentifiers = [
-              user?.id !== undefined ? String(user.id).toLowerCase().trim() : "",
-              user?.username ? String(user.username).toLowerCase().trim() : "",
-              user?.email ? String(user.email).toLowerCase().trim() : "",
-              user?.email ? String(user.email.split("@")[0]).toLowerCase().trim() : "",
-              user?.name ? String(user.name).toLowerCase().trim() : "",
-            ].filter(Boolean);
-
             return targets.some((t: any) =>
               userIdentifiers.includes(String(t).toLowerCase().trim())
             );
@@ -78,13 +93,7 @@ export function NoticeBanner({ currentUser }: { currentUser?: any }) {
           return false;
         });
 
-        if (matchingNotice) {
-          setNoticeMessage(
-            matchingNotice.message || matchingNotice.content || matchingNotice.notice
-          );
-        } else {
-          setNoticeMessage(null);
-        }
+        setActiveNotice(matchingNotice || null);
       } catch (err) {
         console.error("[NoticeBanner] Error:", err);
       }
@@ -93,17 +102,62 @@ export function NoticeBanner({ currentUser }: { currentUser?: any }) {
     loadNotice();
   }, [currentUser]);
 
-  if (!noticeMessage) return null;
+  const handleAcknowledge = async () => {
+    if (!activeNotice) return;
+    setLoading(true);
+
+    const userIdentifier =
+      userData?.username ||
+      userData?.email ||
+      userData?.name ||
+      "Teacher";
+
+    try {
+      const res = await fetch("/api/notice/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          noticeId: activeNotice.id || activeNotice._id,
+          username: userIdentifier,
+        }),
+      });
+
+      if (res.ok) {
+        setActiveNotice(null);
+      }
+    } catch (err) {
+      console.error("Failed to acknowledge notice:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!activeNotice) return null;
+
+  const noticeMessage =
+    activeNotice.message || activeNotice.content || activeNotice.notice;
 
   return (
-    <div className="bg-amber-50 border border-amber-300 text-stone-900 rounded-2xl p-4 shadow-sm flex items-center gap-3">
-      <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
-        !
+    <div className="bg-amber-50 border border-amber-300 text-stone-900 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
+          !
+        </div>
+        <div className="text-xs font-sans text-stone-800 leading-relaxed">
+          <span className="font-bold text-stone-900 mr-1.5">
+            Announcement:
+          </span>
+          {noticeMessage}
+        </div>
       </div>
-      <div className="text-xs font-sans text-stone-800 leading-relaxed">
-        <span className="font-bold text-stone-900 mr-1.5">Announcement:</span>
-        {noticeMessage}
-      </div>
+
+      <button
+        onClick={handleAcknowledge}
+        disabled={loading}
+        className="px-4 py-1.5 bg-[#0A4D3C] hover:bg-[#07382c] text-white font-medium text-xs rounded-full transition-all cursor-pointer shrink-0 disabled:opacity-50"
+      >
+        {loading ? "Saving..." : "Acknowledge"}
+      </button>
     </div>
   );
 }

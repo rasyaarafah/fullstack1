@@ -1,5 +1,3 @@
-// File: src/app/admin/notice/page.tsx
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -13,23 +11,25 @@ type UserOption = {
   role: "teacher" | "admin";
 };
 
+type ReadStatusRecord = {
+  username: string;
+  hasRead: boolean;
+};
+
 type BroadcastHistoryItem = {
   id: string;
   message: string;
-  audienceType: "all" | "teachers" | "admins" | "custom";
-  targetUsers: string[];
+  targetAudience?: string;
+  audienceType?: "all" | "teachers" | "admins" | "custom";
+  targetUsers?: string[] | string;
   createdAt: string;
   isActive: boolean;
-  readStatus: {
-    username: string;
-    hasRead: boolean;
-  }[];
+  readStatus?: ReadStatusRecord[];
 };
 
 export default function AdminNoticePage() {
   const pathname = usePathname();
 
-  // Navigation Setup
   const navItems = [
     { label: "Overview", href: "/admin", isActive: pathname === "/admin" },
     {
@@ -72,7 +72,6 @@ export default function AdminNoticePage() {
     },
   ];
 
-  // State Management
   const [users, setUsers] = useState<UserOption[]>([]);
   const [message, setMessage] = useState("");
   const [audienceType, setAudienceType] = useState<
@@ -90,7 +89,6 @@ export default function AdminNoticePage() {
     role: "admin",
   };
 
-  // Fetch Users & Notice Data on Load
   useEffect(() => {
     fetchUsers();
     fetchNotices();
@@ -143,7 +141,6 @@ export default function AdminNoticePage() {
     }
 
     setLoading(true);
-
     let targets: string[] = [];
 
     if (audienceType === "custom") {
@@ -152,13 +149,8 @@ export default function AdminNoticePage() {
       );
 
       targets = selectedUsers
-        .flatMap((u) => [String(u.id), u.username || u.name, u.name])
-        .filter(Boolean)
-        .map((str) => String(str).toLowerCase().trim());
-
-      if (targets.length === 0) {
-        targets = selectedUserIds.map((id) => String(id).toLowerCase().trim());
-      }
+        .map((u) => u.username || u.name)
+        .filter(Boolean);
     }
 
     try {
@@ -198,7 +190,6 @@ export default function AdminNoticePage() {
     }
   };
 
-  // Handle Stop Notice
   const handleStopNotice = async () => {
     try {
       const res = await fetch("/api/notice/stop", { method: "POST" });
@@ -211,6 +202,20 @@ export default function AdminNoticePage() {
     }
   };
 
+  const resolveUserLabel = (target: any) => {
+    const rawVal =
+      typeof target === "object" && target !== null
+        ? target.username || target.name || target.id
+        : String(target);
+
+    const matchedUser = users.find((u) => String(u.id) === String(rawVal));
+    if (matchedUser) {
+      return matchedUser.username || matchedUser.name;
+    }
+
+    return rawVal;
+  };
+
   return (
     <DashboardLayout
       navItems={navItems}
@@ -218,7 +223,6 @@ export default function AdminNoticePage() {
       currentUser={adminUser}
     >
       <div className="flex flex-col gap-8 pb-16 font-sans">
-        {/* Header */}
         <div>
           <h1 className="text-3xl font-serif text-stone-900">
             Broadcast Notice
@@ -228,7 +232,6 @@ export default function AdminNoticePage() {
           </p>
         </div>
 
-        {/* Active Notice Alert Banner */}
         {activeNotice && (
           <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -249,7 +252,6 @@ export default function AdminNoticePage() {
           </div>
         )}
 
-        {/* Form & Preview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <form
             onSubmit={handlePublish}
@@ -259,7 +261,6 @@ export default function AdminNoticePage() {
               Create Announcement
             </h2>
 
-            {/* Target Audience */}
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
                 Target Audience
@@ -287,7 +288,6 @@ export default function AdminNoticePage() {
               </div>
             </div>
 
-            {/* Target Selection */}
             {audienceType === "custom" && (
               <div className="flex flex-col gap-2 p-4 bg-stone-50 border border-stone-200 rounded-2xl">
                 <span className="text-xs font-semibold text-stone-600">
@@ -327,7 +327,6 @@ export default function AdminNoticePage() {
               </div>
             )}
 
-            {/* Message Area */}
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
                 Message
@@ -353,7 +352,6 @@ export default function AdminNoticePage() {
             </div>
           </form>
 
-          {/* Banner Preview */}
           <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-xs flex flex-col gap-4">
             <h2 className="text-xl font-serif font-semibold text-stone-900">
               User Banner Preview
@@ -375,7 +373,6 @@ export default function AdminNoticePage() {
           </div>
         </div>
 
-        {/* History Table */}
         <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-xs flex flex-col gap-6">
           <h2 className="text-xl font-serif font-semibold text-stone-900">
             Broadcast History & Read Receipts
@@ -387,63 +384,165 @@ export default function AdminNoticePage() {
                 No notices broadcasted yet.
               </p>
             ) : (
-              history.map((item) => (
-                <div
-                  key={item.id}
-                  className="border border-stone-200 rounded-2xl p-5 flex flex-col gap-4"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                          item.isActive
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-stone-100 text-stone-500"
-                        }`}
-                      >
-                        {item.isActive ? "Active" : "Archived"}
-                      </span>
-                      <span className="text-xs text-stone-400">
-                        {item.createdAt}
-                      </span>
-                    </div>
+              history.map((item) => {
+                const rawAud = String(item.targetAudience || item.audienceType || "all");
+                let targets: string[] = [];
+                let displayAudience = rawAud;
 
-                    <span className="text-xs font-medium text-stone-600 bg-stone-100 px-3 py-1 rounded-full w-fit">
-                      Audience: {item.audienceType} (
-                      {item.targetUsers?.length || 0} users)
-                    </span>
-                  </div>
+                if (
+                  rawAud.startsWith("custom:") ||
+                  rawAud.startsWith("specific:") ||
+                  rawAud.startsWith("users:")
+                ) {
+                  const jsonPart = rawAud.slice(rawAud.indexOf(":") + 1);
+                  try {
+                    targets = JSON.parse(jsonPart);
+                  } catch {
+                    targets = [jsonPart];
+                  }
+                  displayAudience = "Specific Users";
+                } else if (rawAud === "all") {
+                  displayAudience = "All Users";
+                } else if (rawAud === "teachers" || rawAud === "teacher") {
+                  displayAudience = "Teachers Only";
+                } else if (rawAud === "admins" || rawAud === "admin") {
+                  displayAudience = "Admins Only";
+                }
 
-                  <p className="text-sm text-stone-800 font-medium">
-                    "{item.message}"
-                  </p>
+                if (targets.length === 0 && item.targetUsers) {
+                  if (Array.isArray(item.targetUsers)) {
+                    targets = item.targetUsers;
+                  } else if (typeof item.targetUsers === "string") {
+                    try {
+                      targets = JSON.parse(item.targetUsers);
+                    } catch {
+                      targets = [item.targetUsers];
+                    }
+                  }
+                }
 
-                  <div className="flex flex-col gap-2 pt-1">
-                    <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">
-                      Recipient Status:
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {item.readStatus?.map((st, idx) => (
+                const uniqueTargetsMap = new Map<string, string>();
+                targets.forEach((t) => {
+                  const label = resolveUserLabel(t);
+                  const lowerKey = label.toLowerCase().trim();
+                  if (!uniqueTargetsMap.has(lowerKey)) {
+                    uniqueTargetsMap.set(lowerKey, label);
+                  }
+                });
+                const uniqueTargets = Array.from(uniqueTargetsMap.values());
+
+                // Consolidate read receipts and targets into a clean status map
+                const statusMap = new Map<string, boolean>();
+
+                // 1. First record DB read receipts (e.g. teacher@gmail.com: true)
+                if (item.readStatus && Array.isArray(item.readStatus)) {
+                  item.readStatus.forEach((st) => {
+                    if (st.username) {
+                      statusMap.set(st.username.toLowerCase().trim(), st.hasRead);
+                    }
+                  });
+                }
+
+                // 2. Add targeted users if not already present or represented by email
+                uniqueTargets.forEach((targetLabel) => {
+                  const cleanTarget = targetLabel.toLowerCase().trim();
+
+                  // Check if any existing key in statusMap belongs to this target user
+                  const existingMatchKey = Array.from(statusMap.keys()).find(
+                    (key) =>
+                      key === cleanTarget ||
+                      key.startsWith(`${cleanTarget}@`) ||
+                      cleanTarget.startsWith(`${key}@`)
+                  );
+
+                  if (!existingMatchKey) {
+                    statusMap.set(cleanTarget, false);
+                  }
+                });
+
+                const finalStatuses = Array.from(statusMap.entries()).map(
+                  ([key, hasRead]) => ({
+                    username: key,
+                    hasRead,
+                  })
+                );
+
+                const formattedDate = item.createdAt
+                  ? new Date(item.createdAt).toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Recently";
+
+                return (
+                  <div
+                    key={item.id}
+                    className="border border-stone-200 rounded-2xl p-5 flex flex-col gap-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+                      <div className="flex items-center gap-2">
                         <span
-                          key={idx}
-                          className={`text-xs px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${
-                            st.hasRead
-                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                              : "bg-amber-50 border-amber-200 text-amber-700"
+                          className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                            item.isActive
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-stone-100 text-stone-500"
                           }`}
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              st.hasRead ? "bg-emerald-500" : "bg-amber-500"
-                            }`}
-                          />
-                          @{st.username}: {st.hasRead ? "Read" : "Unread"}
+                          {item.isActive ? "Active" : "Archived"}
                         </span>
-                      ))}
+                        <span className="text-xs text-stone-400 font-mono">
+                          {formattedDate}
+                        </span>
+                      </div>
+
+                      <span className="text-xs font-medium text-stone-600 bg-stone-100 px-3 py-1 rounded-full w-fit">
+                        Audience: {displayAudience}{" "}
+                        {uniqueTargets.length > 0
+                          ? `(${uniqueTargets.length} users)`
+                          : ""}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-stone-800 font-medium">
+                      "{item.message}"
+                    </p>
+
+                    <div className="flex flex-col gap-2 pt-1">
+                      <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">
+                        Recipient Status:
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {finalStatuses.length > 0 ? (
+                          finalStatuses.map((st, idx) => (
+                            <span
+                              key={idx}
+                              className={`text-xs px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${
+                                st.hasRead
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                  : "bg-amber-50 border-amber-200 text-amber-700"
+                              }`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  st.hasRead ? "bg-emerald-500" : "bg-amber-500"
+                                }`}
+                              />
+                              @{st.username}: {st.hasRead ? "Read" : "Unread"}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-stone-400 italic">
+                            All targeted users
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

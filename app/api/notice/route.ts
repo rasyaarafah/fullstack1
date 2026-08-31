@@ -8,8 +8,18 @@ export async function GET() {
   try {
     const notices = await prisma.notice.findMany({
       orderBy: { createdAt: "desc" },
+      include: {
+        noticeReads: true,
+      },
     });
-    return NextResponse.json({ history: notices ?? [] });
+
+    // Map `noticeReads` to `readStatus` to match client component expectations
+    const formattedNotices = notices.map((notice: any) => ({
+      ...notice,
+      readStatus: notice.noticeReads,
+    }));
+
+    return NextResponse.json({ history: formattedNotices });
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || String(error) },
