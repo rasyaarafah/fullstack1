@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
+import { Letterhead } from "@/components/molecules/Letterhead";
 
 interface PlaceholderItem {
   label: string;
@@ -9,6 +11,8 @@ interface PlaceholderItem {
 }
 
 export default function AddTemplatePage() {
+  const router = useRouter();
+
   const [templateName, setTemplateName] = useState("");
   const [category, setCategory] = useState("Surat Keterangan");
   const [description, setDescription] = useState("");
@@ -21,6 +25,7 @@ export default function AddTemplatePage() {
   const [bodyContent, setBodyContent] = useState(
     "Dengan ini menerangkan bahwa:\n\nNama: {{nama_penerima}}\nJabatan: {{jabatan}}\n\nTelah melaksanakan tugas dengan baik dan benar."
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navItems = [
     { label: "Overview", href: "/admin", isActive: false },
@@ -36,13 +41,6 @@ export default function AddTemplatePage() {
     { label: "Broadcast notice", href: "/admin/notice", isActive: false },
   ];
 
-  const mockUser = {
-    name: "Admin",
-    username: "admin_dev",
-    avatarUrl: "",
-    role: "admin",
-  };
-
   const handleAddPlaceholder = () => {
     if (!fieldLabel.trim()) return;
     const key = fieldLabel
@@ -50,7 +48,6 @@ export default function AddTemplatePage() {
       .trim()
       .replace(/[^a-z0-9]/g, "_");
 
-    // Prevent duplicate keys
     if (placeholders.some((p) => p.key === key)) {
       setFieldLabel("");
       return;
@@ -68,12 +65,39 @@ export default function AddTemplatePage() {
     setBodyContent((prev) => `${prev} {{${key}}}`);
   };
 
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      alert("Please enter a template name.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: templateName,
+          category,
+          description,
+          placeholders,
+          bodyContent,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to save template");
+
+      router.push("/admin/templates/edit");
+    } catch (err) {
+      console.error(err);
+      alert("Error saving template. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <DashboardLayout
-      navItems={navItems}
-      adminTools={adminTools}
-      currentUser={mockUser}
-    >
+    <DashboardLayout navItems={navItems} adminTools={adminTools}>
       <div className="flex flex-col gap-6">
         {/* Header Title Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -88,15 +112,18 @@ export default function AddTemplatePage() {
           <div className="flex gap-3">
             <button
               type="button"
+              onClick={() => router.back()}
               className="px-5 py-2 rounded-2xl border border-stone-400 bg-white text-stone-800 text-xs font-semibold hover:bg-stone-50 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="button"
-              className="px-5 py-2 rounded-2xl bg-[#0A4D3C] text-white text-xs font-semibold hover:bg-[#07382c] transition-colors shadow-sm cursor-pointer"
+              onClick={handleSaveTemplate}
+              disabled={isSubmitting}
+              className="px-5 py-2 rounded-2xl bg-[#0A4D3C] text-white text-xs font-semibold hover:bg-[#07382c] transition-colors shadow-sm cursor-pointer disabled:opacity-50"
             >
-              Save Template
+              {isSubmitting ? "Saving..." : "Save Template"}
             </button>
           </div>
         </div>
@@ -105,7 +132,7 @@ export default function AddTemplatePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Editor Controls */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            {/* 1. Template Details */}
+            {/* Template Details */}
             <div className="p-6 bg-white rounded-3xl border border-stone-200 shadow-sm flex flex-col gap-4">
               <h2 className="font-serif font-bold text-stone-900 text-lg">
                 Template Details
@@ -156,7 +183,7 @@ export default function AddTemplatePage() {
               </div>
             </div>
 
-            {/* 2. Custom Placeholders */}
+            {/* Custom Placeholders */}
             <div className="p-6 bg-white rounded-3xl border border-stone-200 shadow-sm flex flex-col gap-4">
               <div>
                 <h2 className="font-serif font-bold text-stone-900 text-lg">
@@ -173,7 +200,9 @@ export default function AddTemplatePage() {
                   value={fieldLabel}
                   onChange={(e) => setFieldLabel(e.target.value)}
                   placeholder="Field label (e.g. Tanggal Mulai)"
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddPlaceholder())}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && (e.preventDefault(), handleAddPlaceholder())
+                  }
                   className="flex-1 px-4 py-2.5 rounded-2xl border border-stone-300 text-xs focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
                 />
                 <select
@@ -194,7 +223,7 @@ export default function AddTemplatePage() {
                 </button>
               </div>
 
-              {/* Placeholder Badges */}
+              {/* Badges */}
               <div className="flex flex-wrap gap-2 pt-1">
                 {placeholders.map((item) => (
                   <div
@@ -225,7 +254,7 @@ export default function AddTemplatePage() {
               </div>
             </div>
 
-            {/* 3. Document Body Content */}
+            {/* Document Body Content */}
             <div className="p-6 bg-white rounded-3xl border border-stone-200 shadow-sm flex flex-col gap-3">
               <h2 className="font-serif font-bold text-stone-900 text-lg">
                 Document Body Content
@@ -239,7 +268,7 @@ export default function AddTemplatePage() {
             </div>
           </div>
 
-          {/* Right Column: Live SMK Letris 2 Kop Surat Document Preview */}
+          {/* Right Column: Live SMK Letris 2 Preview */}
           <div className="lg:col-span-5 bg-stone-100/70 p-6 rounded-3xl border border-stone-200 flex flex-col gap-3 sticky top-6">
             <div className="flex justify-between items-center">
               <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider font-sans">
@@ -252,45 +281,8 @@ export default function AddTemplatePage() {
 
             <div className="w-full bg-white rounded-2xl shadow-xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[11px] min-h-125">
               <div>
-                {/* SMK Letris Indonesia 2 Kop Surat Header */}
-                <div className="relative border-b-4 border-double border-stone-900 pb-2 mb-4 text-center">
-                  {/* Left Logo Slot */}
-                  <div className="absolute left-0 top-0 w-10 h-10 border border-dashed border-blue-400 rounded-full flex items-center justify-center text-[7px] text-blue-600 font-sans font-bold text-center leading-tight">
-                    LOGO LETRIS 2
-                  </div>
+                <Letterhead />
 
-                  {/* Right Logo Slot */}
-                  <div className="absolute right-0 top-0 w-10 h-10 border border-dashed border-emerald-500 rounded flex items-center justify-center text-[7px] text-emerald-700 font-sans font-bold text-center leading-tight">
-                    LOGO BANTEN
-                  </div>
-
-                  {/* School Header Text */}
-                  <div className="px-8">
-                    <h4 className="font-bold text-[9px] tracking-tight uppercase leading-tight">
-                      YAYASAN LEO SUTRISNO
-                    </h4>
-                    <h3 className="font-bold text-[11px] tracking-wide uppercase leading-tight">
-                      SMK LETRIS INDONESIA 2
-                    </h3>
-                    <p className="text-[7.5px] font-sans text-stone-700 leading-tight">
-                      NPSN : 69894185 &nbsp;&nbsp; NSS : 402286303080
-                    </p>
-                    <p className="text-[7.5px] font-sans font-semibold text-stone-800 leading-tight">
-                      ( AKREDITASI " A " )
-                    </p>
-                    <p className="text-[6.5px] font-sans text-stone-600 leading-tight">
-                      Kompetensi Keahlian : DKV, TJKT, PPLG, MPLB, PM, Akuntansi
-                    </p>
-                    <p className="text-[6.5px] font-sans text-stone-600 leading-tight">
-                      Jl. Raya Siliwangi No. 55 Pamulang, Kota Tangerang Selatan
-                    </p>
-                    <span className="text-[6.5px] text-blue-700 underline font-sans">
-                      www.smkletrisdua.sch.id
-                    </span>
-                  </div>
-                </div>
-
-                {/* Document Title & Number */}
                 <div className="text-center mb-4">
                   <h3 className="font-bold text-xs uppercase underline tracking-wider">
                     {templateName || "NAMA TEMPLATE SURAT"}
@@ -300,7 +292,6 @@ export default function AddTemplatePage() {
                   </p>
                 </div>
 
-                {/* Body Content Live Sync Preview */}
                 <div className="leading-relaxed whitespace-pre-wrap text-[10px] text-stone-800 font-sans min-h-40">
                   {bodyContent || (
                     <span className="italic text-stone-400">
@@ -310,13 +301,12 @@ export default function AddTemplatePage() {
                 </div>
               </div>
 
-              {/* Signature Block */}
               <div className="flex justify-end pt-4 font-sans text-[9px]">
                 <div className="text-center w-36">
-                  <p>Tangerang Selatan, {new Date().toLocaleDateString("id-ID")}</p>
+                  <p>Tangerang Selatan, 1/9/2026</p>
                   <p className="font-semibold mt-1">Kepala Sekolah</p>
                   <div className="h-10 flex items-center justify-center italic text-stone-400 text-[8px]">
-                    [Tanda Tangan & Stempel]
+                    (Tanda Tangan & Stempel)
                   </div>
                   <p className="font-bold underline text-stone-800">
                     Admin Let2Kop

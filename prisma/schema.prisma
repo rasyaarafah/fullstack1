@@ -40,7 +40,7 @@ model Template {
   description  String?
   placeholders String   @db.Text
   bodyContent  String   @db.Text
-  createdAt    DateTime @default(now()) @map("created_at")
+  createdAt    DateTime @default(now()) @map("created_at")    
 
   @@map("templates")
 }

@@ -6,9 +6,13 @@ import { DashboardLayout } from "@/components/templates/DashboardLayout";
 import { LetterFormEditor, LetterFormData } from "@/components/organisms/LetterFormEditor";
 import { Avatar } from "@/components/atoms/Avatar";
 
-interface Template {
+interface DynamicTemplate {
   id: string;
   title: string;
+  category?: string;
+  description?: string;
+  placeholders?: string;
+  bodyContent?: string;
   defaultNumber?: string;
   defaultRecipient?: string;
   defaultBody?: string;
@@ -17,7 +21,7 @@ interface Template {
 const DEFAULT_LEFT_LOGO = "/logo_letris.png";
 const DEFAULT_RIGHT_LOGO = "/logo_banten.png";
 
-const templates: Template[] = [
+const FALLBACK_TEMPLATES: DynamicTemplate[] = [
   {
     id: "1",
     title: "Surat undangan",
@@ -41,22 +45,6 @@ const templates: Template[] = [
     defaultRecipient: "Siswa / Siswi Terlampir",
     defaultBody:
       "Kepala SMK Letris Indonesia 2 menerangkan bahwa nama yang tercantum di bawah ini adalah benar tercatat sebagai siswa aktif SMK Letris Indonesia 2 Tahun Ajaran 2026/2027.",
-  },
-  {
-    id: "4",
-    title: "Surat keputusan",
-    defaultNumber: "004/SKep/SMK-2/2026",
-    defaultRecipient: "Seluruh Dewan Guru & Staf",
-    defaultBody:
-      "MEMUTUSKAN:\n1. Menetapkan susunan panitia Ujian Akhir Semester.\n2. Keputusan ini berlaku sejak tanggal ditetapkan.",
-  },
-  {
-    id: "5",
-    title: "Surat pemberitahuan",
-    defaultNumber: "005/PEMT/SMK-2/2026",
-    defaultRecipient: "Seluruh Orang Tua Murid",
-    defaultBody:
-      "Diberitahukan kepada seluruh Orang Tua/Wali Murid bahwa kegiatan Pembelajaran Jarak Jauh (PJJ) akan dilaksanakan pada tanggal terlampir.",
   },
 ];
 
@@ -82,12 +70,14 @@ async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
   }
 }
 
-function MiniPaperThumbnail({ template }: { template: Template }) {
+function MiniPaperThumbnail({ template }: { template: DynamicTemplate }) {
   const [currentDate, setCurrentDate] = useState<string>("");
 
   useEffect(() => {
     setCurrentDate(new Date().toISOString().split("T")[0]);
   }, []);
+
+  const bodyPreview = template.bodyContent || template.defaultBody || "";
 
   return (
     <div className="w-full aspect-3/4 bg-stone-200/60 rounded-2xl border border-stone-300 overflow-hidden relative shadow-sm group-hover:shadow-md transition-all flex items-center justify-center p-2 select-none">
@@ -106,7 +96,7 @@ function MiniPaperThumbnail({ template }: { template: Template }) {
 
           <div className="flex justify-between text-[8px] font-sans mb-3">
             <div>
-              <p><span className="font-semibold">Nomor:</span> {template.defaultNumber || "-"}</p>
+              <p><span className="font-semibold">Nomor:</span> {template.defaultNumber || "[Auto]"}</p>
               <p><span className="font-semibold">Hal:</span> {template.title}</p>
             </div>
             <div className="text-right">
@@ -121,7 +111,7 @@ function MiniPaperThumbnail({ template }: { template: Template }) {
           </div>
 
           <div className="text-[7.5px] font-sans text-stone-700 leading-normal line-clamp-6 whitespace-pre-wrap">
-            {template.defaultBody}
+            {bodyPreview}
           </div>
         </div>
 
@@ -143,6 +133,9 @@ function AdminNewLetterContent() {
   const searchParams = useSearchParams();
   const templateQuery = searchParams.get("template");
 
+  const [templatesList, setTemplatesList] = useState<DynamicTemplate[]>(FALLBACK_TEMPLATES);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+
   const [currentUser, setCurrentUser] = useState({
     name: "Rasya",
     username: "rasya",
@@ -151,7 +144,7 @@ function AdminNewLetterContent() {
     role: "admin",
   });
 
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<DynamicTemplate | null>(null);
   const [leftLogoSrc, setLeftLogoSrc] = useState(DEFAULT_LEFT_LOGO);
   const [rightLogoSrc, setRightLogoSrc] = useState(DEFAULT_RIGHT_LOGO);
 
@@ -166,6 +159,26 @@ function AdminNewLetterContent() {
     leftLogo: DEFAULT_LEFT_LOGO,
     rightLogo: DEFAULT_RIGHT_LOGO,
   });
+
+  useEffect(() => {
+    async function fetchDatabaseTemplates() {
+      try {
+        const res = await fetch("/api/templates");
+        if (res.ok) {
+          const dbTemplates: DynamicTemplate[] = await res.json();
+          if (dbTemplates.length > 0) {
+            setTemplatesList(dbTemplates);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch templates from database:", err);
+      } finally {
+        setIsLoadingTemplates(false);
+      }
+    }
+
+    fetchDatabaseTemplates();
+  }, []);
 
   useEffect(() => {
     async function loadUserSession() {
@@ -208,22 +221,22 @@ function AdminNewLetterContent() {
     { label: "Broadcast notice", href: "/admin/notice", isActive: false },
   ];
 
-  const handleSelectTemplate = useCallback((templateObj: Template | null) => {
+  const handleSelectTemplate = useCallback((templateObj: DynamicTemplate | null) => {
     setSelectedTemplate(templateObj);
     if (templateObj) {
       setLetterData((prev) => ({
         ...prev,
         letterNumber: templateObj.defaultNumber || prev.letterNumber,
         recipient: templateObj.defaultRecipient || prev.recipient,
-        body: templateObj.defaultBody || prev.body,
+        body: templateObj.bodyContent || templateObj.defaultBody || prev.body,
       }));
     }
   }, []);
 
   useEffect(() => {
-    if (!templateQuery) return;
+    if (!templateQuery || isLoadingTemplates) return;
 
-    const matched = templates.find(
+    const matched = templatesList.find(
       (t) => t.title.toLowerCase() === templateQuery.toLowerCase()
     );
 
@@ -232,7 +245,7 @@ function AdminNewLetterContent() {
     } else {
       setSelectedTemplate({ id: "custom", title: templateQuery });
     }
-  }, [templateQuery, handleSelectTemplate]);
+  }, [templateQuery, templatesList, isLoadingTemplates, handleSelectTemplate]);
 
   const handlePrintPdf = () => {
     const printElement = document.getElementById("printable-letter");
@@ -369,7 +382,6 @@ function AdminNewLetterContent() {
   return (
     <DashboardLayout navItems={navItems} adminTools={adminTools} currentUser={currentUser}>
       <div className="flex flex-col gap-6">
-        {/* Top Header with Avatar component explicitly rendered if needed, matching your layout behavior */}
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-serif text-stone-900">
             Welcome, <span className="italic">{currentUser.name}</span>
@@ -388,19 +400,25 @@ function AdminNewLetterContent() {
         </div>
 
         {!selectedTemplate ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4">
-            {templates.map((template) => (
-              <button
-                key={template.id}
-                onClick={() => handleSelectTemplate(template)}
-                className="group flex flex-col items-center gap-3 text-center transition-transform hover:-translate-y-1 cursor-pointer"
-              >
-                <MiniPaperThumbnail template={template} />
-                <span className="font-serif text-base text-stone-900 font-medium group-hover:underline">
-                  {template.title}
-                </span>
-              </button>
-            ))}
+          <div>
+            {isLoadingTemplates ? (
+              <div className="p-8 text-stone-500 font-sans text-sm">Loading available templates...</div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4">
+                {templatesList.map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => handleSelectTemplate(template)}
+                    className="group flex flex-col items-center gap-3 text-center transition-transform hover:-translate-y-1 cursor-pointer"
+                  >
+                    <MiniPaperThumbnail template={template} />
+                    <span className="font-serif text-base text-stone-900 font-medium group-hover:underline">
+                      {template.title}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-6">
@@ -465,7 +483,7 @@ function AdminNewLetterContent() {
                   }}
                   onSaveDraft={() => alert("Draf surat berhasil disimpan!")}
                   onSelectTemplatePreset={(id) => {
-                    const match = templates.find((t) => t.id === id);
+                    const match = templatesList.find((t) => t.id === id);
                     if (match) handleSelectTemplate(match);
                   }}
                 />

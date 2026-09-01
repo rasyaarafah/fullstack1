@@ -1,16 +1,48 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 
 interface TemplateItem {
   id: string;
   title: string;
-  category: string;
-  description: string;
-  lastUpdated: string;
+  category?: string;
+  description?: string;
+  lastUpdated?: string;
+  updatedAt?: string;
 }
+
+const FALLBACK_TEMPLATES: TemplateItem[] = [
+  {
+    id: "surat-tugas",
+    title: "Surat Tugas",
+    category: "Formal",
+    description: "Official assignment letter for staff or teachers traveling on duty.",
+    lastUpdated: "2 days ago",
+  },
+  {
+    id: "surat-keputusan",
+    title: "Surat Keputusan (SK)",
+    category: "Keputusan",
+    description: "Formal decree document for organizational policy or role assignments.",
+    lastUpdated: "1 week ago",
+  },
+  {
+    id: "surat-undangan",
+    title: "Surat Undangan",
+    category: "Acara",
+    description: "Invitation template for official school meetings and parents gathering.",
+    lastUpdated: "3 days ago",
+  },
+  {
+    id: "surat-keterangan",
+    title: "Surat Keterangan Active",
+    category: "Formal",
+    description: "Statement letter certifying active student or employee status.",
+    lastUpdated: "01/01/2026",
+  },
+];
 
 export default function TemplateGalleryPage() {
   const adminNavItems = [
@@ -29,46 +61,41 @@ export default function TemplateGalleryPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
+  const [templates, setTemplates] = useState<TemplateItem[]>(FALLBACK_TEMPLATES);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const templates: TemplateItem[] = [
-    {
-      id: "surat-tugas",
-      title: "Surat Tugas",
-      category: "Formal",
-      description: "Official assignment letter for staff or teachers traveling on duty.",
-      lastUpdated: "2 days ago",
-    },
-    {
-      id: "surat-keputusan",
-      title: "Surat Keputusan (SK)",
-      category: "Keputusan",
-      description: "Formal decree document for organizational policy or role assignments.",
-      lastUpdated: "1 week ago",
-    },
-    {
-      id: "surat-undangan",
-      title: "Surat Undangan",
-      category: "Acara",
-      description: "Invitation template for official school meetings and parents gathering.",
-      lastUpdated: "3 days ago",
-    },
-    {
-      id: "surat-keterangan",
-      title: "Surat Keterangan Active",
-      category: "Formal",
-      description: "Statement letter certifying active student or employee status.",
-      lastUpdated: "01/01/2026",
-    },
-  ];
+  useEffect(() => {
+    async function fetchTemplates() {
+      try {
+        const res = await fetch("/api/templates");
+        if (res.ok) {
+          const dbTemplates: TemplateItem[] = await res.json();
+          if (dbTemplates.length > 0) {
+            setTemplates(dbTemplates);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch dynamic templates:", err);
+      }  {
+        setIsLoading(false);
+      }
+    }
+
+    fetchTemplates();
+  }, []);
 
   const categories = ["Semua", "Formal", "Keputusan", "Acara"];
 
   const filteredTemplates = templates.filter((tpl) => {
+    const title = tpl.title || "";
+    const description = tpl.description || "";
+    const category = tpl.category || "Formal";
+
     const matchesSearch =
-      tpl.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tpl.description.toLowerCase().includes(searchTerm.toLowerCase());
+      title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
-      selectedCategory === "Semua" || tpl.category === selectedCategory;
+      selectedCategory === "Semua" || category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -128,49 +155,59 @@ export default function TemplateGalleryPage() {
         </div>
 
         {/* Template Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredTemplates.map((template) => (
-            <div
-              key={template.id}
-              className="p-5 bg-white border border-stone-800 rounded-xl flex flex-col justify-between hover:shadow-md transition-shadow"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-serif text-xs px-2.5 py-0.5 rounded-full border border-stone-400 text-stone-700 bg-stone-50">
-                    {template.category}
-                  </span>
-                  <span className="font-serif text-xs text-stone-500">
-                    Updated {template.lastUpdated}
-                  </span>
+        {isLoading ? (
+          <div className="p-8 text-center text-stone-500 font-serif text-sm">
+            Loading templates gallery...
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredTemplates.map((template) => (
+              <div
+                key={template.id}
+                className="p-5 bg-white border border-stone-800 rounded-xl flex flex-col justify-between hover:shadow-md transition-shadow"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-serif text-xs px-2.5 py-0.5 rounded-full border border-stone-400 text-stone-700 bg-stone-50">
+                      {template.category || "Formal"}
+                    </span>
+                    <span className="font-serif text-xs text-stone-500">
+                      {template.lastUpdated
+                        ? `Updated ${template.lastUpdated}`
+                        : template.updatedAt
+                        ? `Updated ${new Date(template.updatedAt).toLocaleDateString()}`
+                        : "Recently updated"}
+                    </span>
+                  </div>
+                  <h3 className="font-serif text-xl text-stone-900 font-bold">
+                    {template.title}
+                  </h3>
+                  <p className="font-serif text-sm text-stone-600 line-clamp-2">
+                    {template.description || "No description provided."}
+                  </p>
                 </div>
-                <h3 className="font-serif text-xl text-stone-900 font-bold">
-                  {template.title}
-                </h3>
-                <p className="font-serif text-sm text-stone-600 line-clamp-2">
-                  {template.description}
-                </p>
-              </div>
 
-              <div className="pt-4 mt-4 border-t border-stone-200 flex justify-end">
-                <Link
-                  href={`/admin/templates/edit/${template.id}`}
-                  className="px-4 py-2 bg-stone-900 text-white rounded-lg font-serif text-sm hover:bg-stone-800 transition-colors inline-flex items-center gap-1.5"
-                >
-                  Edit Template
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </Link>
+                <div className="pt-4 mt-4 border-t border-stone-200 flex justify-end">
+                  <Link
+                    href={`/admin/templates/edit/${template.id}`}
+                    className="px-4 py-2 bg-stone-900 text-white rounded-lg font-serif text-sm hover:bg-stone-800 transition-colors inline-flex items-center gap-1.5"
+                  >
+                    Edit Template
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
 
-          {filteredTemplates.length === 0 && (
-            <div className="col-span-full text-center py-12 text-stone-500 font-serif border border-dashed border-stone-300 rounded-xl">
-              No templates found matching your search.
-            </div>
-          )}
-        </div>
+            {filteredTemplates.length === 0 && (
+              <div className="col-span-full text-center py-12 text-stone-500 font-serif border border-dashed border-stone-300 rounded-xl">
+                No templates found matching your search.
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
