@@ -7,7 +7,7 @@ import { DashboardLayout } from "@/components/templates/DashboardLayout";
 interface TemplateData {
   id: string;
   title: string;
-  category?: string;
+  category: string;
   yayasan?: string;
   namaSekolah?: string;
   npsnNss?: string;
@@ -40,6 +40,14 @@ const DEFAULT_HEADER = {
   website: "www.smkletrisdua.sch.id",
 };
 
+const CATEGORY_OPTIONS = [
+  "Surat Keterangan",
+  "Surat Undangan",
+  "Surat Tugas",
+  "Surat Keputusan",
+  "Surat Pemberitahuan",
+];
+
 export default function EditTemplatePage() {
   const params = useParams();
   const router = useRouter();
@@ -48,6 +56,7 @@ export default function EditTemplatePage() {
   const [formData, setFormData] = useState<TemplateData>({
     id: templateId || "",
     title: "",
+    category: "Surat Keterangan",
     ...DEFAULT_HEADER,
     nomorSurat: "[Disi oleh Admin]",
     kotaTanggal: "Tangerang Selatan, {tanggal_surat}",
@@ -78,13 +87,10 @@ export default function EditTemplatePage() {
         }
 
         const data = await res.json();
-        // Inspect payload in browser console to verify database field names
         console.log("Fetched template data:", data);
 
-        // Extract template object whether returned raw or wrapped in { template: {...} }
         const item = data.template || data.data || data;
 
-        // Map any variant of body/content properties saved by "Add Template"
         const extractedBody =
           item.bodyContent ||
           item.content ||
@@ -97,6 +103,7 @@ export default function EditTemplatePage() {
         setFormData((prev) => ({
           ...prev,
           title: item.title || item.nama || item.name || "Untitled Template",
+          category: item.category || "Surat Keterangan",
           perihal: item.perihal || item.hal || item.subject || item.title || "",
           bodyContent: extractedBody,
           nomorSurat: item.nomorSurat || item.nomor || "[Disi oleh Admin]",
@@ -116,7 +123,6 @@ export default function EditTemplatePage() {
     loadTemplate();
   }, [templateId]);
 
-  // Dynamically extract placeholder chips from loaded content
   const detectedPlaceholders = Array.from(
     new Set([
       ...(formData.bodyContent?.match(/\{\{([^}]+)\}\}/g) || []).map((v) => v),
@@ -144,7 +150,9 @@ export default function EditTemplatePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          category: formData.category,
           bodyContent: formData.bodyContent,
+          content: formData.bodyContent,
           description: formData.bodyContent,
         }),
       });
@@ -247,19 +255,40 @@ export default function EditTemplatePage() {
               Template Controls
             </h2>
 
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-stone-700">
-                Nama Template
-              </label>
-              <input
-                type="text"
-                value={formData.title}
-                onFocus={() => setFocusedField("title")}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
-                className="w-full border border-stone-300 rounded p-2 text-xs focus:outline-none"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-stone-700">
+                  Nama Template
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onFocus={() => setFocusedField("title")}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
+                  className="w-full border border-stone-300 rounded p-2 text-xs focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-stone-700">
+                  Kategori Surat
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  className="w-full border border-stone-300 rounded p-2 text-xs bg-white focus:outline-none"
+                >
+                  {CATEGORY_OPTIONS.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="space-y-3 pt-3 border-t">

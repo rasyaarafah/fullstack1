@@ -36,7 +36,7 @@ model Letter {
 model Template {
   id           String   @id @default(uuid())
   title        String
-  category     String?
+  category     String?  @default("Surat Keterangan")
   description  String?
   placeholders String   @db.Text
   bodyContent  String   @db.Text

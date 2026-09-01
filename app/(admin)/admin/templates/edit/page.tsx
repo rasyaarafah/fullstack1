@@ -17,28 +17,28 @@ const FALLBACK_TEMPLATES: TemplateItem[] = [
   {
     id: "surat-tugas",
     title: "Surat Tugas",
-    category: "Formal",
+    category: "Surat Tugas",
     description: "Official assignment letter for staff or teachers traveling on duty.",
     lastUpdated: "2 days ago",
   },
   {
     id: "surat-keputusan",
     title: "Surat Keputusan (SK)",
-    category: "Keputusan",
+    category: "Surat Keputusan",
     description: "Formal decree document for organizational policy or role assignments.",
     lastUpdated: "1 week ago",
   },
   {
     id: "surat-undangan",
     title: "Surat Undangan",
-    category: "Acara",
+    category: "Surat Undangan",
     description: "Invitation template for official school meetings and parents gathering.",
     lastUpdated: "3 days ago",
   },
   {
     id: "surat-keterangan",
     title: "Surat Keterangan Active",
-    category: "Formal",
+    category: "Surat Keterangan",
     description: "Statement letter certifying active student or employee status.",
     lastUpdated: "01/01/2026",
   },
@@ -63,6 +63,7 @@ export default function TemplateGalleryPage() {
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [templates, setTemplates] = useState<TemplateItem[]>(FALLBACK_TEMPLATES);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchTemplates() {
@@ -76,7 +77,7 @@ export default function TemplateGalleryPage() {
         }
       } catch (err) {
         console.error("Failed to fetch dynamic templates:", err);
-      }  {
+      } finally {
         setIsLoading(false);
       }
     }
@@ -84,12 +85,47 @@ export default function TemplateGalleryPage() {
     fetchTemplates();
   }, []);
 
-  const categories = ["Semua", "Formal", "Keputusan", "Acara"];
+  const handleDelete = async (id: string, title: string) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete the template "${title}"?`
+    );
+    if (!confirmDelete) return;
+
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/templates/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setTemplates((prev) => prev.filter((tpl) => tpl.id !== id));
+      } else {
+        alert("Failed to delete template.");
+      }
+    } catch (err) {
+      console.error("Error deleting template:", err);
+      alert("An error occurred while deleting the template.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // Dynamically extract unique categories from templates
+  const categories = [
+    "Semua",
+    ...Array.from(
+      new Set(
+        templates
+          .map((tpl) => tpl.category)
+          .filter((cat): cat is string => Boolean(cat))
+      )
+    ),
+  ];
 
   const filteredTemplates = templates.filter((tpl) => {
     const title = tpl.title || "";
     const description = tpl.description || "";
-    const category = tpl.category || "Formal";
+    const category = tpl.category || "Uncategorized";
 
     const matchesSearch =
       title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -109,7 +145,7 @@ export default function TemplateGalleryPage() {
               Edit <span className="italic">Templates</span>
             </h1>
             <p className="font-serif text-stone-600 text-sm mt-1">
-              Pilih template untuk mulai modifikasi
+              Pilih template untuk mulai modifikasi atau hapus
             </p>
           </div>
         </div>
@@ -169,7 +205,7 @@ export default function TemplateGalleryPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-serif text-xs px-2.5 py-0.5 rounded-full border border-stone-400 text-stone-700 bg-stone-50">
-                      {template.category || "Formal"}
+                      {template.category || "Uncategorized"}
                     </span>
                     <span className="font-serif text-xs text-stone-500">
                       {template.lastUpdated
@@ -187,7 +223,20 @@ export default function TemplateGalleryPage() {
                   </p>
                 </div>
 
-                <div className="pt-4 mt-4 border-t border-stone-200 flex justify-end">
+                {/* Card Footer Actions */}
+                <div className="pt-4 mt-4 border-t border-stone-200 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(template.id, template.title)}
+                    disabled={deletingId === template.id}
+                    className="px-3 py-2 border border-red-200 text-red-700 rounded-lg font-serif text-sm hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    {deletingId === template.id ? "Deleting..." : "Delete"}
+                  </button>
+
                   <Link
                     href={`/admin/templates/edit/${template.id}`}
                     className="px-4 py-2 bg-stone-900 text-white rounded-lg font-serif text-sm hover:bg-stone-800 transition-colors inline-flex items-center gap-1.5"
