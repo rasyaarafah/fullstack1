@@ -18,7 +18,7 @@ export interface LetterFormData {
 interface LetterFormEditorProps {
   formData: LetterFormData;
   onChange: (updatedData: LetterFormData) => void;
-  currentUser?: { name?: string; username?: string; email?: string };
+  currentUser?: { name?: string; username?: string; email?: string; role?: string };
   onSubmitForApproval?: () => void;
   onSaveDraft?: () => void;
   onSelectTemplatePreset?: (templateTitle: string) => void;
@@ -48,7 +48,6 @@ export const LetterFormEditor = ({
     });
   };
 
-  // Cleanup object URL when component unmounts or when attachmentUrl changes
   useEffect(() => {
     return () => {
       if (formData.attachmentUrl?.startsWith("blob:")) {
@@ -84,7 +83,6 @@ export const LetterFormEditor = ({
   const submitToApi = async (status: "approved" | "draft") => {
     setInternalSubmitting(true);
     try {
-      // Dynamic admin identifier fallback chain
       const adminName =
         currentUser?.name || currentUser?.username || currentUser?.email || "Admin";
 
@@ -95,7 +93,7 @@ export const LetterFormEditor = ({
         subject: formData.subject || "Tanpa Perihal",
         body: formData.body,
         author: adminName,
-        createdByRole: "ADMIN",
+        createdByRole: currentUser?.role?.toUpperCase() || "ADMIN",
         status: status.toUpperCase(),
       };
 
@@ -143,9 +141,10 @@ export const LetterFormEditor = ({
     }
   };
 
+  const isAdmin = currentUser?.role?.toLowerCase() === "admin";
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-lg w-full print:hidden">
-      {/* Quick Template Preset Switcher */}
       {onSelectTemplatePreset && (
         <div className="flex flex-col gap-1.5 bg-stone-100 p-3 rounded-2xl border border-stone-200">
           <label className="font-serif text-xs font-semibold text-stone-700">
@@ -171,13 +170,11 @@ export const LetterFormEditor = ({
         </div>
       )}
 
-      {/* Logo Kop Surat Selector */}
       <div className="flex flex-col gap-2 bg-stone-50 p-3.5 rounded-2xl border border-stone-300">
         <label className="font-serif text-xs font-semibold text-stone-900">
           Pilih Logo Kop Surat
         </label>
         <div className="grid grid-cols-2 gap-3">
-          {/* Logo Kiri */}
           <div className="flex flex-col gap-1">
             <span className="text-[11px] text-stone-600 font-medium">Logo Kiri</span>
             <select
@@ -193,7 +190,6 @@ export const LetterFormEditor = ({
             </select>
           </div>
 
-          {/* Logo Kanan */}
           <div className="flex flex-col gap-1">
             <span className="text-[11px] text-stone-600 font-medium">Logo Kanan</span>
             <select
@@ -211,7 +207,6 @@ export const LetterFormEditor = ({
         </div>
       </div>
 
-      {/* 1. Data Pengirim */}
       <div className="flex flex-col gap-1">
         <label className="font-serif text-sm font-semibold text-stone-900 flex items-center justify-between">
           <span>Data Pengirim / Unit Kerja</span>
@@ -230,7 +225,6 @@ export const LetterFormEditor = ({
         <p className="text-[11px] text-stone-500">Isi dengan nama jabatan atau unit penanggung jawab surat.</p>
       </div>
 
-      {/* 2. Nomor Surat */}
       <div className="flex flex-col gap-1">
         <label className="font-serif text-sm font-semibold text-stone-900 flex items-center justify-between">
           <span>Usulan Nomor Surat</span>
@@ -249,7 +243,6 @@ export const LetterFormEditor = ({
         <p className="text-[11px] text-stone-500">Format standar: [No]/[KODE]/SMK-2/[TAHUN]</p>
       </div>
 
-      {/* 3. Tanggal Surat */}
       <div className="flex flex-col gap-1">
         <label className="font-serif text-sm font-semibold text-stone-900">
           Tanggal Surat
@@ -265,7 +258,6 @@ export const LetterFormEditor = ({
         />
       </div>
 
-      {/* 4. Data Penerima */}
       <div className="flex flex-col gap-1">
         <label className="font-serif text-sm font-semibold text-stone-900">
           Data Penerima
@@ -282,7 +274,6 @@ export const LetterFormEditor = ({
         />
       </div>
 
-      {/* 5. Isi Surat */}
       <div className="flex flex-col gap-1">
         <label className="font-serif text-sm font-semibold text-stone-900">
           Isi Surat
@@ -299,7 +290,6 @@ export const LetterFormEditor = ({
         />
       </div>
 
-      {/* 6. Image / Stamp Upload Field */}
       <div className="flex flex-col gap-2 bg-stone-50 p-3.5 rounded-2xl border border-dashed border-stone-400">
         <label className="font-serif text-sm font-semibold text-stone-900">
           Upload Lampiran / Stempel / Gambar
@@ -328,14 +318,19 @@ export const LetterFormEditor = ({
         )}
       </div>
 
-      {/* Button Action Row */}
       <div className="flex flex-col gap-2.5 mt-2">
         <button
           type="submit"
           disabled={isSubmitting}
           className="w-full py-3 px-4 rounded-2xl bg-[#0A4D3C] border border-black text-white font-serif text-sm font-semibold hover:bg-[#07382c] transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span>{isSubmitting ? "Memproses..." : "Kirim untuk Persetujuan Admin"}</span>
+          <span>
+            {isSubmitting
+              ? "Memproses..."
+              : isAdmin
+              ? "Terbitkan Surat"
+              : "Kirim untuk Persetujuan Admin"}
+          </span>
           {!isSubmitting && <span>→</span>}
         </button>
 
