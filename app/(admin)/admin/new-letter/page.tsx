@@ -508,7 +508,11 @@ function AdminNewLetterContent() {
                   </div>
                 </div>
 
-                <div className="w-full min-h-145 bg-white rounded-xl shadow-2xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[10.5px] leading-relaxed">
+                {/* Added printable target ID right here */}
+                <div
+                  id="printable-letter-document"
+                  className="w-full min-h-145 bg-white rounded-xl shadow-2xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[10.5px] leading-relaxed"
+                >
                   <div className="flex flex-col flex-1 min-h-0">
                     {/* Header Kop */}
                     <div className="relative border-b-2 border-solid border-stone-900 pb-2 mb-4 flex items-center justify-between shrink-0">
