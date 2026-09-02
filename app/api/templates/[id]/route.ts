@@ -9,8 +9,10 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const template = await prisma.template.findUnique({
-      where: { id },
+    const template = await prisma.template.findFirst({
+      where: {
+        OR: [{ id }, { title: id }, { category: id }],
+      },
     });
 
     if (!template) {
@@ -34,13 +36,25 @@ export async function PUT(
     const body = await req.json();
     const { title, category, description, placeholders, bodyContent } = body;
 
+    // Resolve target template first if ID is passed as a category string
+    const target = await prisma.template.findFirst({
+      where: { OR: [{ id }, { title: id }, { category: id }] },
+    });
+
+    if (!target) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
+
     const updatedTemplate = await prisma.template.update({
-      where: { id },
+      where: { id: target.id },
       data: {
         title,
         category,
         description,
-        placeholders: typeof placeholders === "string" ? placeholders : JSON.stringify(placeholders || []),
+        placeholders:
+          typeof placeholders === "string"
+            ? placeholders
+            : JSON.stringify(placeholders || []),
         bodyContent: bodyContent || description,
       },
     });
@@ -60,13 +74,30 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    await prisma.template.delete({
-      where: { id },
+    // Delete matching records whether passed a database ID or category/title identifier
+    const result = await prisma.template.deleteMany({
+      where: {
+        OR: [
+          { id },
+          { category: { equals: id } },
+          { title: { equals: id } },
+        ],
+      },
     });
 
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: "No matching template found to delete" },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json({ message: "Template deleted successfully" });
-  } catch (error) {
+  } catch (error: any) {
     console.error("DELETE Template Error:", error);
-    return NextResponse.json({ error: "Failed to delete template" }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || "Failed to delete template" },
+      { status: 500 }
+    );
   }
 }

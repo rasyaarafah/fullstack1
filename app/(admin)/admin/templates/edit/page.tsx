@@ -13,37 +13,6 @@ interface TemplateItem {
   updatedAt?: string;
 }
 
-const FALLBACK_TEMPLATES: TemplateItem[] = [
-  {
-    id: "surat-tugas",
-    title: "Surat Tugas",
-    category: "Surat Tugas",
-    description: "Official assignment letter for staff or teachers traveling on duty.",
-    lastUpdated: "2 days ago",
-  },
-  {
-    id: "surat-keputusan",
-    title: "Surat Keputusan (SK)",
-    category: "Surat Keputusan",
-    description: "Formal decree document for organizational policy or role assignments.",
-    lastUpdated: "1 week ago",
-  },
-  {
-    id: "surat-undangan",
-    title: "Surat Undangan",
-    category: "Surat Undangan",
-    description: "Invitation template for official school meetings and parents gathering.",
-    lastUpdated: "3 days ago",
-  },
-  {
-    id: "surat-keterangan",
-    title: "Surat Keterangan Active",
-    category: "Surat Keterangan",
-    description: "Statement letter certifying active student or employee status.",
-    lastUpdated: "01/01/2026",
-  },
-];
-
 export default function TemplateGalleryPage() {
   const adminNavItems = [
     { label: "Overview", href: "/admin" },
@@ -61,7 +30,7 @@ export default function TemplateGalleryPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
-  const [templates, setTemplates] = useState<TemplateItem[]>(FALLBACK_TEMPLATES);
+  const [templates, setTemplates] = useState<TemplateItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -71,9 +40,7 @@ export default function TemplateGalleryPage() {
         const res = await fetch("/api/templates");
         if (res.ok) {
           const dbTemplates: TemplateItem[] = await res.json();
-          if (dbTemplates.length > 0) {
-            setTemplates(dbTemplates);
-          }
+          setTemplates(dbTemplates);
         }
       } catch (err) {
         console.error("Failed to fetch dynamic templates:", err);
@@ -100,7 +67,8 @@ export default function TemplateGalleryPage() {
       if (res.ok) {
         setTemplates((prev) => prev.filter((tpl) => tpl.id !== id));
       } else {
-        alert("Failed to delete template.");
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "Failed to delete template.");
       }
     } catch (err) {
       console.error("Error deleting template:", err);
@@ -110,7 +78,6 @@ export default function TemplateGalleryPage() {
     }
   };
 
-  // Dynamically extract unique categories from templates
   const categories = [
     "Semua",
     ...Array.from(
@@ -152,7 +119,6 @@ export default function TemplateGalleryPage() {
 
         {/* Filters & Search */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-stone-800 pb-4">
-          {/* Category Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
             {categories.map((cat) => (
               <button
@@ -170,7 +136,6 @@ export default function TemplateGalleryPage() {
             ))}
           </div>
 
-          {/* Search Box */}
           <div className="relative">
             <input
               type="text"
@@ -223,7 +188,6 @@ export default function TemplateGalleryPage() {
                   </p>
                 </div>
 
-                {/* Card Footer Actions */}
                 <div className="pt-4 mt-4 border-t border-stone-200 flex items-center justify-between gap-2">
                   <button
                     type="button"
