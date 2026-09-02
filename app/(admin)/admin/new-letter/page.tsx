@@ -24,6 +24,7 @@ const FALLBACK_TEMPLATES: DynamicTemplate[] = [
   {
     id: "1",
     title: "Surat undangan",
+    category: "Surat Undangan",
     defaultNumber: "001/UND/SMK-2/2026",
     defaultRecipient: "Orang Tua / Wali Murid Kelas X",
     defaultBody:
@@ -32,6 +33,7 @@ const FALLBACK_TEMPLATES: DynamicTemplate[] = [
   {
     id: "2",
     title: "Surat tugas",
+    category: "Surat Tugas",
     defaultNumber: "002/ST/SMK-2/2026",
     defaultRecipient: "Bapak/Ibu Guru Pendamping",
     defaultBody:
@@ -40,6 +42,7 @@ const FALLBACK_TEMPLATES: DynamicTemplate[] = [
   {
     id: "3",
     title: "Surat keterangan",
+    category: "Surat Keterangan",
     defaultNumber: "003/SK/SMK-2/2026",
     defaultRecipient: "Siswa / Siswi Terlampir",
     defaultBody:
@@ -113,6 +116,10 @@ function AdminNewLetterContent() {
 
   const [templatesList, setTemplatesList] = useState<DynamicTemplate[]>(FALLBACK_TEMPLATES);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+
+  // Filter States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Semua");
 
   const [currentUser, setCurrentUser] = useState({
     name: "Rasya",
@@ -213,6 +220,33 @@ function AdminNewLetterContent() {
     setPlaceholderValues((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Compute dynamic category list
+  const categories = [
+    "Semua",
+    ...Array.from(
+      new Set(
+        templatesList
+          .map((tpl) => tpl.category)
+          .filter((cat): cat is string => Boolean(cat))
+      )
+    ),
+  ];
+
+  // Filter templates list based on search and selected category
+  const filteredTemplates = templatesList.filter((tpl) => {
+    const title = tpl.title || "";
+    const description = tpl.description || "";
+    const category = tpl.category || "Uncategorized";
+
+    const matchesSearch =
+      title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "Semua" || category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
   // Compute final live letter body by replacing placeholders
   const getRenderedBody = () => {
     let rendered = rawBodyTemplate;
@@ -288,12 +322,57 @@ function AdminNewLetterContent() {
         </div>
 
         {!selectedTemplate ? (
-          <div>
+          <div className="space-y-6">
+            {/* Filtering & Search Toolbar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-stone-200 pb-4">
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 font-serif text-xs border rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                      selectedCategory === cat
+                        ? "border-stone-900 bg-stone-900 text-white font-medium"
+                        : "border-stone-300 bg-white text-stone-700 hover:bg-stone-100"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Cari template..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full sm:w-64 py-1.5 pl-3 pr-8 bg-white border border-stone-300 rounded-lg font-serif text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-stone-900"
+                />
+                <svg
+                  className="w-4 h-4 text-stone-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Template Paper Grid */}
             {isLoadingTemplates ? (
               <div className="p-8 text-stone-500 font-sans text-sm">Loading templates...</div>
+            ) : filteredTemplates.length === 0 ? (
+              <div className="col-span-full text-center py-16 text-stone-500 font-serif border border-dashed border-stone-300 rounded-xl">
+                Tidak ada template yang cocok dengan kriteria pencarian Anda.
+              </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4">
-                {templatesList.map((template) => (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {filteredTemplates.map((template) => (
                   <button
                     key={template.id}
                     onClick={() => handleSelectTemplate(template)}
@@ -508,7 +587,6 @@ function AdminNewLetterContent() {
                   </div>
                 </div>
 
-                {/* Added printable target ID right here */}
                 <div
                   id="printable-letter-document"
                   className="w-full min-h-145 bg-white rounded-xl shadow-2xl border border-stone-300 p-6 flex flex-col justify-between text-stone-900 font-serif text-[10.5px] leading-relaxed"

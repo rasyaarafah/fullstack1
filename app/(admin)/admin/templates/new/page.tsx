@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import CreatableSelect from "react-select/creatable";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 import { Letterhead } from "@/components/molecules/Letterhead";
 
@@ -10,10 +11,21 @@ interface PlaceholderItem {
   key: string;
 }
 
+const DEFAULT_CATEGORIES = [
+  "Surat Keterangan",
+  "Surat Undangan",
+  "Surat Tugas",
+  "Surat Keputusan",
+  "Surat Pemberitahuan",
+];
+
 export default function AddTemplatePage() {
   const router = useRouter();
 
   const [templateName, setTemplateName] = useState("");
+  const [categoryOptions, setCategoryOptions] = useState<
+    { value: string; label: string }[]
+  >(DEFAULT_CATEGORIES.map((c) => ({ value: c, label: c })));
   const [category, setCategory] = useState("Surat Keterangan");
   const [description, setDescription] = useState("");
   const [fieldLabel, setFieldLabel] = useState("");
@@ -27,19 +39,47 @@ export default function AddTemplatePage() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const navItems = [
-    { label: "Overview", href: "/admin", isActive: false },
-    { label: "Pending Approval", href: "/admin/pending", isActive: false },
-    { label: "Archive", href: "/admin/history", isActive: false },
-    { label: "User Management", href: "/admin/users", isActive: false },
-    { label: "New letter", href: "/admin/new-letter", isActive: false },
-  ];
+  // Fetch unique categories from existing database templates on mount
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/templates");
+        if (!res.ok) return;
+        const templates = await res.json();
 
-  const adminTools = [
-    { label: "Edit template", href: "/admin/templates/edit", isActive: false },
-    { label: "Add template", href: "/admin/templates/new", isActive: true },
-    { label: "Broadcast notice", href: "/admin/notice", isActive: false },
-  ];
+        if (Array.isArray(templates)) {
+          const fetchedCategories = templates
+            .map((t: any) => t.category)
+            .filter((c: string): c is string => Boolean(c));
+
+          // Combine default categories with database categories dynamically
+          const combined = Array.from(
+            new Set([...DEFAULT_CATEGORIES, ...fetchedCategories])
+          );
+
+          setCategoryOptions(
+            combined.map((cat) => ({ value: cat, label: cat }))
+          );
+        }
+      } catch (error) {
+        console.error("Failed to load saved categories:", error);
+      }
+    }
+
+    loadCategories();
+  }, []);
+
+  const handleCreateCategory = (inputValue: string) => {
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+
+    const newOption = { value: trimmed, label: trimmed };
+    setCategoryOptions((prev) => {
+      if (prev.some((opt) => opt.value === trimmed)) return prev;
+      return [...prev, newOption];
+    });
+    setCategory(trimmed);
+  };
 
   const handleAddPlaceholder = () => {
     if (!fieldLabel.trim()) return;
@@ -95,6 +135,20 @@ export default function AddTemplatePage() {
       setIsSubmitting(false);
     }
   };
+
+  const navItems = [
+    { label: "Overview", href: "/admin", isActive: false },
+    { label: "Pending Approval", href: "/admin/pending", isActive: false },
+    { label: "Archive", href: "/admin/history", isActive: false },
+    { label: "User Management", href: "/admin/users", isActive: false },
+    { label: "New letter", href: "/admin/new-letter", isActive: false },
+  ];
+
+  const adminTools = [
+    { label: "Edit template", href: "/admin/templates/edit", isActive: false },
+    { label: "Add template", href: "/admin/templates/new", isActive: true },
+    { label: "Broadcast notice", href: "/admin/notice", isActive: false },
+  ];
 
   return (
     <DashboardLayout navItems={navItems} adminTools={adminTools}>
@@ -155,17 +209,32 @@ export default function AddTemplatePage() {
                   <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
                     CATEGORY
                   </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-2xl border border-stone-300 text-xs focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
-                  >
-                    <option value="Surat Keterangan">Surat Keterangan</option>
-                    <option value="Surat Undangan">Surat Undangan</option>
-                    <option value="Surat Tugas">Surat Tugas</option>
-                    <option value="Surat Keputusan">Surat Keputusan</option>
-                    <option value="Surat Pemberitahuan">Surat Pemberitahuan</option>
-                  </select>
+                  <CreatableSelect
+                    isClearable
+                    options={categoryOptions}
+                    value={
+                      category
+                        ? { value: category, label: category }
+                        : null
+                    }
+                    onChange={(val) => setCategory(val ? val.value : "")}
+                    onCreateOption={handleCreateCategory}
+                    placeholder="Select or type new..."
+                    className="text-xs"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        borderRadius: "1rem",
+                        borderColor: "#d6d3d1",
+                        backgroundColor: "rgba(245, 245, 244, 0.5)",
+                        padding: "2px",
+                        boxShadow: "none",
+                        "&:hover": {
+                          borderColor: "#1c1917",
+                        },
+                      }),
+                    }}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -201,7 +270,8 @@ export default function AddTemplatePage() {
                   onChange={(e) => setFieldLabel(e.target.value)}
                   placeholder="Field label (e.g. Tanggal Mulai)"
                   onKeyDown={(e) =>
-                    e.key === "Enter" && (e.preventDefault(), handleAddPlaceholder())
+                    e.key === "Enter" &&
+                    (e.preventDefault(), handleAddPlaceholder())
                   }
                   className="flex-1 px-4 py-2.5 rounded-2xl border border-stone-300 text-xs focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
                 />
