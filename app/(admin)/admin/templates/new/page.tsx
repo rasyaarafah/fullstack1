@@ -330,7 +330,7 @@ export default function AddTemplatePage() {
                 Document Body Content
               </h2>
               <textarea
-                rows={8}
+                rows={12}
                 value={bodyContent}
                 onChange={(e) => setBodyContent(e.target.value)}
                 className="w-full p-4 rounded-2xl border border-stone-300 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/50 resize-y leading-relaxed"
@@ -353,33 +353,34 @@ export default function AddTemplatePage() {
               <div>
                 <Letterhead />
 
+                {/* Dynamic Title and Letter Number preview */}
                 <div className="text-center mb-4">
-                  <h3 className="font-bold text-xs uppercase underline tracking-wider">
+                  <h3 className="font-bold text-xs uppercase underline tracking-wider font-serif">
                     {templateName || "NAMA TEMPLATE SURAT"}
                   </h3>
-                  <p className="text-[9px] font-sans text-stone-600 mt-0.5">
-                    Nomor: 420 / XXX / LET2KOP / 2026
+                  <p className="text-[9px] font-serif text-stone-700 mt-0.5">
+                    Nomor : {placeholders.some(p => p.key === "nomor_surat") ? "{{nomor_surat}}" : "135/SKet/421.5/SMK.LI2/VIII/2026"}
                   </p>
                 </div>
 
-                <div className="leading-relaxed whitespace-pre-wrap text-[10px] text-stone-800 font-sans min-h-40">
+                <div className="leading-relaxed whitespace-pre-wrap text-[10px] text-stone-800 font-serif min-h-40">
                   {bodyContent || (
-                    <span className="italic text-stone-400">
+                    <span className="italic text-stone-400 font-sans">
                       Substansi draf surat akan diperbarui di sini secara real-time...
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4 font-sans text-[9px]">
-                <div className="text-center w-36">
-                  <p>Tangerang Selatan, 1/9/2026</p>
-                  <p className="font-semibold mt-1">Kepala Sekolah</p>
-                  <div className="h-10 flex items-center justify-center italic text-stone-400 text-[8px]">
+              <div className="flex justify-end pt-4 font-serif text-[9px]">
+                <div className="text-center w-48">
+                  <p>Tangerang Selatan, 07 Agustus 2026</p>
+                  <p className="font-semibold mt-1">Kepala SMK Letris Indonesia 2</p>
+                  <div className="h-12 flex items-center justify-center italic text-stone-400 text-[8px] font-sans">
                     (Tanda Tangan & Stempel)
                   </div>
-                  <p className="font-bold underline text-stone-800">
-                    Admin Let2Kop
+                  <p className="font-bold underline text-stone-900">
+                    Juaman, S.Kom
                   </p>
                 </div>
               </div>
