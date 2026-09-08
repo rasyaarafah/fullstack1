@@ -2,7 +2,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// 1. Handle GET requests (Fetch letters, supporting single or comma-separated statuses)
+// 1. Handle GET requests
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
     let whereClause = {};
 
     if (statusFilter) {
-      // Splits "PENDING,REJECTED,REVISE" into ["PENDING", "REJECTED", "REVISE"]
       const statuses = statusFilter.split(',').map((s) => s.trim().toUpperCase());
       whereClause = {
         status: { in: statuses },
@@ -27,21 +26,22 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(letters, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching letters:', error);
     return NextResponse.json(
-      { error: 'Gagal mengambil data surat' },
+      { error: error?.message || 'Gagal mengambil data surat' },
       { status: 500 }
     );
   }
 }
 
-// 2. Handle POST requests (Create a letter)
+// 2. Handle POST requests
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { title, letterNumber, recipient, subject, body: letterBody, status, createdByRole, userEmail } = body;
 
+    // Validate essential fields
     if (!title || !recipient || !letterBody) {
       return NextResponse.json(
         { error: "Title, recipient, and body are required." },
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     let authorId: number | null = null;
     let userRole = createdByRole ? createdByRole.toUpperCase() : null;
 
-    // Resolve author and role from DB using userEmail
+    // 1. Resolve user by provided userEmail
     if (userEmail) {
       const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
       if (dbUser) { 
@@ -63,49 +63,66 @@ export async function POST(request: Request) {
       }
     }
 
-    // Fallback to default user if no author found
+    // 2. Fallback to default user if no user was resolved
     if (!authorId) {
       const defaultUser = await prisma.user.findFirst({
         where: userRole === "TEACHER" ? { role: "TEACHER" } : {},
       });
-      
-      if (!defaultUser) {
-        return NextResponse.json(
-          { error: "No valid author user found to assign this letter to." },
-          { status: 400 }
-        );
-      }
-      authorId = defaultUser.id;
-      if (!userRole && defaultUser.role) {
-        userRole = defaultUser.role.toUpperCase();
+
+      if (defaultUser) {
+        authorId = defaultUser.id;
+        if (!userRole && defaultUser.role) {
+          userRole = defaultUser.role.toUpperCase();
+        }
+      } else {
+        // Fallback to absolute first user in DB if target role is missing
+        const fallbackAnyUser = await prisma.user.findFirst();
+        if (!fallbackAnyUser) {
+          return NextResponse.json(
+            { error: "No valid user found in database to assign as author." },
+            { status: 400 }
+          );
+        }
+        authorId = fallbackAnyUser.id;
       }
     }
 
-    // Determine final letter status: ADMIN or explicitly requested APPROVED -> APPROVED, otherwise PENDING
-    const finalStatus =
-      userRole === "ADMIN" || status?.toUpperCase() === "APPROVED"
-        ? "APPROVED"
-        : status
-        ? status.toUpperCase()
-        : "PENDING";
+    // 3. Normalize Status to match Prisma Enums (APPROVED, PENDING, REJECTED, REVISE)
+    let finalStatus = "PENDING";
+    const requestedStatus = status ? status.toUpperCase() : "";
 
+    if (userRole === "ADMIN" || requestedStatus === "APPROVED") {
+      finalStatus = "APPROVED";
+    } else if (["PENDING", "REJECTED", "REVISE"].includes(requestedStatus)) {
+      finalStatus = requestedStatus;
+    }
+
+    // 4. Create record in Prisma database
     const newLetter = await prisma.letter.create({
       data: {
         title,
         letterNumber: letterNumber || null,
         recipient,
-        subject: subject || null,
+        subject: subject || title,
         body: letterBody,
-        status: finalStatus,
+        status: finalStatus as any, // Cast to match Prisma Enum
         authorId,
+      },
+      include: {
+        author: true,
       },
     });
 
     return NextResponse.json(newLetter, { status: 201 });
-  } catch (error) {
-    console.error("Error creating letter:", error);
+  } catch (error: any) {
+    console.error("Error creating letter in /api/letters:", error);
+    
+    // Return explicit error message to aid frontend debugging
     return NextResponse.json(
-      { error: "Gagal membuat surat" },
+      { 
+        error: error?.message || "Gagal membuat surat",
+        details: error?.code || null 
+      },
       { status: 500 }
     );
   }

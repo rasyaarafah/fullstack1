@@ -65,23 +65,23 @@ export default function ArchivePage() {
         if (res.ok) {
           const rawData = await res.json();
           const formatted: ArchiveLetter[] = rawData
-            .filter((item: any) => item.status.toLowerCase() !== "draft")
+            .filter((item: any) => item.status?.toLowerCase() !== "draft")
             .map((item: any) => {
               const authorName =
                 item.author?.name ||
                 item.author?.username ||
                 (item.author?.email ? item.author.email.split("@")[0] : "admin");
 
-              const formattedStatus = item.status.toLowerCase() as ArchiveLetter["status"];
+              const formattedStatus = (item.status?.toLowerCase() || "pending") as ArchiveLetter["status"];
 
               return {
                 id: item.id,
                 username: authorName,
                 title: item.title,
                 status: formattedStatus,
-                date: new Date(item.createdAt).toLocaleDateString("en-US", {
-                  month: "2-digit",
-                  day: "2-digit",
+                date: new Date(item.createdAt).toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "long",
                   year: "numeric",
                 }),
               };
@@ -90,7 +90,7 @@ export default function ArchivePage() {
         }
       } catch (err) {
         console.error("Failed to fetch archive letters:", err);
-      } finally {
+      }  {
         setLoading(false);
       }
     }
@@ -125,7 +125,6 @@ export default function ArchivePage() {
     try {
       const idsToDelete = filteredLetters.map((item) => item.id);
 
-      // Perform deletion calls for displayed letters
       await Promise.all(
         idsToDelete.map((id) =>
           fetch(`/api/letters/${id}`, { method: "DELETE" })
@@ -161,7 +160,7 @@ export default function ArchivePage() {
     const matchesSearch =
       item.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.date.includes(searchQuery);
+      item.date.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus =
       selectedStatus === "all" || item.status === selectedStatus;

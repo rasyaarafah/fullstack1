@@ -31,6 +31,8 @@ model Letter {
   authorId        Int
   author          User     @relation(fields: [authorId], references: [id])
   createdAt       DateTime @default(now())
+
+  @@map("letters") // <--- ADD THIS LINE
 }
 
 model Template {
