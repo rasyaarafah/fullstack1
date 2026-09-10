@@ -4,6 +4,12 @@ import React, { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 import { Avatar } from "@/components/atoms/Avatar";
+import {
+  LEFT_LOGO_OPTIONS,
+  RIGHT_LOGO_OPTIONS,
+  DEFAULT_LEFT_LOGO,
+  DEFAULT_RIGHT_LOGO,
+} from "@/lib/logoOptions";
 
 interface DynamicTemplate {
   id: string;
@@ -16,9 +22,6 @@ interface DynamicTemplate {
   defaultRecipient?: string;
   defaultBody?: string;
 }
-
-const DEFAULT_LEFT_LOGO = "/logo_letris.png";
-const DEFAULT_RIGHT_LOGO = "/logo_banten.png";
 
 const FALLBACK_TEMPLATES: DynamicTemplate[] = [
   {
@@ -173,6 +176,10 @@ function AdminNewLetterContent() {
   >({});
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
 
+  // Kop Surat logo selection — shared option lists live in lib/logoOptions
+  const [leftLogo, setLeftLogo] = useState<string>(DEFAULT_LEFT_LOGO);
+  const [rightLogo, setRightLogo] = useState<string>(DEFAULT_RIGHT_LOGO);
+
   useEffect(() => {
     async function fetchDatabaseTemplates() {
       try {
@@ -234,14 +241,17 @@ function AdminNewLetterContent() {
         const detectedKeys = extractPlaceholders(templateText);
         const initialValues: Record<string, string> = {};
         detectedKeys.forEach((key) => {
-          if (key === "nama") initialValues[key] = "Gilby Maleeq Jibrani";
-          else if (key === "tempat_tanggal_lahir")
+          if (key === "nama" || key === "nama_siswa")
+            initialValues[key] = "Gilby Maleeq Jibrani";
+          else if (key === "tempat_tanggal_lahir" || key === "ttl")
             initialValues[key] = "Jakarta, 17 Mei 2009";
           else if (key === "jenis_kelamin") initialValues[key] = "Laki-laki";
           else if (key === "nisn") initialValues[key] = "0092877072";
+          else if (key === "npsn") initialValues[key] = "69894185";
           else if (key === "kelas") initialValues[key] = "XII DKVB 4";
           else if (key === "kompetensi_keahlian")
             initialValues[key] = "Desain Komunikasi Visual";
+          else if (key === "tahun_ajaran") initialValues[key] = "2026/2027";
           else initialValues[key] = "";
         });
         setPlaceholderValues(initialValues);
@@ -319,6 +329,8 @@ function AdminNewLetterContent() {
       subject: finalTitle,
       body: finalBody,
       attachmentUrl: attachmentUrl || null,
+      leftLogo,
+      rightLogo,
       userEmail: currentUser.email || "admin@smkletris2.sch.id",
       createdByRole: "ADMIN",
       status: "APPROVED",
@@ -513,16 +525,32 @@ function AdminNewLetterContent() {
                       <span className="text-[10px] text-stone-500 block mb-1">
                         Logo Kiri
                       </span>
-                      <select className="w-full bg-stone-50 border border-stone-300 rounded-lg p-2 text-xs">
-                        <option>SMK Letris Indonesia 2</option>
+                      <select
+                        value={leftLogo}
+                        onChange={(e) => setLeftLogo(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-300 rounded-lg p-2 text-xs"
+                      >
+                        {LEFT_LOGO_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
                       <span className="text-[10px] text-stone-500 block mb-1">
                         Logo Kanan
                       </span>
-                      <select className="w-full bg-stone-50 border border-stone-300 rounded-lg p-2 text-xs">
-                        <option>Provinsi Banten</option>
+                      <select
+                        value={rightLogo}
+                        onChange={(e) => setRightLogo(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-300 rounded-lg p-2 text-xs"
+                      >
+                        {RIGHT_LOGO_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -699,7 +727,7 @@ function AdminNewLetterContent() {
                   <div className="flex flex-col flex-1 min-h-0">
                     <div className="relative border-b-2 border-solid border-stone-900 pb-2 mb-4 flex items-center justify-between shrink-0">
                       <img
-                        src={DEFAULT_LEFT_LOGO}
+                        src={leftLogo}
                         alt="Logo Kiri"
                         className="w-12 h-12 object-contain"
                       />
@@ -741,7 +769,7 @@ function AdminNewLetterContent() {
                         </a>
                       </div>
                       <img
-                        src={DEFAULT_RIGHT_LOGO}
+                        src={rightLogo}
                         alt="Logo Kanan"
                         className="w-12 h-12 object-contain"
                       />

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LEFT_LOGO_OPTIONS, RIGHT_LOGO_OPTIONS } from "@/lib/logoOptions";
 
 export interface LetterFormData {
   institutionName: string;
@@ -92,6 +93,9 @@ export const LetterFormEditor = ({
         recipient: formData.recipient,
         subject: formData.subject || "Tanpa Perihal",
         body: formData.body,
+        attachmentUrl: formData.attachmentUrl || null,
+        leftLogo: formData.leftLogo,
+        rightLogo: formData.rightLogo,
         author: adminName,
         createdByRole: currentUser?.role?.toUpperCase() || "ADMIN",
         status: status.toUpperCase(),
@@ -179,14 +183,16 @@ export const LetterFormEditor = ({
             <span className="text-[11px] text-stone-600 font-medium">Logo Kiri</span>
             <select
               name="leftLogo"
-              value={formData.leftLogo ?? "/logo_letris.png"}
+              value={formData.leftLogo ?? LEFT_LOGO_OPTIONS[0].value}
               onChange={handleChange}
               disabled={isSubmitting}
               className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 disabled:opacity-50"
             >
-              <option value="/logo_letris.png">SMK Letris Indonesia 2</option>
-              <option value="/logo_letris_kesehatan.png">SMK Letris Kesehatan</option>
-              <option value="">Tanpa Logo Kiri</option>
+              {LEFT_LOGO_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -194,14 +200,16 @@ export const LetterFormEditor = ({
             <span className="text-[11px] text-stone-600 font-medium">Logo Kanan</span>
             <select
               name="rightLogo"
-              value={formData.rightLogo ?? "/logo_banten.png"}
+              value={formData.rightLogo ?? RIGHT_LOGO_OPTIONS[0].value}
               onChange={handleChange}
               disabled={isSubmitting}
               className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 disabled:opacity-50"
             >
-              <option value="/logo_banten.png">Provinsi Banten</option>
-              <option value="/logo_tangsel.png">Kota Tangerang Selatan</option>
-              <option value="">Tanpa Logo Kanan</option>
+              {RIGHT_LOGO_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -294,7 +302,7 @@ export const LetterFormEditor = ({
         <label className="font-serif text-sm font-semibold text-stone-900">
           Upload Lampiran / Stempel / Gambar
         </label>
-        
+
         <input
           type="file"
           accept="image/*"
@@ -346,3 +354,4 @@ export const LetterFormEditor = ({
     </form>
   );
 };
+  

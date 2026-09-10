@@ -18,9 +18,7 @@ interface LetterData {
   content?: string;
   body?: string;
   createdAt?: string;
-  // Dynamic custom attributes stored as an object or JSON
   variables?: Record<string, string>;
-  // Direct fields if stored directly on letter
   nama?: string;
   ttl?: string;
   jenisKelamin?: string;
@@ -41,10 +39,9 @@ export default function TemplatePreviewPage() {
   const [letterData, setLetterData] = useState<LetterData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [scale, setScale] = useState<number>(0.8);
 
-  // Kop Surat constants
+  // Kop Surat constants (School standard branding)
   const yayasan = "YAYASAN LEO SUTRISNO";
   const schoolName = "SMK LETRIS INDONESIA 2";
   const npsnNss = "NPSN : 69894185 NSS : 402286303080";
@@ -69,7 +66,6 @@ export default function TemplatePreviewPage() {
 
         if (res.ok) {
           const data = await res.json();
-          // Parse variables if sent as JSON string from DB
           if (typeof data.variables === "string") {
             try {
               data.variables = JSON.parse(data.variables);
@@ -96,92 +92,111 @@ export default function TemplatePreviewPage() {
   const zoomOut = () => setScale((prev) => Math.max(prev - 0.15, 0.35));
   const resetZoom = () => setScale(1.0);
 
-  // Fallbacks
-  const perihal = letterData?.perihal || letterData?.title || "Surat Keterangan Aktif Siswa";
-  const isKeteranganSiswa = perihal.toLowerCase().includes("keterangan") || perihal.toLowerCase().includes("aktif");
+  // Dynamic variable extractor (checks `variables` object, root properties, then regex from body text)
+  const vars = letterData?.variables || {};
 
-  const formattedDate = letterData?.createdAt
+  const extractFieldFromText = (pattern: RegExp) => {
+    const text = letterData?.body || letterData?.content || "";
+    const match = text.match(pattern);
+    if (!match) return undefined;
+    const val = match[1].trim();
+    if (val.startsWith("{{") && val.endsWith("}}")) return undefined;
+    return val;
+  };
+
+  const getDynamicValue = (keys: string[], regex?: RegExp) => {
+    for (const key of keys) {
+      if (vars[key]) return vars[key];
+      if ((letterData as Record<string, any>)?.[key]) {
+        return (letterData as Record<string, any>)[key];
+      }
+    }
+    if (regex) {
+      const extracted = extractFieldFromText(regex);
+      if (extracted) return extracted;
+    }
+    return "—";
+  };
+
+  // Dynamic letter header fields
+  const perihal = letterData?.perihal || letterData?.title || vars.perihal || "—";
+  const isKeteranganSiswa =
+    perihal.toLowerCase().includes("keterangan") || perihal.toLowerCase().includes("aktif");
+
+  const nomor = letterData?.nomor || vars.nomor || "—";
+  const recipient = letterData?.recipient || vars.recipient || "—";
+
+  const formattedDate = letterData?.cityDate
+    ? letterData.cityDate
+    : letterData?.createdAt
     ? `Tangerang Selatan, ${new Date(letterData.createdAt).toLocaleDateString("id-ID", {
         day: "numeric",
         month: "long",
         year: "numeric",
       })}`
-    : "Tangerang Selatan, 4 September 2026";
+    : "Tangerang Selatan, —";
 
-  const nomor = letterData?.nomor || "421.5/102-SMK/LETRIS-2/2026";
-  const recipient = letterData?.recipient || "Siswa / Siswi Terlampir";
-  
-  // Helper function to extract field values directly from the stored DB body string via REGEX
-  const extractField = (pattern: RegExp, fallback: string = "—") => {
-    const text = letterData?.body || letterData?.content || "";
-    const match = text.match(pattern);
-    if (!match) return fallback;
-    
-    const val = match[1].trim();
-    // Ignore placeholder templates like {{tahun_ajaran}} in match and use fallback
-    if (val.startsWith("{{") && val.endsWith("}}")) {
-      return fallback;
-    }
-    return val;
-  };
-
-  // Extract custom variables from variables object or directly parse from database body text
-  const vars = letterData?.variables || {};
+  // Dynamic student attributes
   const studentData = {
-    nama:
-      vars.nama ||
-      vars.nama_siswa ||
-      vars["{{nama_siswa}}"] ||
-      vars.namaSiswa ||
-      letterData?.nama ||
-      extractField(/Nama\s*:\s*(.+)/i, "Gilby Maleeq Jibrani"),
-    ttl:
-      vars.ttl ||
-      vars.ttl_siswa ||
-      vars["{{ttl}}"] ||
-      vars.tempatTanggalLahir ||
-      letterData?.ttl ||
-      extractField(/Tempat Tanggal Lahir\s*:\s*(.+)/i, "Jakarta, 17 Mei 2009"),
-    jenisKelamin:
-      vars.jenisKelamin ||
-      vars.jenis_kelamin ||
-      vars["{{jenis_kelamin}}"] ||
-      letterData?.jenisKelamin ||
-      extractField(/Jenis kelamin\s*:\s*(.+)/i, "Laki-laki"),
-    nisn:
-      vars.nisn ||
-      vars["{{nisn}}"] ||
-      letterData?.nisn ||
-      extractField(/NISN\s*:\s*(.+)/i, "0092877072"),
-    npsn:
-      vars.npsn ||
-      vars["{{npsn}}"] ||
-      letterData?.npsn ||
-      extractField(/NPSN\s*:\s*(.+)/i, "69894185"),
-    kelas:
-      vars.kelas ||
-      vars["{{kelas}}"] ||
-      letterData?.kelas ||
-      extractField(/Kelas\s*:\s*(.+)/i, "XII DKVB 4"),
-    kompetensiKeahlian:
-      vars.kompetensiKeahlian ||
-      vars.kompetensi ||
-      vars["{{kompetensi_keahlian}}"] ||
-      letterData?.kompetensiKeahlian ||
-      extractField(/Kompetensi Keahlian\s*:\s*(.+)/i, "Desain Komunikasi Visual"),
-    tahunAjaran:
-      vars.tahunAjaran ||
-      vars.tahun_ajaran ||
-      vars["{{tahun_ajaran}}"] ||
-      letterData?.tahunAjaran ||
-      extractField(/Tahun Ajaran\s*(.+?)(?=\.|\n|$)/i, "2025/2026"),
+    nama: getDynamicValue(
+      ["nama", "nama_siswa", "{{nama_siswa}}", "namaSiswa"],
+      /Nama\s*:\s*(.+)/i
+    ),
+    ttl: getDynamicValue(
+      ["ttl", "ttl_siswa", "{{ttl}}", "tempatTanggalLahir"],
+      /Tempat Tanggal Lahir\s*:\s*(.+)/i
+    ),
+    jenisKelamin: getDynamicValue(
+      ["jenisKelamin", "jenis_kelamin", "{{jenis_kelamin}}"],
+      /Jenis kelamin\s*:\s*(.+)/i
+    ),
+    nisn: getDynamicValue(["nisn", "{{nisn}}"], /NISN\s*:\s*(.+)/i),
+    npsn: getDynamicValue(["npsn", "{{npsn}}"], /NPSN\s*:\s*(.+)/i),
+    kelas: getDynamicValue(["kelas", "{{kelas}}"], /Kelas\s*:\s*(.+)/i),
+    kompetensiKeahlian: getDynamicValue(
+      ["kompetensiKeahlian", "kompetensi", "{{kompetensi_keahlian}}"],
+      /Kompetensi Keahlian\s*:\s*(.+)/i
+    ),
+    tahunAjaran: getDynamicValue(
+      ["tahunAjaran", "tahun_ajaran", "{{tahun_ajaran}}"],
+      /Tahun Ajaran\s*(.+?)(?=\.|\n|$)/i
+    ),
   };
 
-  const signerTitle = letterData?.signerTitle || "Kepala Sekolah SMK Letris Indonesia 2";
-  const signerName = letterData?.signerName || "Juaman, S.Kom";
+  const signerTitle =
+    letterData?.signerTitle || vars.signerTitle || "Kepala Sekolah SMK Letris Indonesia 2";
+  const signerName = letterData?.signerName || vars.signerName || "—";
 
   return (
-    <div className="min-h-screen bg-stone-900 flex flex-col justify-between overflow-hidden relative select-none font-serif">
+    <div className="min-h-screen bg-stone-900 flex flex-col justify-between overflow-hidden relative select-none font-serif print-wrapper">
+      <style jsx global>{`
+        @media print {
+          body {
+            background-color: white !important;
+            color: black !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+          .print-wrapper {
+            background: transparent !important;
+            min-height: auto !important;
+            overflow: visible !important;
+          }
+          .zoom-wrapper {
+            transform: none !important;
+          }
+          .a4-container {
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
+            min-height: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+        }
+      `}</style>
+
       {/* Top Bar */}
       <header className="no-print bg-stone-800/90 backdrop-blur border-b border-stone-700 px-4 py-3 flex items-center justify-between z-30 shrink-0 text-white">
         <div className="flex items-center gap-3">
@@ -221,9 +236,9 @@ export default function TemplatePreviewPage() {
             <div className="a4-container w-[210mm] min-h-[297mm] bg-white p-12 border border-stone-600 shadow-2xl font-serif text-stone-900 text-xs leading-normal flex flex-col justify-between shrink-0 box-border">
               <div>
                 {/* Kop Surat Header */}
-                <div className="flex items-center justify-between gap-4 border-b-2 border-stone-900 pb-2 mb-4">
-                  <div className="w-16 h-16 shrink-0 flex items-center justify-center border-2 border-dashed border-blue-600 rounded-full bg-blue-50 text-[9px] font-bold text-blue-900 text-center p-1">
-                    LOGO LETRIS 2
+                <div className="relative border-b-2 border-stone-900 pb-2 mb-4 flex items-center justify-between gap-4">
+                  <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+                    <img src="/logo_letris.png" alt="Logo Letris" className="w-full h-full object-contain" />
                   </div>
 
                   <div className="text-center flex-1 space-y-0.5">
@@ -236,14 +251,9 @@ export default function TemplatePreviewPage() {
                     <p className="text-[9px] text-blue-800 underline">{website}</p>
                   </div>
 
-                  <div className="w-16 h-16 shrink-0 flex items-center justify-center border-2 border-dashed border-emerald-600 rounded bg-emerald-50 text-[9px] font-bold text-emerald-900 text-center p-1">
-                    LOGO BANTEN
+                  <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+                    <img src="/logo_banten.png" alt="Logo Banten" className="w-full h-full object-contain" />
                   </div>
-                </div>
-
-                {/* Date */}
-                <div className="text-right mb-4">
-                  <span>{formattedDate}</span>
                 </div>
 
                 {/* Title and Metadata */}
@@ -320,7 +330,7 @@ export default function TemplatePreviewPage() {
                   <div className="space-y-4 mb-4">
                     <p>Dengan hormat,</p>
                     <p className="text-justify indent-8 leading-relaxed whitespace-pre-line">
-                      {letterData?.openingText || letterData?.content || "Sehubungan dengan kegiatan sekolah..."}
+                      {letterData?.openingText || letterData?.body || letterData?.content || "—"}
                     </p>
                     <p className="text-justify indent-8 leading-relaxed">
                       {letterData?.closingText || "Demikian surat ini kami sampaikan, atas perhatian dan kerjasamanya kami ucapkan terima kasih."}
@@ -333,7 +343,7 @@ export default function TemplatePreviewPage() {
               <div className="flex justify-end pt-4">
                 <div className="text-center min-w-56 space-y-12">
                   <div>
-                    <p>Hormat Kami,</p>
+                    <p>{formattedDate}</p>
                     <p className="font-semibold">{signerTitle}</p>
                   </div>
                   <div>
