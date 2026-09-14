@@ -4,6 +4,8 @@ import React, { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
 import { Avatar } from "@/components/atoms/Avatar";
+import { AdminLetterPreview } from "@/components/organisms/AdminLetterPreview";
+import { MiniPaperThumbnail } from "@/components/molecules/MiniPaperThumbnail";
 import {
   LEFT_LOGO_OPTIONS,
   RIGHT_LOGO_OPTIONS,
@@ -49,99 +51,6 @@ function extractPlaceholders(text: string): string[] {
   if (!matches) return [];
   const keys = matches.map((m) => m.replace(/[\{\}]/g, "").trim());
   return Array.from(new Set(keys));
-}
-
-function renderFormattedBody(text: string) {
-  if (!text) return null;
-  const lines = text.split("\n");
-
-  return (
-    <div className="space-y-2 text-justify font-serif text-[10.5px] leading-relaxed text-stone-900">
-      {lines.map((line, idx) => {
-        const colonPos = line.indexOf(":");
-        if (colonPos !== -1 && !line.trim().startsWith("http") && colonPos < 35) {
-          const key = line.slice(0, colonPos).trim();
-          const val = line.slice(colonPos + 1).trim();
-          return (
-            <div key={idx} className="flex text-[10.5px] leading-tight my-0.5">
-              <span className="w-36 shrink-0">{key}</span>
-              <span className="mr-3">:</span>
-              <span className="flex-1 font-medium">{val}</span>
-            </div>
-          );
-        }
-        return (
-          <p key={idx} className={line.trim() === "" ? "h-2" : "min-h-4"}>
-            {line}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
-function MiniPaperThumbnail({ template }: { template: DynamicTemplate }) {
-  const [currentDate, setCurrentDate] = useState<string>("");
-
-  useEffect(() => {
-    setCurrentDate(new Date().toISOString().split("T")[0]);
-  }, []);
-
-  const bodyPreview = template.bodyContent || template.defaultBody || "";
-
-  return (
-    <div className="w-full aspect-3/4 bg-stone-200/60 rounded-2xl border border-stone-300 overflow-hidden relative shadow-sm group-hover:shadow-md transition-all flex items-center justify-center p-2 select-none">
-      <div className="w-[190%] h-[190%] scale-[0.52] shrink-0 pointer-events-none bg-white p-6 shadow-md border border-stone-200 text-[10px] font-serif leading-tight text-stone-900 flex flex-col justify-between origin-center">
-        <div>
-          <div className="relative border-b-2 border-solid border-stone-900 pb-2 mb-3 text-center flex items-center justify-between">
-            <img
-              src={DEFAULT_LEFT_LOGO}
-              alt="Logo Left"
-              className="w-8 h-8 object-contain"
-            />
-            <div className="px-2">
-              <p className="font-bold text-[8px] uppercase tracking-tighter">
-                YAYASAN LEO SUTRISNO
-              </p>
-              <p className="font-bold text-[10px] uppercase">
-                SMK LETRIS INDONESIA 2
-              </p>
-              <p className="text-[6px] font-sans text-stone-600">
-                NPSN: 69894185 | NSS: 402286303080
-              </p>
-            </div>
-            <img
-              src={DEFAULT_RIGHT_LOGO}
-              alt="Logo Right"
-              className="w-8 h-8 object-contain"
-            />
-          </div>
-
-          <div className="text-center mb-3">
-            <p className="font-bold underline uppercase text-[9px]">
-              {template.title}
-            </p>
-            <p className="text-[7.5px] font-sans">
-              Nomor : {template.defaultNumber || "[Auto]"}
-            </p>
-          </div>
-
-          <div className="text-[7.5px] font-sans text-stone-700 leading-normal line-clamp-6 whitespace-pre-wrap">
-            {bodyPreview}
-          </div>
-        </div>
-
-        <div className="flex justify-end pt-2 font-serif text-[7.5px]">
-          <div className="text-center w-32">
-            <p>Tangerang Selatan, {currentDate || "..."}</p>
-            <p className="font-semibold">Kepala SMK Letris Indonesia 2</p>
-            <div className="h-6"></div>
-            <p className="font-bold underline">Juaman, S.Kom</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function AdminNewLetterContent() {
@@ -331,6 +240,13 @@ function AdminNewLetterContent() {
       attachmentUrl: attachmentUrl || null,
       leftLogo,
       rightLogo,
+      // FALLBACK_TEMPLATES (used if /api/templates couldn't be reached) has
+      // ids "1"/"2" that don't exist as real Template rows — the API
+      // resolves this defensively, but only send a real-looking id at all.
+      templateId:
+        selectedTemplate?.id && selectedTemplate.id !== "custom"
+          ? selectedTemplate.id
+          : null,
       userEmail: currentUser.email || "admin@smkletris2.sch.id",
       createdByRole: "ADMIN",
       status: "APPROVED",
@@ -703,117 +619,24 @@ function AdminNewLetterContent() {
                 </div>
               </div>
 
-              {/* Live Preview Side */}
-              <div className="sticky top-6 w-full max-w-md mx-auto">
-                <div className="mb-2 flex items-center justify-between bg-stone-900 text-white px-3 py-2 rounded-xl">
-                  <span className="text-xs font-medium">
-                    A4 Live Document Export
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => window.print()}
-                      className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-medium cursor-pointer"
-                    >
-                      🖨 Print / PDF
-                    </button>
-                  </div>
-                </div>
-
-                <div
-                  id="printable-letter-document"
-                  className="w-full min-h-145 bg-white rounded-xl shadow-2xl border border-stone-300 p-8 flex flex-col justify-between text-stone-900 font-serif text-[10.5px] leading-relaxed"
-                >
-                  <div className="flex flex-col flex-1 min-h-0">
-                    <div className="relative border-b-2 border-solid border-stone-900 pb-2 mb-4 flex items-center justify-between shrink-0">
-                      <img
-                        src={leftLogo}
-                        alt="Logo Kiri"
-                        className="w-12 h-12 object-contain"
-                      />
-                      <div className="px-2 text-center flex-1">
-                        <h4 className="font-serif text-[10px] tracking-wide uppercase leading-tight text-stone-800">
-                          YAYASAN LEO SUTRISNO
-                        </h4>
-                        <h3 className="font-serif font-bold text-[13px] tracking-wide uppercase leading-tight text-stone-900">
-                          SMK LETRIS INDONESIA 2
-                        </h3>
-                        <p className="text-[7.5px] font-sans text-stone-700 leading-tight">
-                          NPSN : 69894185 &nbsp;&nbsp; NSS : 402286303080
-                        </p>
-                        <p className="text-[7.5px] font-sans font-bold text-stone-900 leading-tight">
-                          ( AKREDITASI &quot; A &quot; )
-                        </p>
-                        <p className="text-[6.5px] font-sans text-stone-600 leading-tight">
-                          Kompetensi Keahlian : Desain Komunikasi Visual (DKV) ,
-                          Teknik Jaringan Komputer dan Telekomunikasi (TJKT) ,
-                        </p>
-                        <p className="text-[6.5px] font-sans text-stone-600 leading-tight">
-                          Pengembangan Perangkat Lunak dan Gim (PPLG) , Manajemen
-                          Perkantoran dan Layanan Bisnis (MPLB) ,
-                        </p>
-                        <p className="text-[6.5px] font-sans text-stone-600 leading-tight">
-                          Pemasaran (PM) , Akuntansi Keuangan Lembaga ,
-                        </p>
-                        <p className="text-[6.5px] font-sans text-stone-600 leading-tight">
-                          Jl. Raya Siliwangi No. 55 Pondok Benda – Pamulang Telp.
-                          021-29446273 Kota Tangerang Selatan Provinsi Banten
-                        </p>
-                        <a
-                          href="https://www.smkletris2pamulang.sch.id"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[6.5px] text-blue-700 underline font-sans block"
-                        >
-                          www.smkletris2pamulang.sch.id
-                        </a>
-                      </div>
-                      <img
-                        src={rightLogo}
-                        alt="Logo Kanan"
-                        className="w-12 h-12 object-contain"
-                      />
-                    </div>
-
-                    <div className="text-center my-3 shrink-0 space-y-0.5">
-                      <h2 className="font-serif font-bold uppercase text-[11px] underline tracking-wider">
-                        {selectedTemplate?.title || "SURAT KETERANGAN"}
-                      </h2>
-                      <p className="font-serif text-[10px]">
-                        Nomor : {letterNumber || "[Diisi oleh Admin]"}
-                      </p>
-                    </div>
-
-                    <div className="my-2">
-                      {renderFormattedBody(getRenderedBody())}
-                    </div>
-
-                    {attachmentUrl && (
-                      <div className="mt-4 border-t border-stone-200 pt-2">
-                        <img
-                          src={attachmentUrl}
-                          alt="Attachment"
-                          className="max-h-28 object-contain rounded"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end pt-6 mt-6 font-serif text-[10px] shrink-0">
-                    <div className="text-center w-52 space-y-1">
-                      <p>
-                        Tangerang Selatan,{" "}
-                        {date || "07 Agustus 2026"}
-                      </p>
-                      <p className="font-medium">Kepala SMK Letris Indonesia 2</p>
-                      <div className="h-16"></div>
-                      <p className="font-bold underline text-stone-900">
-                        Juaman, S.Kom
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Live Preview Side — shared preview component: correct
+                  logo handling, print isolation, and DOCX export all
+                  come from AdminLetterPreview instead of being
+                  duplicated here. */}
+              <AdminLetterPreview
+                letterData={{
+                  institutionName: "",
+                  letterNumber,
+                  date,
+                  recipient,
+                  subject: selectedTemplate?.title || "",
+                  body: getRenderedBody(),
+                  attachmentUrl,
+                  leftLogo,
+                  rightLogo,
+                }}
+                selectedTemplate={selectedTemplate}
+              />
             </div>
           </div>
         )}

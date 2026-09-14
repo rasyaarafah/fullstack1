@@ -39,7 +39,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, letterNumber, recipient, subject, body: letterBody, status, createdByRole, userEmail } = body;
+    const {
+      title,
+      letterNumber,
+      recipient,
+      subject,
+      body: letterBody,
+      status,
+      createdByRole,
+      userEmail,
+      leftLogo,
+      rightLogo,
+      templateId,
+    } = body;
 
     // Validate essential fields
     if (!title || !recipient || !letterBody) {
@@ -97,7 +109,22 @@ export async function POST(request: Request) {
       finalStatus = requestedStatus;
     }
 
-    // 4. Create record in Prisma database
+    // 4. Resolve templateId defensively — the new-letter page may send an id
+    // from its offline FALLBACK_TEMPLATES list (e.g. "1", "2") or "custom"
+    // when the templates API was unreachable. Those aren't real Template
+    // rows, so silently drop them instead of letting the foreign key fail.
+    let resolvedTemplateId: string | null = null;
+    if (templateId && templateId !== "custom") {
+      const matchingTemplate = await prisma.template.findUnique({
+        where: { id: templateId },
+        select: { id: true },
+      });
+      if (matchingTemplate) {
+        resolvedTemplateId = matchingTemplate.id;
+      }
+    }
+
+    // 5. Create record in Prisma database
     const newLetter = await prisma.letter.create({
       data: {
         title,
@@ -106,6 +133,9 @@ export async function POST(request: Request) {
         subject: subject || title,
         body: letterBody,
         status: finalStatus as any, // Cast to match Prisma Enum
+        leftLogo: leftLogo || null,
+        rightLogo: rightLogo || null,
+        templateId: resolvedTemplateId,
         authorId,
       },
       include: {

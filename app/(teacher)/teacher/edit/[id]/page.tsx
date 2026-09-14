@@ -10,7 +10,7 @@ export default function TeacherEditPage({ params }: { params: Promise<{ id: stri
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  
+
   const [letterData, setLetterData] = useState({
     institutionName: "",
     letterNumber: "",
@@ -19,6 +19,8 @@ export default function TeacherEditPage({ params }: { params: Promise<{ id: stri
     date: new Date().toISOString().split("T")[0],
     body: "",
     attachmentUrl: null as string | null,
+    leftLogo: undefined as string | undefined,
+    rightLogo: undefined as string | undefined,
     status: "DRAFT"
   });
 
@@ -43,6 +45,8 @@ export default function TeacherEditPage({ params }: { params: Promise<{ id: stri
             date: data.createdAt ? new Date(data.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
             body: data.body || "",
             attachmentUrl: data.attachmentUrl || null,
+            leftLogo: data.leftLogo || undefined,
+            rightLogo: data.rightLogo || undefined,
             status: data.status,
           });
         } else {
@@ -70,6 +74,8 @@ export default function TeacherEditPage({ params }: { params: Promise<{ id: stri
           subject: letterData.subject,
           body: letterData.body,
           attachmentUrl: letterData.attachmentUrl,
+          leftLogo: letterData.leftLogo,
+          rightLogo: letterData.rightLogo,
           institutionName: letterData.institutionName,
           status: newStatus,
         }),

@@ -23,6 +23,12 @@ interface AdminStats {
   myLettersCount: number;
 }
 
+interface PopularTemplate {
+  id: string;
+  title: string;
+  usageCount: number;
+}
+
 // Custom Admin Stat Card
 const AdminStatCard = ({ count, label }: { count: number | string; label: string }) => (
   <div className="flex flex-col justify-between h-36 bg-white border border-stone-200 rounded-3xl p-5 shadow-sm">
@@ -31,17 +37,29 @@ const AdminStatCard = ({ count, label }: { count: number | string; label: string
   </div>
 );
 
-// Quick Create Dropdown Card
+// Quick Create Dropdown Card — shows the actual most-used templates,
+// fetched from /api/templates/popular, instead of a hardcoded list.
 const QuickCreateDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [templates, setTemplates] = useState<PopularTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const templates = [
-    "Surat undangan",
-    "Surat tugas",
-    "Surat keterangan",
-    "Surat keputusan",
-    "Surat pemberitahuan",
-  ];
+  useEffect(() => {
+    async function fetchPopularTemplates() {
+      try {
+        const res = await fetch("/api/templates/popular?limit=5");
+        if (res.ok) {
+          const data: PopularTemplate[] = await res.json();
+          setTemplates(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch popular templates:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPopularTemplates();
+  }, []);
 
   return (
     <div className="relative h-36">
@@ -73,16 +91,22 @@ const QuickCreateDropdown = () => {
             </svg>
           </div>
           <div className="divide-y divide-stone-200 text-lg">
-            {templates.map((title) => (
-              <Link
-                key={title}
-                href={`/admin/new-letter?template=${encodeURIComponent(title)}`}
-                className="block p-3 hover:bg-stone-50 text-stone-900 transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                {title}
-              </Link>
-            ))}
+            {loading ? (
+              <div className="p-4 text-sm text-stone-400 font-sans">Loading...</div>
+            ) : templates.length === 0 ? (
+              <div className="p-4 text-sm text-stone-400 font-sans">No templates yet.</div>
+            ) : (
+              templates.map((tpl) => (
+                <Link
+                  key={tpl.id}
+                  href={`/admin/new-letter?template=${encodeURIComponent(tpl.title)}`}
+                  className="block p-3 hover:bg-stone-50 text-stone-900 transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {tpl.title}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -119,7 +143,7 @@ const PendingQueueRow = ({
         <span className="font-sans text-stone-700">@{username}</span>,{" "}
         <span className="font-serif font-bold">{title}</span>,{" "}
         <span className="font-serif font-bold">{date}</span>,{" "}
-        <span className="font-serif text-stone-500">({status.toLowerCase()})</span>
+        <span className="font-serif text-stone-500">({(status || "unknown").toLowerCase()})</span>
       </p>
 
       {/* Actions Button & Menu */}

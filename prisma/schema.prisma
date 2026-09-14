@@ -20,19 +20,23 @@ model User {
 }
 
 model Letter {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   title           String // e.g., "Surat Undangan Rapat Orang Tua"
   letterNumber    String? // Optional until approved by Admin
   recipient       String
   subject         String?
-  body            String   @db.Text
-  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  rejectionReason String?  @db.Text
+  body            String    @db.Text
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason String?   @db.Text
+  leftLogo        String?
+  rightLogo       String?
+  templateId      String?
+  template        Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   authorId        Int
-  author          User     @relation(fields: [authorId], references: [id])
-  createdAt       DateTime @default(now())
+  author          User      @relation(fields: [authorId], references: [id])
+  createdAt       DateTime  @default(now())
 
-  @@map("letters") // <--- ADD THIS LINE
+  @@map("letters")
 }
 
 model Template {
@@ -42,7 +46,8 @@ model Template {
   description  String?
   placeholders String   @db.Text
   bodyContent  String   @db.Text
-  createdAt    DateTime @default(now()) @map("created_at")    
+  createdAt    DateTime @default(now()) @map("created_at")
+  letters      Letter[]
 
   @@map("templates")
 }

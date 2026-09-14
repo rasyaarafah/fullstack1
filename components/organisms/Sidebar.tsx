@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Avatar } from "@/components/atoms/Avatar";
@@ -10,6 +10,12 @@ export interface NavItem {
   href: string;
   icon?: React.ReactNode;
   isActive?: boolean;
+}
+
+interface PopularTemplate {
+  id: string;
+  title: string;
+  usageCount: number;
 }
 
 interface SidebarProps {
@@ -39,6 +45,26 @@ export const Sidebar = ({
   const isAdminRoute = pathname?.startsWith("/admin");
   const basePath = isAdminRoute ? "/admin/new-letter" : "/teacher/new-letter";
 
+  const [quickCreateItems, setQuickCreateItems] = useState<PopularTemplate[]>([]);
+  const [isLoadingQuickCreate, setIsLoadingQuickCreate] = useState(true);
+
+  useEffect(() => {
+    async function fetchPopularTemplates() {
+      try {
+        const res = await fetch("/api/templates/popular?limit=5");
+        if (res.ok) {
+          const data: PopularTemplate[] = await res.json();
+          setQuickCreateItems(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch popular templates for sidebar:", err);
+      } finally {
+        setIsLoadingQuickCreate(false);
+      }
+    }
+    fetchPopularTemplates();
+  }, []);
+
   const handleLogout = async () => {
     try {
       await fetch("/api/logout", {
@@ -54,14 +80,6 @@ export const Sidebar = ({
       console.error("Logout error:", error);
     }
   };
-
-  const quickCreateItems = [
-    { label: "Surat undangan", template: "Surat undangan" },
-    { label: "Surat tugas", template: "Surat tugas" },
-    { label: "Surat keterangan", template: "Surat keterangan" },
-    { label: "Surat keputusan", template: "Surat keputusan" },
-    { label: "Surat pemberitahuan", template: "Surat pemberitahuan" },
-  ];
 
   const checkIsActive = (item: NavItem) => {
     if (typeof item.isActive === "boolean") return item.isActive;
@@ -116,27 +134,33 @@ export const Sidebar = ({
           </nav>
         </div>
 
-        {/* Quick Create Section */}
+        {/* Quick Create Section — real, usage-ranked templates */}
         <div className="flex flex-col gap-2">
           <span className="text-xs font-semibold text-stone-900 uppercase tracking-wider">
             Quick create
           </span>
           <div className="flex flex-col gap-1 pl-3">
-            {quickCreateItems.map((item) => {
-              const href = `${basePath}?template=${encodeURIComponent(
-                item.template
-              )}`;
-              return (
-                <Link
-                  key={item.label}
-                  href={href}
-                  onClick={onItemClick}
-                  className="text-left text-base text-stone-400 hover:text-stone-900 transition-colors"
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+            {isLoadingQuickCreate ? (
+              <span className="text-base text-stone-300">Loading...</span>
+            ) : quickCreateItems.length === 0 ? (
+              <span className="text-base text-stone-300">No templates yet</span>
+            ) : (
+              quickCreateItems.map((item) => {
+                const href = `${basePath}?template=${encodeURIComponent(
+                  item.title
+                )}`;
+                return (
+                  <Link
+                    key={item.id}
+                    href={href}
+                    onClick={onItemClick}
+                    className="text-left text-base text-stone-400 hover:text-stone-900 transition-colors"
+                  >
+                    {item.title}
+                  </Link>
+                );
+              })
+            )}
           </div>
         </div>
 

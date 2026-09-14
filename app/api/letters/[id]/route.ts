@@ -38,7 +38,7 @@ export async function GET(
   }
 }
 
-// PATCH update letter status (APPROVE / REJECT)
+// PATCH update letter status and/or content (title, body, logos, etc.)
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -46,7 +46,17 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, rejectionReason } = body;
+    const {
+      status,
+      rejectionReason,
+      title,
+      letterNumber,
+      recipient,
+      subject,
+      body: letterBody,
+      leftLogo,
+      rightLogo,
+    } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -58,8 +68,15 @@ export async function PATCH(
     const updatedLetter = await prisma.letter.update({
       where: { id },
       data: {
-        status: status.toUpperCase(),
-        ...(rejectionReason && { rejectionReason }),
+        ...(status && { status: status.toUpperCase() }),
+        ...(rejectionReason !== undefined && { rejectionReason }),
+        ...(title !== undefined && { title }),
+        ...(letterNumber !== undefined && { letterNumber }),
+        ...(recipient !== undefined && { recipient }),
+        ...(subject !== undefined && { subject }),
+        ...(letterBody !== undefined && { body: letterBody }),
+        ...(leftLogo !== undefined && { leftLogo }),
+        ...(rightLogo !== undefined && { rightLogo }),
       },
     });
 

@@ -8,6 +8,7 @@ export interface Template {
   defaultNumber?: string;
   defaultRecipient?: string;
   defaultBody?: string;
+  bodyContent?: string;
 }
 
 interface MiniPaperThumbnailProps {
@@ -16,6 +17,7 @@ interface MiniPaperThumbnailProps {
 
 export function MiniPaperThumbnail({ template }: MiniPaperThumbnailProps) {
   const currentDate = new Date().toISOString().split("T")[0];
+  const bodyPreview = template.bodyContent || template.defaultBody || "";
 
   return (
     <div className="w-full aspect-3/4 bg-stone-200/60 rounded-2xl border border-stone-300 overflow-hidden relative shadow-sm group-hover:shadow-md transition-all flex items-center justify-center p-2 select-none">
@@ -49,7 +51,7 @@ export function MiniPaperThumbnail({ template }: MiniPaperThumbnailProps) {
           </div>
 
           <div className="text-[7.5px] font-sans text-stone-700 leading-normal line-clamp-6 whitespace-pre-wrap">
-            {template.defaultBody}
+            {bodyPreview}
           </div>
         </div>
 
