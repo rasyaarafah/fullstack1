@@ -2,7 +2,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// 1. Handle GET requests
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -35,7 +34,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 2. Handle POST requests
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -53,7 +51,7 @@ export async function POST(request: Request) {
       templateId,
     } = body;
 
-    // Validate essential fields
+    // Validate essential payload inputs
     if (!title || !recipient || !letterBody) {
       return NextResponse.json(
         { error: "Title, recipient, and body are required." },
@@ -64,7 +62,7 @@ export async function POST(request: Request) {
     let authorId: number | null = null;
     let userRole = createdByRole ? createdByRole.toUpperCase() : null;
 
-    // 1. Resolve user by provided userEmail
+    // 1. Resolve author user by provided userEmail
     if (userEmail) {
       const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
       if (dbUser) { 
@@ -75,7 +73,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Fallback to default user if no user was resolved
+    // 2. Fallback to existing user in DB if author identification fails
     if (!authorId) {
       const defaultUser = await prisma.user.findFirst({
         where: userRole === "TEACHER" ? { role: "TEACHER" } : {},
@@ -83,15 +81,11 @@ export async function POST(request: Request) {
 
       if (defaultUser) {
         authorId = defaultUser.id;
-        if (!userRole && defaultUser.role) {
-          userRole = defaultUser.role.toUpperCase();
-        }
       } else {
-        // Fallback to absolute first user in DB if target role is missing
         const fallbackAnyUser = await prisma.user.findFirst();
         if (!fallbackAnyUser) {
           return NextResponse.json(
-            { error: "No valid user found in database to assign as author." },
+            { error: "No user account found in database to set as letter author." },
             { status: 400 }
           );
         }
@@ -99,24 +93,21 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. Normalize Status to match Prisma Enums (APPROVED, PENDING, REJECTED, REVISE)
+    // 3. Resolve status enum safely
     let finalStatus = "PENDING";
     const requestedStatus = status ? status.toUpperCase() : "";
 
     if (userRole === "ADMIN" || requestedStatus === "APPROVED") {
       finalStatus = "APPROVED";
-    } else if (["PENDING", "REJECTED", "REVISE"].includes(requestedStatus)) {
+    } else if (["PENDING", "REJECTED"].includes(requestedStatus)) {
       finalStatus = requestedStatus;
     }
 
-    // 4. Resolve templateId defensively — the new-letter page may send an id
-    // from its offline FALLBACK_TEMPLATES list (e.g. "1", "2") or "custom"
-    // when the templates API was unreachable. Those aren't real Template
-    // rows, so silently drop them instead of letting the foreign key fail.
-    let resolvedTemplateId: string | null = null;
+    // 4. Safely check for existing relational templateId
+    let resolvedTemplateId: string | undefined = undefined;
     if (templateId && templateId !== "custom") {
       const matchingTemplate = await prisma.template.findUnique({
-        where: { id: templateId },
+        where: { id: String(templateId) },
         select: { id: true },
       });
       if (matchingTemplate) {
@@ -124,20 +115,29 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. Create record in Prisma database
+    // 5. Build clean data object for Prisma creation without undefined fields
+    const letterDataToCreate: Record<string, any> = {
+      title: String(title),
+      letterNumber: letterNumber ? String(letterNumber) : null,
+      recipient: String(recipient),
+      subject: subject ? String(subject) : String(title),
+      body: String(letterBody),
+      status: finalStatus,
+      authorId: authorId,
+    };
+
+    if (leftLogo !== undefined && leftLogo !== null) {
+      letterDataToCreate.leftLogo = String(leftLogo);
+    }
+    if (rightLogo !== undefined && rightLogo !== null) {
+      letterDataToCreate.rightLogo = String(rightLogo);
+    }
+    if (resolvedTemplateId) {
+      letterDataToCreate.templateId = resolvedTemplateId;
+    }
+
     const newLetter = await prisma.letter.create({
-      data: {
-        title,
-        letterNumber: letterNumber || null,
-        recipient,
-        subject: subject || title,
-        body: letterBody,
-        status: finalStatus as any, // Cast to match Prisma Enum
-        leftLogo: leftLogo || null,
-        rightLogo: rightLogo || null,
-        templateId: resolvedTemplateId,
-        authorId,
-      },
+      data: letterDataToCreate as any,
       include: {
         author: true,
       },
@@ -147,11 +147,10 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Error creating letter in /api/letters:", error);
     
-    // Return explicit error message to aid frontend debugging
     return NextResponse.json(
       { 
         error: error?.message || "Gagal membuat surat",
-        details: error?.code || null 
+        details: error?.meta || error?.code || null 
       },
       { status: 500 }
     );

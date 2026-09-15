@@ -68,3 +68,14 @@ body {
     page-break-inside: avoid !important;
   }
 }
+/* Force form inputs to have high contrast text even when disabled/read-only */
+input, textarea, select {
+  color: #0f172a !important; /* Tailwind stone-900 */
+  -webkit-text-fill-color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #9ca3af !important; /* Tailwind stone-400 */
+  -webkit-text-fill-color: #9ca3af !important;
+}

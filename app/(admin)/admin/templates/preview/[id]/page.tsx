@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 interface LetterData {
   id?: string;
   nomor?: string;
+  letterNumber?: string;
   perihal?: string;
   recipient?: string;
   openingText?: string;
@@ -51,6 +52,9 @@ export default function TemplatePreviewPage() {
   const address =
     "Jl. Raya Siliwangi No. 55 Pondok Benda – Pamulang Telp. 021-29446273 Kota Tangerang Selatan Provinsi Banten";
   const website = "www.smkletris2pamulang.sch.id";
+
+  // Signer constant — update if Kepala Sekolah changes
+  const defaultSignerName = "Juaman, S.Kom";
 
   useEffect(() => {
     async function fetchDocumentData() {
@@ -123,7 +127,7 @@ export default function TemplatePreviewPage() {
   const isKeteranganSiswa =
     perihal.toLowerCase().includes("keterangan") || perihal.toLowerCase().includes("aktif");
 
-  const nomor = letterData?.nomor || vars.nomor || "—";
+  const nomor = letterData?.letterNumber || letterData?.nomor || vars.nomor || "—";
   const recipient = letterData?.recipient || vars.recipient || "—";
 
   const formattedDate = letterData?.cityDate
@@ -165,12 +169,16 @@ export default function TemplatePreviewPage() {
 
   const signerTitle =
     letterData?.signerTitle || vars.signerTitle || "Kepala Sekolah SMK Letris Indonesia 2";
-  const signerName = letterData?.signerName || vars.signerName || "—";
+  const signerName = letterData?.signerName || vars.signerName || defaultSignerName;
 
   return (
     <div className="min-h-screen bg-stone-900 flex flex-col justify-between overflow-hidden relative select-none font-serif print-wrapper">
       <style jsx global>{`
         @media print {
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+          }
           body {
             background-color: white !important;
             color: black !important;
@@ -183,7 +191,15 @@ export default function TemplatePreviewPage() {
             min-height: auto !important;
             overflow: visible !important;
           }
+          .print-main {
+            display: block !important;
+            overflow: visible !important;
+            height: auto !important;
+            padding: 0 !important;
+            background: white !important;
+          }
           .zoom-wrapper {
+            display: block !important;
             transform: none !important;
           }
           .a4-container {
@@ -198,7 +214,7 @@ export default function TemplatePreviewPage() {
       `}</style>
 
       {/* Top Bar */}
-      <header className="no-print bg-stone-800/90 backdrop-blur border-b border-stone-700 px-4 py-3 flex items-center justify-between z-30 shrink-0 text-white">
+      <header className="no-print bg-stone-800 border-b border-stone-700 px-4 py-3 flex items-center justify-between z-30 shrink-0 text-white">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/history"
@@ -223,7 +239,7 @@ export default function TemplatePreviewPage() {
       </header>
 
       {/* Main Canvas Area */}
-      <main className="flex-1 overflow-auto p-4 sm:p-12 flex justify-center items-center relative bg-stone-950">
+      <main className="print-main flex-1 overflow-auto p-4 sm:p-12 flex justify-center items-center relative bg-stone-950">
         {loading ? (
           <div className="text-white text-lg">Loading document...</div>
         ) : error ? (
@@ -233,7 +249,7 @@ export default function TemplatePreviewPage() {
             className="zoom-wrapper transition-transform duration-200 ease-out origin-top flex justify-center items-center"
             style={{ transform: `scale(${scale})` }}
           >
-            <div className="a4-container w-[210mm] min-h-[297mm] bg-white p-12 border border-stone-600 shadow-2xl font-serif text-stone-900 text-xs leading-normal flex flex-col justify-between shrink-0 box-border">
+            <div id="printable-letter-document" className="a4-container w-[210mm] min-h-[297mm] bg-white p-12 border border-stone-600 shadow-2xl font-serif text-stone-900 text-xs leading-normal flex flex-col justify-between shrink-0 box-border">
               <div>
                 {/* Kop Surat Header */}
                 <div className="relative border-b-2 border-stone-900 pb-2 mb-4 flex items-center justify-between gap-4">
@@ -357,7 +373,7 @@ export default function TemplatePreviewPage() {
       </main>
 
       {/* Floating Toolbar */}
-      <footer className="no-print fixed bottom-6 left-1/2 -translate-x-1/2 bg-stone-800/90 backdrop-blur text-white px-4 py-2.5 rounded-full border border-stone-700 shadow-2xl flex items-center gap-3 z-40">
+      <footer className="no-print fixed bottom-6 left-1/2 -translate-x-1/2 bg-stone-800 text-white px-4 py-2.5 rounded-full border border-stone-700 shadow-2xl flex items-center gap-3 z-40">
         <button onClick={zoomOut} className="p-1.5 hover:bg-stone-700 rounded-full transition-colors">
           -
         </button>

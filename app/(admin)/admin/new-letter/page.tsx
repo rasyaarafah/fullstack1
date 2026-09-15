@@ -33,8 +33,17 @@ const FALLBACK_TEMPLATES: DynamicTemplate[] = [
     defaultNumber: "135/SKet/421.5/SMK.LI2/VIII/2026",
     defaultRecipient: "Siswa / Siswi Terlampir",
     defaultBody:
-      "Yang bertanda tangan di bawah ini kepala Sekolah SMK Letris Indonesia 2 Pamulang Kota Tangerang Selatan - Prov. Banten menerangkan bahwa:\n\nNama : {{nama}}\nTempat Tanggal Lahir : {{tempat_tanggal_lahir}}\nJenis kelamin : {{jenis_kelamin}}\nNISN : {{nisn}}\nNPSN : 69894185\nKelas : {{kelas}}\nKompetensi Keahlian : {{kompetensi_keahlian}}\n\nBenar nama yang tersebut di atas terdaftar sebagai peserta didik kelas {{kelas}} di SMK Letris Indonesia 2 Tahun Ajaran 2026/2027. Demikian surat keterangan ini kami berikan untuk digunakan sebagaimana mestinya.",
+      "Yang bertanda tangan di bawah ini kepala Sekolah SMK Letris Indonesia 2 Pamulang Kota Tangerang Selatan - Prov. Banten menerangkan bahwa:\n\n" +
+      "Nama | {{nama}}\n" +
+      "Tempat Tanggal Lahir | {{tempat_tanggal_lahir}}\n" +
+      "Jenis kelamin | {{jenis_kelamin}}\n" +
+      "NISN | {{nisn}}\n" +
+      "NPSN | 69894185\n" +
+      "Kelas | {{kelas}}\n" +
+      "Kompetensi Keahlian | {{kompetensi_keahlian}}\n\n" +
+      "Benar nama yang tersebut di atas terdaftar sebagai peserta didik kelas {{kelas}} di SMK Letris Indonesia 2 Tahun Ajaran 2026/2027. Demikian surat keterangan ini kami berikan untuk digunakan sebagaimana mestinya.",
   },
+
   {
     id: "2",
     title: "SURAT UNDANGAN",
