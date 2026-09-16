@@ -416,7 +416,7 @@ function AdminNewLetterContent() {
               </h1>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-8 items-start">
               {/* Form Side */}
               <div className="bg-stone-50/50 p-6 rounded-2xl border border-stone-200 space-y-5">
                 <div className="space-y-1.5">

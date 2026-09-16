@@ -75,11 +75,11 @@ export function AdminLetterPreview({ letterData }: AdminLetterPreviewProps) {
   return (
     <div className="sticky top-6 w-full flex justify-center max-h-[calc(100vh-3rem)] overflow-y-auto">
       {/* Strict A4 sheet dimensions wrapper (210mm x 297mm ratio) */}
-      <div className="bg-white p-10 shadow-lg border border-stone-200 text-stone-900 w-full max-w-[210mm] min-h-[297mm] aspect-[1/1.4142] flex flex-col justify-between box-border">
+      <div className="bg-white p-10 shadow-lg border border-stone-200 text-stone-900 w-full max-w-[210mm] min-h-[297mm] aspect-[1/1.4142] flex flex-col justify-between box-border font-serif">
         <div>
           {/* Header / Kop Surat */}
-          <div className="flex items-center justify-between border-b-2 border-stone-800 pb-3 mb-6 gap-2">
-            <div className="w-14 h-14 flex items-center justify-center shrink-0">
+          <div className="relative border-b-2 border-stone-800 pb-3 mb-6 clear-both">
+            <div className="float-left w-20 h-20 flex items-center justify-center shrink-0 mr-0">
               {letterData.leftLogo ? (
                 <img
                   src={letterData.leftLogo}
@@ -87,26 +87,40 @@ export function AdminLetterPreview({ letterData }: AdminLetterPreviewProps) {
                   className="max-h-full max-w-full object-contain"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-stone-200 flex items-center justify-center text-[9px] text-stone-500">
+                <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center text-[9px] text-stone-500">
                   Logo
                 </div>
               )}
             </div>
 
-            <div className="text-center px-1 flex-1">
-              <h2 className="text-[12px] font-bold uppercase tracking-wide">
+            <div className="float-right w-20 h-20 flex items-center justify-center shrink-0 ml-0">
+              {letterData.rightLogo ? (
+                <img
+                  src={letterData.rightLogo}
+                  alt="Right Logo"
+                  className="max-h-full max-w-full object-contain"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center text-[9px] text-stone-500">
+                  Logo
+                </div>
+              )}
+            </div>
+
+            <div className="text-center px-10">
+              <h2 className="text-sm font-bold uppercase tracking-wide">
                 YAYASAN LEO SUTRISNO
               </h2>
-              <h1 className="text-sm font-black uppercase tracking-wide text-stone-900 mt-0.5">
+              <h1 className="text-2xl font-black uppercase tracking-wide text-stone-900 mt-0.5">
                 SMK LETRIS INDONESIA 2
               </h1>
-              <p className="text-[9px] font-bold text-stone-800 mt-0.5">
+              <p className="text-xs font-bold text-stone-800 mt-0.5">
                 NPSN : 69894185 NSS : 402286303080
               </p>
-              <p className="text-[9px] font-bold text-stone-800">
+              <p className="text-xs font-bold text-stone-800">
                 ( AKREDITASI “ A ” )
               </p>
-              <p className="text-[8px] text-stone-600 mt-0.5 leading-tight">
+              <p className="text-[11px] text-stone-600 mt-0.5 leading-tight clear-both">
                 Kompetensi Keahlian : Desain Komunikasi Visual (DKV) , Teknik Jaringan Komputer dan Telekomunikasi (TJKT) ,
                 <br />
                 Pengembangan Perangkat Lunak dan Gim (PPLG) , Manajemen Perkantoran dan Layanan Bisnis (MPLB) ,
@@ -117,20 +131,6 @@ export function AdminLetterPreview({ letterData }: AdminLetterPreviewProps) {
                 <br />
                 <span className="text-blue-600 underline">www.smkletris2pamulang.sch.id</span>
               </p>
-            </div>
-
-            <div className="w-14 h-14 flex items-center justify-center shrink-0">
-              {letterData.rightLogo ? (
-                <img
-                  src={letterData.rightLogo}
-                  alt="Right Logo"
-                  className="max-h-full max-w-full object-contain"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-stone-200 flex items-center justify-center text-[9px] text-stone-500">
-                  Logo
-                </div>
-              )}
             </div>
           </div>
 

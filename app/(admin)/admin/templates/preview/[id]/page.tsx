@@ -252,23 +252,23 @@ export default function TemplatePreviewPage() {
             <div id="printable-letter-document" className="a4-container w-[210mm] min-h-[297mm] bg-white p-12 border border-stone-600 shadow-2xl font-serif text-stone-900 text-xs leading-normal flex flex-col justify-between shrink-0 box-border">
               <div>
                 {/* Kop Surat Header */}
-                <div className="relative border-b-2 border-stone-900 pb-2 mb-4 flex items-center justify-between gap-4">
-                  <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+                <div className="relative border-b-2 border-stone-900 pb-2 mb-4 clear-both">
+                  <div className="float-left w-20 h-20 shrink-0 flex items-center justify-center mr-0">
                     <img src="/logo_letris.png" alt="Logo Letris" className="w-full h-full object-contain" />
                   </div>
 
-                  <div className="text-center flex-1 space-y-0.5">
-                    <h2 className="font-bold text-[11px] uppercase">{yayasan}</h2>
-                    <h1 className="font-extrabold text-base tracking-wide uppercase leading-tight">{schoolName}</h1>
-                    <p className="font-semibold text-[10px]">{npsnNss}</p>
-                    <p className="font-bold text-[10px]">{akreditasi}</p>
-                    <p className="text-[9px] px-2 leading-tight text-stone-700">{jurusan}</p>
-                    <p className="text-[9px] text-stone-700">{address}</p>
-                    <p className="text-[9px] text-blue-800 underline">{website}</p>
+                  <div className="float-right w-20 h-20 shrink-0 flex items-center justify-center ml-0">
+                    <img src="/logo_banten.png" alt="Logo Banten" className="w-full h-full object-contain" />
                   </div>
 
-                  <div className="w-16 h-16 shrink-0 flex items-center justify-center">
-                    <img src="/logo_banten.png" alt="Logo Banten" className="w-full h-full object-contain" />
+                  <div className="text-center space-y-0.5 px-10">
+                    <h2 className="font-bold text-sm uppercase">{yayasan}</h2>
+                    <h1 className="font-extrabold text-4xl tracking-wide uppercase leading-tight">{schoolName}</h1>
+                    <p className="font-semibold text-xs">{npsnNss}</p>
+                    <p className="font-bold text-xs">{akreditasi}</p>
+                    <p className="text-[11px] leading-tight text-stone-700 clear-both">{jurusan}</p>
+                    <p className="text-[11px] text-stone-700">{address}</p>
+                    <p className="text-[11px] text-blue-800 underline">{website}</p>
                   </div>
                 </div>
 
