@@ -1,4 +1,5 @@
 import React from "react";
+import { KOP_SURAT_DEFAULTS } from "@/lib/kopSuratDefault";
 
 interface AdminLetterPreviewProps {
   letterData: {
@@ -11,6 +12,10 @@ interface AdminLetterPreviewProps {
     attachmentUrl?: string | null;
     leftLogo?: string;
     rightLogo?: string;
+    // Per-letter/per-template signer. Falls back to KOP_SURAT_DEFAULTS
+    // when a template hasn't set its own signer yet.
+    signerName?: string;
+    signerRole?: string;
   };
   selectedTemplate?: any;
 }
@@ -72,6 +77,9 @@ export function AdminLetterPreview({ letterData }: AdminLetterPreviewProps) {
     return elements;
   };
 
+  const signerName = letterData.signerName || KOP_SURAT_DEFAULTS.defaultSignerName;
+  const signerRole = letterData.signerRole || KOP_SURAT_DEFAULTS.defaultSignerRole;
+
   return (
     <div className="sticky top-6 w-full flex justify-center max-h-[calc(100vh-3rem)] overflow-y-auto">
       {/* Strict A4 sheet dimensions wrapper (210mm x 297mm ratio) */}
@@ -109,27 +117,25 @@ export function AdminLetterPreview({ letterData }: AdminLetterPreviewProps) {
 
             <div className="text-center px-10">
               <h2 className="text-sm font-bold uppercase tracking-wide">
-                YAYASAN LEO SUTRISNO
+                {KOP_SURAT_DEFAULTS.yayasan}
               </h2>
               <h1 className="text-2xl font-black uppercase tracking-wide text-stone-900 mt-0.5">
-                SMK LETRIS INDONESIA 2
+                {KOP_SURAT_DEFAULTS.schoolName}
               </h1>
               <p className="text-xs font-bold text-stone-800 mt-0.5">
-                NPSN : 69894185 NSS : 402286303080
+                {KOP_SURAT_DEFAULTS.npsnNss}
               </p>
               <p className="text-xs font-bold text-stone-800">
-                ( AKREDITASI “ A ” )
+                {KOP_SURAT_DEFAULTS.akreditasi}
               </p>
               <p className="text-[11px] text-stone-600 mt-0.5 leading-tight clear-both">
-                Kompetensi Keahlian : Desain Komunikasi Visual (DKV) , Teknik Jaringan Komputer dan Telekomunikasi (TJKT) ,
+                {KOP_SURAT_DEFAULTS.jurusan}
                 <br />
-                Pengembangan Perangkat Lunak dan Gim (PPLG) , Manajemen Perkantoran dan Layanan Bisnis (MPLB) ,
+                {KOP_SURAT_DEFAULTS.address}
                 <br />
-                Pemasaran (PM) , Akuntansi Keuangan Lembaga ,
-                <br />
-                Jl. Raya Siliwangi No. 55 Pondok Benda – Pamulang Telp. 021-29446273 Kota Tangerang Selatan Provinsi Banten
-                <br />
-                <span className="text-blue-600 underline">www.smkletris2pamulang.sch.id</span>
+                <span className="text-blue-600 underline">
+                  {KOP_SURAT_DEFAULTS.website}
+                </span>
               </p>
             </div>
           </div>
@@ -169,10 +175,10 @@ export function AdminLetterPreview({ letterData }: AdminLetterPreviewProps) {
           <div className="text-left text-[11px] font-serif space-y-16 w-52 shrink-0">
             <div>
               <p>Tangerang Selatan, {letterData.date || "07 Agustus 2026"}</p>
-              <p>Kepala SMK Letris Indonesia 2</p>
+              <p>{signerRole}</p>
             </div>
             <div>
-              <p className="font-bold underline">Juaman, S.Kom</p>
+              <p className="font-bold underline">{signerName}</p>
             </div>
           </div>
         </div>

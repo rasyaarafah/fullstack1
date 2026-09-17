@@ -30,6 +30,12 @@ model Letter {
   rejectionReason String?   @db.Text
   leftLogo        String?
   rightLogo       String?
+  // Snapshot of who signed this specific letter, taken from the template
+  // at creation time. Kept here (not just read live off Template) so a
+  // later change to a template's signer doesn't retroactively change
+  // letters that were already issued.
+  signerName      String?
+  signerRole      String?
   templateId      String?
   template        Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   authorId        Int
@@ -40,16 +46,42 @@ model Letter {
 }
 
 model Template {
-  id           String   @id @default(uuid())
+  id           String            @id @default(uuid())
   title        String
-  category     String?  @default("Surat Keterangan")
+  category     String?           @default("Surat Keterangan")
+  description  String?
+  placeholders String            @db.Text
+  bodyContent  String            @db.Text
+  // Who signs letters generated from this template. Nullable so existing
+  // rows fall back to KOP_SURAT_DEFAULTS.defaultSignerName/Role in code
+  // until an admin sets them explicitly.
+  signerName   String?
+  signerRole   String?
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  letters      Letter[]
+  versions     TemplateVersion[]
+
+  @@map("templates")
+}
+
+// Snapshot of a Template's fields, saved automatically right before
+// each edit so previous versions are never lost.
+model TemplateVersion {
+  id           String   @id @default(uuid())
+  templateId   String   @map("template_id")
+  title        String
+  category     String?
   description  String?
   placeholders String   @db.Text
   bodyContent  String   @db.Text
-  createdAt    DateTime @default(now()) @map("created_at")
-  letters      Letter[]
+  signerName   String?
+  signerRole   String?
+  savedAt      DateTime @default(now()) @map("saved_at")
 
-  @@map("templates")
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("template_versions")
 }
 
 model Notice {

@@ -263,7 +263,7 @@ export default function TemplatePreviewPage() {
 
                   <div className="text-center space-y-0.5 px-10">
                     <h2 className="font-bold text-sm uppercase">{yayasan}</h2>
-                    <h1 className="font-extrabold text-4xl tracking-wide uppercase leading-tight">{schoolName}</h1>
+                    <h1 className="font-extrabold text-3xl uppercase leading-tight">{schoolName}</h1>
                     <p className="font-semibold text-xs">{npsnNss}</p>
                     <p className="font-bold text-xs">{akreditasi}</p>
                     <p className="text-[11px] leading-tight text-stone-700 clear-both">{jurusan}</p>

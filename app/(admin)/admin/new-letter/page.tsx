@@ -23,6 +23,8 @@ interface DynamicTemplate {
   defaultNumber?: string;
   defaultRecipient?: string;
   defaultBody?: string;
+  signerName?: string;
+  signerRole?: string;
 }
 
 const FALLBACK_TEMPLATES: DynamicTemplate[] = [
@@ -260,6 +262,8 @@ function AdminNewLetterContent() {
       createdByRole: "ADMIN",
       status: "APPROVED",
       type: selectedTemplate?.category || "Surat Keterangan",
+      signerName: selectedTemplate?.signerName,
+      signerRole: selectedTemplate?.signerRole,
     };
 
     try {
@@ -643,6 +647,8 @@ function AdminNewLetterContent() {
                   attachmentUrl,
                   leftLogo,
                   rightLogo,
+                  signerName: selectedTemplate?.signerName,
+                  signerRole: selectedTemplate?.signerRole,
                 }}
                 selectedTemplate={selectedTemplate}
               />

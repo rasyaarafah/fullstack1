@@ -3,18 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
+import { AdminLetterPreview } from "@/components/organisms/AdminLetterPreview";
+import { KOP_SURAT_DEFAULTS } from "@/lib/kopSuratDefault";
 
 interface TemplateData {
   id: string;
   title: string;
   category: string;
-  yayasan?: string;
-  namaSekolah?: string;
-  npsnNss?: string;
-  akreditasi?: string;
-  jurusan?: string;
-  alamat?: string;
-  website?: string;
   nomorSurat?: string;
   kotaTanggal?: string;
   perihal?: string;
@@ -27,18 +22,6 @@ interface TemplateData {
   jabatanPenandaTangan?: string;
   namaPenandaTangan?: string;
 }
-
-const DEFAULT_HEADER = {
-  yayasan: "YAYASAN LEO SUTRISNO",
-  namaSekolah: "SMK LETRIS INDONESIA 2",
-  npsnNss: "NPSN : 69894185 NSS : 402286303080",
-  akreditasi: '( AKREDITASI " A " )',
-  jurusan:
-    "Kompetensi Keahlian : Desain Komunikasi Visual (DKV), Teknik Jaringan Komputer dan Telekomunikasi (TJKT), Pengembangan Perangkat Lunak dan Gim (PPLG), Manajemen Perkantoran dan Layanan Bisnis (MPLB), Pemasaran (PM), Akuntansi Keuangan Lembaga",
-  alamat:
-    "Jl. Raya Siliwangi No. 55 Pondok Benda - Pamulang Telp. 021-29446273 Kota Tangerang Selatan Provinsi Banten",
-  website: "www.smkletrisdua.sch.id",
-};
 
 const CATEGORY_OPTIONS = [
   "Surat Keterangan",
@@ -57,7 +40,6 @@ export default function EditTemplatePage() {
     id: templateId || "",
     title: "",
     category: "Surat Keterangan",
-    ...DEFAULT_HEADER,
     nomorSurat: "[Disi oleh Admin]",
     kotaTanggal: "Tangerang Selatan, {tanggal_surat}",
     perihal: "",
@@ -67,8 +49,8 @@ export default function EditTemplatePage() {
     hariTanggal: "",
     waktu: "",
     tempat: "",
-    jabatanPenandaTangan: "Kepala Sekolah / Admin",
-    namaPenandaTangan: "[Belum Ditandatangani]",
+    jabatanPenandaTangan: KOP_SURAT_DEFAULTS.defaultSignerRole,
+    namaPenandaTangan: KOP_SURAT_DEFAULTS.defaultSignerName,
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -109,10 +91,9 @@ export default function EditTemplatePage() {
           nomorSurat: item.nomorSurat || item.nomor || "[Disi oleh Admin]",
           penerima: item.penerima || item.recipient || "Bapak/Ibu Penerima",
           jabatanPenandaTangan:
-            item.jabatanPenandaTangan ||
-            item.signer ||
-            "Kepala Sekolah / Admin",
-          namaPenandaTangan: item.namaPenandaTangan || "[Belum Ditandatangani]",
+            item.signerRole || KOP_SURAT_DEFAULTS.defaultSignerRole,
+          namaPenandaTangan:
+            item.signerName || KOP_SURAT_DEFAULTS.defaultSignerName,
         }));
       } catch (err) {
         console.error("Failed loading template details:", err);
@@ -130,7 +111,7 @@ export default function EditTemplatePage() {
       "{nomor_surat}",
       "{{nama_penerima}}",
       "{{jabatan}}",
-    ]),
+    ])
   );
 
   const insertVariable = (variable: string) => {
@@ -149,11 +130,12 @@ export default function EditTemplatePage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          title: formData.title,
           category: formData.category,
           bodyContent: formData.bodyContent,
-          content: formData.bodyContent,
           description: formData.bodyContent,
+          signerName: formData.namaPenandaTangan,
+          signerRole: formData.jabatanPenandaTangan,
         }),
       });
 
@@ -198,7 +180,7 @@ export default function EditTemplatePage() {
         { label: "Broadcast notice", href: "/admin/notice" },
       ]}
     >
-      <div className="space-y-4 max-w-7xl mx-auto w-full font-serif text-stone-800">
+      <div className="space-y-4 max-w-[1600px] mx-auto w-full font-serif text-stone-800">
         <div className="flex items-center justify-between border-b border-stone-200 pb-3">
           <div className="flex items-center gap-3">
             <button
@@ -249,8 +231,8 @@ export default function EditTemplatePage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Editor Form Controls */}
-          <div className="lg:col-span-6 bg-white border border-stone-300 rounded-xl p-5 space-y-5 max-h-[80vh] overflow-y-auto font-sans">
+          {/* Editor Form Controls (5 columns ~ 41.6% width) */}
+          <div className="lg:col-span-5 bg-white border border-stone-300 rounded-xl p-5 space-y-5 max-h-[80vh] overflow-y-auto font-sans">
             <h2 className="text-base font-serif font-bold text-stone-900 border-b pb-2">
               Template Controls
             </h2>
@@ -329,6 +311,48 @@ export default function EditTemplatePage() {
 
             <div className="space-y-3 pt-3 border-t">
               <span className="text-xs font-bold uppercase text-stone-400">
+                PENANDA TANGAN
+              </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-stone-700 block mb-1">
+                    Jabatan
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.jabatanPenandaTangan}
+                    onFocus={() => setFocusedField("jabatanPenandaTangan")}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        jabatanPenandaTangan: e.target.value,
+                      })
+                    }
+                    className="w-full border border-stone-300 rounded p-2 text-xs focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-700 block mb-1">
+                    Nama
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.namaPenandaTangan}
+                    onFocus={() => setFocusedField("namaPenandaTangan")}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        namaPenandaTangan: e.target.value,
+                      })
+                    }
+                    className="w-full border border-stone-300 rounded p-2 text-xs focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-3 border-t">
+              <span className="text-xs font-bold uppercase text-stone-400">
                 ISI SURAT (BODY & PLACEHOLDERS)
               </span>
               <div>
@@ -348,79 +372,20 @@ export default function EditTemplatePage() {
             </div>
           </div>
 
-          {/* Live Document Canvas */}
-          <div className="lg:col-span-6 bg-stone-200/70 p-6 rounded-xl border border-stone-300 flex justify-center sticky top-4">
-            <div className="w-full bg-white shadow-xl border border-stone-200 p-8 min-h-175 flex flex-col justify-between text-[11px] leading-relaxed font-serif">
-              <div>
-                {/* Kop Header */}
-                <div className="border-b-2 border-solid border-stone-900 pb-2 mb-4 text-center flex items-center justify-between">
-                  <img
-                    src="/logo_letris.png"
-                    alt="Logo"
-                    className="w-10 h-10 object-contain"
-                  />
-                  <div className="flex-1 px-3 text-center">
-                    <p className="font-bold text-[10px] uppercase">
-                      {formData.yayasan}
-                    </p>
-                    <p className="font-bold text-[13px] uppercase">
-                      {formData.namaSekolah}
-                    </p>
-                    <p className="text-[7.5px] font-sans text-stone-700">
-                      {formData.npsnNss}
-                    </p>
-                    <p className="text-[7.5px] font-sans font-bold">
-                      {formData.akreditasi}
-                    </p>
-                  </div>
-                  <img
-                    src="/logo_banten.png"
-                    alt="Logo"
-                    className="w-10 h-10 object-contain"
-                  />
-                </div>
-
-                {/* Letter Info */}
-                <div className="flex justify-between font-sans text-[10px] mb-4">
-                  <div>
-                    <p>
-                      <span className="font-semibold">Nomor:</span>{" "}
-                      {formData.nomorSurat}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Hal:</span>{" "}
-                      {formData.perihal}
-                    </p>
-                  </div>
-                  <div>Tangerang Selatan, 2026-09-01</div>
-                </div>
-
-                <div className="font-sans text-[10px] space-y-0.5 mb-4">
-                  <p className="font-semibold">Kepada Yth.</p>
-                  <p>{formData.penerima}</p>
-                  <p className="text-stone-500">Di Tempat</p>
-                </div>
-
-                {/* Live Rendering Body Content */}
-                <div className="font-sans text-[10px] whitespace-pre-wrap leading-relaxed text-stone-800">
-                  {formData.bodyContent}
-                </div>
-              </div>
-
-              {/* Signer Block */}
-              <div className="flex justify-end pt-4 font-sans text-[9px]">
-                <div className="text-center w-40 border border-dashed border-stone-300 p-2 rounded">
-                  <p className="text-stone-500">Mengetahui,</p>
-                  <p className="font-semibold">
-                    {formData.jabatanPenandaTangan}
-                  </p>
-                  <div className="h-8"></div>
-                  <p className="font-bold underline">
-                    {formData.namaPenandaTangan}
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* Live Preview Pane (7 columns ~ 58.3% width) */}
+          <div className="lg:col-span-7 bg-stone-200/70 p-6 rounded-xl border border-stone-300 flex justify-center items-start sticky top-4 overflow-x-auto">
+            <AdminLetterPreview
+              letterData={{
+                letterNumber: formData.nomorSurat,
+                recipient: formData.penerima,
+                subject: formData.perihal,
+                body: formData.bodyContent,
+                leftLogo: "/logo_letris.png",
+                rightLogo: "/logo_banten.png",
+                signerName: formData.namaPenandaTangan,
+                signerRole: formData.jabatanPenandaTangan,
+              }}
+            />
           </div>
         </div>
       </div>

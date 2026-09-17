@@ -1,4 +1,5 @@
 import React from "react";
+import { KOP_SURAT_DEFAULTS } from "@/lib/kopSuratDefault";
 
 interface TemplateCardProps {
   title: string;
@@ -66,22 +67,22 @@ const MiniDocumentPreview = ({ title }: { title: string }) => {
 
           <div className="px-2">
             <h4 className="font-bold text-[3.5px] tracking-tight uppercase leading-none">
-              YAYASAN LEO SUTRISNO
+              {KOP_SURAT_DEFAULTS.yayasan}
             </h4>
             <h3 className="font-bold text-[4.5px] tracking-wide uppercase leading-tight">
-              SMK LETRIS INDONESIA 2
+              {KOP_SURAT_DEFAULTS.schoolName}
             </h3>
             <p className="text-[3px] font-sans text-stone-700 leading-none">
-              NPSN : 69894185 &nbsp; NSS : 402286303080
+              {KOP_SURAT_DEFAULTS.npsnNss}
             </p>
             <p className="text-[2.5px] font-sans text-stone-800 leading-none font-semibold">
-              ( AKREDITASI " A " )
+              {KOP_SURAT_DEFAULTS.akreditasi}
             </p>
             <p className="text-[2.5px] font-sans text-stone-600 leading-none">
-              Jl. Raya Siliwangi No. 55 Pamulang, Tangsel
+              {KOP_SURAT_DEFAULTS.address}
             </p>
             <span className="text-[2.5px] text-blue-700 underline font-sans">
-              www.smkletrisdua.sch.id
+              {KOP_SURAT_DEFAULTS.website}
             </span>
           </div>
         </div>
@@ -118,11 +119,11 @@ const MiniDocumentPreview = ({ title }: { title: string }) => {
       <div className="flex justify-end pt-0.5 font-sans text-[3.5px]">
         <div className="text-center w-12 border border-dashed border-stone-300 p-0.5 rounded bg-stone-50">
           <p className="text-stone-500">Mengetahui,</p>
-          <p className="font-semibold text-stone-800">Kepala Sekolah / Admin</p>
+          <p className="font-semibold text-stone-800">{KOP_SURAT_DEFAULTS.defaultSignerRole}</p>
           <div className="h-2 flex items-center justify-center italic text-stone-400 text-[3px]">
             [Tandatangan]
           </div>
-          <p className="font-bold underline text-stone-700">NIP. ..................</p>
+          <p className="font-bold underline text-stone-700">{KOP_SURAT_DEFAULTS.defaultSignerName}</p>
         </div>
       </div>
     </div>

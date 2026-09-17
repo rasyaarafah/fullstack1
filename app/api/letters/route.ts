@@ -1,6 +1,7 @@
 // app/api/letters/route.ts
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { KOP_SURAT_DEFAULTS } from '@/lib/kopSuratDefault';
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,6 +50,10 @@ export async function POST(request: Request) {
       leftLogo,
       rightLogo,
       templateId,
+      // Optional explicit override — if the admin ever wants to sign a
+      // specific letter differently from its template's default signer.
+      signerName: signerNameOverride,
+      signerRole: signerRoleOverride,
     } = body;
 
     // Validate essential payload inputs
@@ -103,15 +108,25 @@ export async function POST(request: Request) {
       finalStatus = requestedStatus;
     }
 
-    // 4. Safely check for existing relational templateId
+    // 4. Safely check for existing relational templateId, and pull its
+    // signer along with it so the letter can snapshot who signs it.
     let resolvedTemplateId: string | undefined = undefined;
+    let resolvedSignerName = signerNameOverride || KOP_SURAT_DEFAULTS.defaultSignerName;
+    let resolvedSignerRole = signerRoleOverride || KOP_SURAT_DEFAULTS.defaultSignerRole;
+
     if (templateId && templateId !== "custom") {
       const matchingTemplate = await prisma.template.findUnique({
         where: { id: String(templateId) },
-        select: { id: true },
+        select: { id: true, signerName: true, signerRole: true },
       });
       if (matchingTemplate) {
         resolvedTemplateId = matchingTemplate.id;
+        if (!signerNameOverride && matchingTemplate.signerName) {
+          resolvedSignerName = matchingTemplate.signerName;
+        }
+        if (!signerRoleOverride && matchingTemplate.signerRole) {
+          resolvedSignerRole = matchingTemplate.signerRole;
+        }
       }
     }
 
@@ -124,6 +139,10 @@ export async function POST(request: Request) {
       body: String(letterBody),
       status: finalStatus,
       authorId: authorId,
+      // Snapshotted at creation time — won't change later even if the
+      // template's signer is edited afterward.
+      signerName: resolvedSignerName,
+      signerRole: resolvedSignerRole,
     };
 
     if (leftLogo !== undefined && leftLogo !== null) {

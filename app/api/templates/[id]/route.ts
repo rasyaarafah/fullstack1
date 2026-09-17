@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { KOP_SURAT_DEFAULTS } from "@/lib/kopSuratDefault";
+
+// Single source of truth for placeholder detection — the client no longer
+// sends `placeholders`, since it was always going out of sync with
+// whatever was actually typed into bodyContent. We derive it here instead.
+function extractPlaceholders(text: string): string[] {
+  const matches = text.match(/\{\{([^}]+)\}\}/g);
+  if (!matches) return [];
+  const keys = matches.map((m) => m.replace(/[{}]/g, "").trim());
+  return Array.from(new Set(keys));
+}
 
 // GET single template details
 export async function GET(
@@ -34,7 +45,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { title, category, description, placeholders, bodyContent } = body;
+    const { title, category, description, bodyContent, signerName, signerRole } = body;
 
     // Resolve target template first if ID is passed as a category string
     const target = await prisma.template.findFirst({
@@ -45,17 +56,35 @@ export async function PUT(
       return NextResponse.json({ error: "Template not found" }, { status: 404 });
     }
 
+    // Snapshot the current (pre-edit) state before overwriting it, so
+    // previous versions are never lost.
+    await prisma.templateVersion.create({
+      data: {
+        templateId: target.id,
+        title: target.title,
+        category: target.category,
+        description: target.description,
+        placeholders: target.placeholders,
+        bodyContent: target.bodyContent,
+        signerName: target.signerName,
+        signerRole: target.signerRole,
+      },
+    });
+
+    const finalBodyContent = bodyContent || description || target.bodyContent;
+
     const updatedTemplate = await prisma.template.update({
       where: { id: target.id },
       data: {
         title,
         category,
         description,
-        placeholders:
-          typeof placeholders === "string"
-            ? placeholders
-            : JSON.stringify(placeholders || []),
-        bodyContent: bodyContent || description,
+        bodyContent: finalBodyContent,
+        // Always derived from the current bodyContent — never trusted
+        // from the client, so this can no longer drift out of sync.
+        placeholders: JSON.stringify(extractPlaceholders(finalBodyContent)),
+        signerName: signerName || target.signerName || KOP_SURAT_DEFAULTS.defaultSignerName,
+        signerRole: signerRole || target.signerRole || KOP_SURAT_DEFAULTS.defaultSignerRole,
       },
     });
 
