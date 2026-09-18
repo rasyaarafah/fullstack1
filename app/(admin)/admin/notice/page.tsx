@@ -82,13 +82,6 @@ export default function AdminNoticePage() {
   const [history, setHistory] = useState<BroadcastHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const adminUser = {
-    name: "Admin User",
-    username: "admin_main",
-    avatarUrl: "",
-    role: "admin",
-  };
-
   useEffect(() => {
     fetchUsers();
     fetchNotices();
@@ -220,18 +213,10 @@ export default function AdminNoticePage() {
     <DashboardLayout
       navItems={navItems}
       adminTools={adminTools}
-      currentUser={adminUser}
+      title="Broadcast Notice"
+      description="Send real-time banner announcements and track recipient engagement."
     >
       <div className="flex flex-col gap-8 pb-16 font-sans">
-        <div>
-          <h1 className="text-3xl font-serif text-stone-900">
-            Broadcast Notice
-          </h1>
-          <p className="text-stone-500 text-sm mt-1">
-            Send real-time banner announcements and track recipient engagement.
-          </p>
-        </div>
-
         {activeNotice && (
           <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -431,10 +416,8 @@ export default function AdminNoticePage() {
                 });
                 const uniqueTargets = Array.from(uniqueTargetsMap.values());
 
-                // Consolidate read receipts and targets into a clean status map
                 const statusMap = new Map<string, boolean>();
 
-                // 1. First record DB read receipts (e.g. teacher@gmail.com: true)
                 if (item.readStatus && Array.isArray(item.readStatus)) {
                   item.readStatus.forEach((st) => {
                     if (st.username) {
@@ -443,11 +426,9 @@ export default function AdminNoticePage() {
                   });
                 }
 
-                // 2. Add targeted users if not already present or represented by email
                 uniqueTargets.forEach((targetLabel) => {
                   const cleanTarget = targetLabel.toLowerCase().trim();
 
-                  // Check if any existing key in statusMap belongs to this target user
                   const existingMatchKey = Array.from(statusMap.keys()).find(
                     (key) =>
                       key === cleanTarget ||

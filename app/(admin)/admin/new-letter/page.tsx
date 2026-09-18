@@ -44,6 +44,8 @@ const FALLBACK_TEMPLATES: DynamicTemplate[] = [
       "Kelas | {{kelas}}\n" +
       "Kompetensi Keahlian | {{kompetensi_keahlian}}\n\n" +
       "Benar nama yang tersebut di atas terdaftar sebagai peserta didik kelas {{kelas}} di SMK Letris Indonesia 2 Tahun Ajaran 2026/2027. Demikian surat keterangan ini kami berikan untuk digunakan sebagaimana mestinya.",
+    signerName: "Juaman, S.Kom",
+    signerRole: "Kepala Sekolah",
   },
 
   {
@@ -54,6 +56,8 @@ const FALLBACK_TEMPLATES: DynamicTemplate[] = [
     defaultRecipient: "Orang Tua / Wali Murid",
     defaultBody:
       "Sehubungan dengan pelaksanaan evaluasi pembelajaran semester, kami mengundang Bapak/Ibu Wali Murid untuk dapat hadir pada rapat koordinasi yang akan dilaksanakan pada:\n\nHari / Tanggal : Sabtu, 22 Agustus 2026\nWaktu : 09.00 WIB - Selesai\nTempat : Aula Utama SMK Letris Indonesia 2\n\nDemikian surat undangan ini kami sampaikan.",
+    signerName: "Juaman, S.Kom",
+    signerRole: "Kepala Sekolah",
   },
 ];
 
@@ -91,6 +95,8 @@ function AdminNewLetterContent() {
   const [date, setDate] = useState("");
   const [recipient, setRecipient] = useState("");
   const [rawBodyTemplate, setRawBodyTemplate] = useState("");
+  const [signerName, setSignerName] = useState("Juaman, S.Kom");
+  const [signerRole, setSignerRole] = useState("Kepala Sekolah");
   const [placeholderValues, setPlaceholderValues] = useState<
     Record<string, string>
   >({});
@@ -157,6 +163,8 @@ function AdminNewLetterContent() {
           templateObj.defaultNumber || "135/SKet/421.5/SMK.LI2/VIII/2026",
         );
         setRecipient(templateObj.defaultRecipient || "Siswa / Siswi Terlampir");
+        setSignerName(templateObj.signerName || "Juaman, S.Kom");
+        setSignerRole(templateObj.signerRole || "Kepala Sekolah");
 
         const detectedKeys = extractPlaceholders(templateText);
         const initialValues: Record<string, string> = {};
@@ -251,9 +259,6 @@ function AdminNewLetterContent() {
       attachmentUrl: attachmentUrl || null,
       leftLogo,
       rightLogo,
-      // FALLBACK_TEMPLATES (used if /api/templates couldn't be reached) has
-      // ids "1"/"2" that don't exist as real Template rows — the API
-      // resolves this defensively, but only send a real-looking id at all.
       templateId:
         selectedTemplate?.id && selectedTemplate.id !== "custom"
           ? selectedTemplate.id
@@ -262,8 +267,8 @@ function AdminNewLetterContent() {
       createdByRole: "ADMIN",
       status: "APPROVED",
       type: selectedTemplate?.category || "Surat Keterangan",
-      signerName: selectedTemplate?.signerName,
-      signerRole: selectedTemplate?.signerRole,
+      signerName: signerName.trim() || "Juaman, S.Kom",
+      signerRole: signerRole.trim() || "Kepala Sekolah",
     };
 
     try {
@@ -554,6 +559,39 @@ function AdminNewLetterContent() {
                   </div>
                 </div>
 
+                {/* Signee Inputs Section */}
+                <div className="bg-white p-4 rounded-xl border border-stone-200 space-y-3">
+                  <label className="text-xs font-bold text-stone-700 block">
+                    Penandatangan Surat
+                  </label>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-[10px] text-stone-500 block mb-1">
+                        Jabatan Penandatangan
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="e.g. Kepala Sekolah"
+                        value={signerRole}
+                        onChange={(e) => setSignerRole(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-300 rounded-lg p-2 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-stone-500 block mb-1">
+                        Nama Penandatangan
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="e.g. Juaman, S.Kom"
+                        value={signerName}
+                        onChange={(e) => setSignerName(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-300 rounded-lg p-2 text-xs focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Dynamic Placeholder Inputs Section */}
                 {detectedPlaceholders.length > 0 && (
                   <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-xl space-y-3">
@@ -632,10 +670,7 @@ function AdminNewLetterContent() {
                 </div>
               </div>
 
-              {/* Live Preview Side — shared preview component: correct
-                  logo handling, print isolation, and DOCX export all
-                  come from AdminLetterPreview instead of being
-                  duplicated here. */}
+              {/* Live Preview Side */}
               <AdminLetterPreview
                 letterData={{
                   institutionName: "",
@@ -647,8 +682,8 @@ function AdminNewLetterContent() {
                   attachmentUrl,
                   leftLogo,
                   rightLogo,
-                  signerName: selectedTemplate?.signerName,
-                  signerRole: selectedTemplate?.signerRole,
+                  signerName,
+                  signerRole,
                 }}
                 selectedTemplate={selectedTemplate}
               />

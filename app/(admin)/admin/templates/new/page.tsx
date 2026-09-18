@@ -9,6 +9,7 @@ import { Letterhead } from "@/components/molecules/Letterhead";
 interface PlaceholderItem {
   label: string;
   key: string;
+  type: string;
 }
 
 const DEFAULT_CATEGORIES = [
@@ -31,8 +32,8 @@ export default function AddTemplatePage() {
   const [fieldLabel, setFieldLabel] = useState("");
   const [fieldType, setFieldType] = useState("Text");
   const [placeholders, setPlaceholders] = useState<PlaceholderItem[]>([
-    { label: "Nama Penerima", key: "nama_penerima" },
-    { label: "Jabatan", key: "jabatan" },
+    { label: "Nama Penerima", key: "nama_penerima", type: "Text" },
+    { label: "Jabatan", key: "jabatan", type: "Text" },
   ]);
   const [bodyContent, setBodyContent] = useState(
     "Dengan ini menerangkan bahwa:\n\nNama: {{nama_penerima}}\nJabatan: {{jabatan}}\n\nTelah melaksanakan tugas dengan baik dan benar."
@@ -86,14 +87,23 @@ export default function AddTemplatePage() {
     const key = fieldLabel
       .toLowerCase()
       .trim()
-      .replace(/[^a-z0-9]/g, "_");
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    if (!key) {
+      setFieldLabel("");
+      return;
+    }
 
     if (placeholders.some((p) => p.key === key)) {
       setFieldLabel("");
       return;
     }
 
-    setPlaceholders((prev) => [...prev, { label: fieldLabel, key }]);
+    setPlaceholders((prev) => [
+      ...prev,
+      { label: fieldLabel, key, type: fieldType },
+    ]);
     setFieldLabel("");
   };
 
@@ -105,7 +115,22 @@ export default function AddTemplatePage() {
     setBodyContent((prev) => `${prev} {{${key}}}`);
   };
 
+  // Substitutes recognized placeholders with a bracketed sample value so the
+  // preview reads like a real letter. Any {{tag}} that doesn't match a
+  // defined placeholder is left as-is, which makes typos visible immediately
+  // instead of only failing silently later when a teacher fills the form.
+  const getPreviewBody = () => {
+    let rendered = bodyContent;
+    placeholders.forEach((p) => {
+      const regex = new RegExp(`\\{\\{${p.key}\\}\\}`, "g");
+      rendered = rendered.replace(regex, `[${p.label}]`);
+    });
+    return rendered;
+  };
+
   const handleSaveTemplate = async () => {
+    if (isSubmitting) return;
+
     if (!templateName.trim()) {
       alert("Please enter a template name.");
       return;
@@ -125,13 +150,18 @@ export default function AddTemplatePage() {
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to save template");
+      const responseData = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(
+          responseData.error || responseData.message || "Failed to save template."
+        );
+      }
 
       router.push("/admin/templates/edit");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Error saving template. Please try again.");
-    } finally {
+      alert(`Error saving template: ${err.message || "Please try again."}`);
       setIsSubmitting(false);
     }
   };
@@ -175,7 +205,7 @@ export default function AddTemplatePage() {
               type="button"
               onClick={handleSaveTemplate}
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-2xl bg-[#0A4D3C] text-white text-xs font-semibold hover:bg-[#07382c] transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 rounded-2xl bg-[#0A4D3C] text-white text-xs font-semibold hover:bg-[#07382c] transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
             >
               {isSubmitting ? "Saving..." : "Save Template"}
             </button>
@@ -210,6 +240,7 @@ export default function AddTemplatePage() {
                     CATEGORY
                   </label>
                   <CreatableSelect
+                    instanceId="template-category-select"
                     isClearable
                     options={categoryOptions}
                     value={
@@ -364,7 +395,9 @@ export default function AddTemplatePage() {
                 </div>
 
                 <div className="leading-relaxed whitespace-pre-wrap text-[10px] text-stone-800 font-serif min-h-40">
-                  {bodyContent || (
+                  {bodyContent ? (
+                    getPreviewBody()
+                  ) : (
                     <span className="italic text-stone-400 font-sans">
                       Substansi draf surat akan diperbarui di sini secara real-time...
                     </span>

@@ -11,6 +11,7 @@ export interface UserProfile {
   name: string;
   username: string;
   image?: string;
+  avatarUrl?: string; // Added to support both prop naming conventions
 }
 
 interface DashboardLayoutProps {
@@ -31,33 +32,50 @@ export const DashboardLayout = ({
   description,
 }: DashboardLayoutProps) => {
   const router = useRouter();
-  const [user, setUser] = useState<UserProfile | undefined>(initialUser);
+
+  // Helper function to resolve the image URL regardless of prop field name
+  const resolveUserImage = (u?: UserProfile) => u?.image || u?.avatarUrl;
+
+  const [user, setUser] = useState<UserProfile | undefined>(
+    initialUser
+      ? {
+          ...initialUser,
+          image: resolveUserImage(initialUser),
+        }
+      : undefined
+  );
+
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Fetch the authoritative session on every mount. Whatever `currentUser`
-  // a page passes in is shown instantly as a placeholder (some pages build
-  // it with slightly different shapes — e.g. an `avatarUrl` field instead
-  // of `image` — so it can't be trusted as the source of truth here), but
-  // this fetch is what actually determines what the sidebar/avatar show.
   useEffect(() => {
     if (initialUser) {
-      setUser(initialUser);
+      setUser({
+        ...initialUser,
+        image: resolveUserImage(initialUser),
+      });
+      return;
     }
 
-    fetch("/api/me")
+    let isMounted = true;
+    fetch(`/api/me?t=${Date.now()}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
-        if (!data.error) {
+        if (isMounted && !data.error) {
+          const userObj = data.user || data;
           setUser({
-            name: data.name,
-            username: data.email || data.username,
-            image: data.image || data.avatarUrl,
+            name: userObj.name,
+            username: userObj.email || userObj.username,
+            image: userObj.image || userObj.avatarUrl || userObj.profilePicture,
           });
         }
       })
       .catch((err) => console.error("Failed to load user:", err));
-  }, [initialUser]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [initialUser?.name, initialUser?.image, initialUser?.avatarUrl]);
 
   const handleProfileSuccess = (updatedUser: {
     name: string;
@@ -113,9 +131,7 @@ export const DashboardLayout = ({
       )}
 
       {/* Main Content Area */}
-      {/* Main Content Area */}
       <main className="flex-1 h-full overflow-y-auto p-4 sm:p-8 relative z-0 print:p-0 print:m-0 print:overflow-visible print:h-auto print:w-full print:block">
-        {/* Only show this layout header block if title or description are explicitly passed */}
         {(title || description) && (
           <div className="flex items-center justify-between mb-8 print:hidden">
             <div>

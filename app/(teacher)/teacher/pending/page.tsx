@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { DashboardLayout } from "@/components/templates/DashboardLayout";
+import { useRouter } from "next/navigation";
+import { DashboardLayout, UserProfile } from "@/components/templates/DashboardLayout";
 import { LetterRowItem } from "@/components/molecules/LetterRowItem";
 
 interface Letter {
@@ -16,8 +17,10 @@ interface Letter {
 }
 
 export default function PendingPage() {
+  const router = useRouter();
   const [letters, setLetters] = useState<Letter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<UserProfile | undefined>(undefined);
 
   const navItems = [
     { label: "Overview", href: "/teacher", isActive: false },
@@ -26,28 +29,38 @@ export default function PendingPage() {
     { label: "Pending", href: "/teacher/pending", isActive: true },
   ];
 
-  const mockUser = {
-    name: "Teacher",
-    username: "teacher_dev",
-    email: "teacher@gmail.com",
-    avatarUrl: "",
-    role: "teacher",
-  };
-
   useEffect(() => {
-    async function fetchPendingLetters() {
+    async function fetchData() {
       try {
-        // Fetch both PENDING and REJECTED statuses in a single request using your API's comma-separated filter
-        const res = await fetch(`/api/letters?status=PENDING,REJECTED&t=${Date.now()}`, {
-          cache: "no-store",
-        });
+        setLoading(true);
 
-        if (res.ok) {
-          const data: Letter[] = await res.json();
+        const [userRes, lettersRes] = await Promise.all([
+          fetch(`/api/me?t=${Date.now()}`, { cache: "no-store" }),
+          fetch(`/api/letters?status=PENDING,REJECTED&t=${Date.now()}`, {
+            cache: "no-store",
+          }),
+        ]);
+
+        let userEmail = "teacher@gmail.com";
+
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          const userObj = userData?.user || userData;
+          userEmail = userObj.email || userEmail;
+
+          setCurrentUser({
+            name: userObj.name || "Teacher",
+            username: userEmail,
+            image: userObj.image || userObj.avatarUrl || userObj.profilePicture || "",
+          });
+        }
+
+        if (lettersRes.ok) {
+          const data: Letter[] = await lettersRes.json();
 
           // Filter by active teacher email (or fallback if author relation is null)
           const teacherLetters = data.filter(
-            (item) => item.author?.email  === mockUser.email
+            (item) => !item.author?.email || item.author?.email === userEmail
           );
 
           // Sort newest first
@@ -66,8 +79,29 @@ export default function PendingPage() {
       }
     }
 
-    fetchPendingLetters();
+    fetchData();
   }, []);
+
+  const handleCancelLetter = async (id: string) => {
+    const confirmed = window.confirm(
+      "Apakah Anda yakin ingin membatalkan surat ini?"
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/letters/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setLetters((prev) => prev.filter((item) => item.id !== id));
+      } else {
+        alert("Gagal membatalkan surat.");
+      }
+    } catch (err) {
+      console.error("Error cancelling letter:", err);
+    }
+  };
 
   // Stat computations
   const totalCount = letters.length;
@@ -75,7 +109,7 @@ export default function PendingPage() {
   const rejectedCount = letters.filter((l) => l.status.toUpperCase() === "REJECTED").length;
 
   return (
-    <DashboardLayout navItems={navItems} currentUser={mockUser}>
+    <DashboardLayout navItems={navItems} currentUser={currentUser}>
       <div className="flex flex-col gap-6">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -122,16 +156,16 @@ export default function PendingPage() {
                 <LetterRowItem
                   key={item.id}
                   title={item.title}
-                  username={mockUser.name} // or mockUser.name
+                  username={currentUser?.name || "Teacher"}
                   date={new Date(item.createdAt).toLocaleDateString("en-US", {
                     month: "2-digit",
                     day: "2-digit",
                     year: "numeric",
                   })}
                   status={validStatus}
-                  onSee={() => (window.location.href = `/teacher/preview/${item.id}`)}
-                  onEdit={() => (window.location.href = `/teacher/edit/${item.id}`)}
-                  onCancel={() => console.log("Cancel", item.id)}
+                  onSee={() => router.push(`/teacher/preview/${item.id}`)}
+                  onEdit={() => router.push(`/teacher/edit/${item.id}`)}
+                  onCancel={() => handleCancelLetter(item.id)}
                 />
               );
             })

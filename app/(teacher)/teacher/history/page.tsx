@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { DashboardLayout } from "@/components/templates/DashboardLayout";
+import { DashboardLayout, UserProfile } from "@/components/templates/DashboardLayout";
 import { SearchBar } from "@/components/molecules/SearchBar";
 import { LetterRowItem } from "@/components/molecules/LetterRowItem";
 
@@ -21,6 +21,7 @@ export default function HistoryPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [letters, setLetters] = useState<Letter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<UserProfile | undefined>(undefined);
 
   const navItems = [
     { label: "Overview", href: "/teacher", isActive: false },
@@ -29,29 +30,36 @@ export default function HistoryPage() {
     { label: "Pending", href: "/teacher/pending", isActive: false },
   ];
 
-  const mockUser = {
-    name: "Teacher",
-    username: "teacher_dev",
-    avatarUrl: "",
-    role: "teacher",
-  };
-
   useEffect(() => {
-    async function fetchLetters() {
+    async function fetchData() {
       try {
-        const res = await fetch("/api/letters");
-        if (res.ok) {
-          const data = await res.json();
+        const [userRes, lettersRes] = await Promise.all([
+          fetch(`/api/me?t=${Date.now()}`, { cache: "no-store" }),
+          fetch("/api/letters"),
+        ]);
+
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          const userObj = userData?.user || userData;
+          setCurrentUser({
+            name: userObj.name || "Teacher",
+            username: userObj.email || userObj.username || "teacher_dev",
+            image: userObj.image || userObj.avatarUrl || userObj.profilePicture || "",
+          });
+        }
+
+        if (lettersRes.ok) {
+          const data = await lettersRes.json();
           setLetters(data);
         }
       } catch (err) {
-        console.error("Failed to fetch letters history:", err);
+        console.error("Failed to fetch history data:", err);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchLetters();
+    fetchData();
   }, []);
 
   // Step 2: Delete / Cancel letter handler
@@ -90,7 +98,7 @@ export default function HistoryPage() {
   });
 
   return (
-    <DashboardLayout navItems={navItems} currentUser={mockUser}>
+    <DashboardLayout navItems={navItems} currentUser={currentUser}>
       <div className="flex flex-col gap-6">
         {/* Search Bar & Status Dropdown Filter */}
         <div className="flex flex-col sm:flex-row gap-4 items-center w-full">
@@ -147,18 +155,15 @@ export default function HistoryPage() {
                     year: "numeric",
                   })}
                   status={formattedStatus}
-                  // Step 1: Opens the teacher-side full document preview
                   onSee={() =>
                     (window.location.href = `/teacher/preview/${item.id}`)
                   }
-                  // Step 2: Opens the dedicated edit page for this letter
                   onEdit={
                     canModify
                       ? () =>
                           (window.location.href = `/teacher/edit/${item.id}`)
                       : undefined
                   }
-                  // Step 3: Calls delete API
                   onCancel={canModify ? () => handleCancel(item.id) : undefined}
                 />
               );
