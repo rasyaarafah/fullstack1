@@ -30,6 +30,8 @@ export async function POST(req: Request) {
         description: body.description || "",
         placeholders: JSON.stringify(body.placeholders || []),
         bodyContent: body.bodyContent || "",
+        signerName: body.signerName || null,
+        signerRole: body.signerRole || null,
       },
     });
 

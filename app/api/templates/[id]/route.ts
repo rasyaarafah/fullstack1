@@ -2,28 +2,33 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { KOP_SURAT_DEFAULTS } from "@/lib/kopSuratDefault";
 
-// Single source of truth for placeholder detection — the client no longer
-// sends `placeholders`, since it was always going out of sync with
-// whatever was actually typed into bodyContent. We derive it here instead.
 function extractPlaceholders(text: string): string[] {
+  if (!text) return [];
   const matches = text.match(/\{\{([^}]+)\}\}/g);
   if (!matches) return [];
   const keys = matches.map((m) => m.replace(/[{}]/g, "").trim());
   return Array.from(new Set(keys));
 }
 
+async function getParamId(params: any): Promise<string> {
+  const resolved = await params;
+  return resolved?.id || "";
+}
+
 // GET single template details
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: any }
 ) {
   try {
-    const { id } = await params;
+    const id = await getParamId(params);
 
-    const template = await prisma.template.findFirst({
-      where: {
-        OR: [{ id }, { title: id }, { category: id }],
-      },
+    if (!id) {
+      return NextResponse.json({ error: "Missing template id" }, { status: 400 });
+    }
+
+    const template = await prisma.template.findUnique({
+      where: { id },
     });
 
     if (!template) {
@@ -31,87 +36,99 @@ export async function GET(
     }
 
     return NextResponse.json(template);
-  } catch (error) {
+  } catch (error: any) {
     console.error("GET Template Error:", error);
-    return NextResponse.json({ error: "Failed to fetch template" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Failed to fetch template" }, { status: 500 });
   }
 }
 
 // UPDATE a template
 export async function PUT(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: any }
 ) {
   try {
-    const { id } = await params;
+    const id = await getParamId(params);
     const body = await req.json();
     const { title, category, description, bodyContent, signerName, signerRole } = body;
 
-    // Resolve target template first if ID is passed as a category string
-    const target = await prisma.template.findFirst({
-      where: { OR: [{ id }, { title: id }, { category: id }] },
+    if (!id) {
+      return NextResponse.json({ error: "Missing template id" }, { status: 400 });
+    }
+
+    const target = await prisma.template.findUnique({
+      where: { id },
     });
 
     if (!target) {
       return NextResponse.json({ error: "Template not found" }, { status: 404 });
     }
 
-    // Snapshot the current (pre-edit) state before overwriting it, so
-    // previous versions are never lost.
-    await prisma.templateVersion.create({
-      data: {
-        templateId: target.id,
-        title: target.title,
-        category: target.category,
-        description: target.description,
-        placeholders: target.placeholders,
-        bodyContent: target.bodyContent,
-        signerName: target.signerName,
-        signerRole: target.signerRole,
-      },
-    });
+    const finalBodyContent = bodyContent || target.bodyContent || "";
 
-    const finalBodyContent = bodyContent || description || target.bodyContent;
+    // Keep description safely trimmed to 180 chars to avoid VARCHAR(191) crashes
+    const safeDescription = (description || target.description || title || target.title || "").slice(0, 180);
 
+    // Save snapshot version safely.
+    // IMPORTANT: this snapshot represents the template's state *right before*
+    // this edit is applied, so every field here must come from `target`
+    // (the pre-edit row) — never from the incoming `body` — or the saved
+    // version ends up with a mismatched mix of old and new values.
+    try {
+      await prisma.templateVersion.create({
+        data: {
+          templateId: target.id,
+          title: target.title || "Untitled",
+          category: target.category || "Surat Keterangan",
+          description: (target.description || target.title || "").slice(0, 180),
+          placeholders: target.placeholders || "[]",
+          bodyContent: target.bodyContent || "",
+          signerName: target.signerName || KOP_SURAT_DEFAULTS.defaultSignerName,
+          signerRole: target.signerRole || KOP_SURAT_DEFAULTS.defaultSignerRole,
+        },
+      });
+    } catch (vErr) {
+      console.warn("Version history warning:", vErr);
+    }
+
+    // Update main template record
     const updatedTemplate = await prisma.template.update({
       where: { id: target.id },
       data: {
-        title,
-        category,
-        description,
+        title: title ?? target.title,
+        category: category ?? target.category,
+        description: safeDescription,
         bodyContent: finalBodyContent,
-        // Always derived from the current bodyContent — never trusted
-        // from the client, so this can no longer drift out of sync.
         placeholders: JSON.stringify(extractPlaceholders(finalBodyContent)),
-        signerName: signerName || target.signerName || KOP_SURAT_DEFAULTS.defaultSignerName,
-        signerRole: signerRole || target.signerRole || KOP_SURAT_DEFAULTS.defaultSignerRole,
+        signerName: signerName ?? target.signerName ?? KOP_SURAT_DEFAULTS.defaultSignerName,
+        signerRole: signerRole ?? target.signerRole ?? KOP_SURAT_DEFAULTS.defaultSignerRole,
       },
     });
 
     return NextResponse.json(updatedTemplate);
-  } catch (error) {
+  } catch (error: any) {
     console.error("PUT Template Error:", error);
-    return NextResponse.json({ error: "Failed to update template" }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || "Failed to update template" },
+      { status: 500 }
+    );
   }
 }
 
 // DELETE a template
 export async function DELETE(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: any }
 ) {
   try {
-    const { id } = await params;
+    const id = await getParamId(params);
 
-    // Delete matching records whether passed a database ID or category/title identifier
+    if (!id) {
+      return NextResponse.json({ error: "Missing template id" }, { status: 400 });
+    }
+
     const result = await prisma.template.deleteMany({
-      where: {
-        OR: [
-          { id },
-          { category: { equals: id } },
-          { title: { equals: id } },
-        ],
-      },
+      where: { id },
     });
 
     if (result.count === 0) {

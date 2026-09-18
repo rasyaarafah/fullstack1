@@ -49,7 +49,7 @@ model Template {
   id           String            @id @default(uuid())
   title        String
   category     String?           @default("Surat Keterangan")
-  description  String?
+  description  String?           @db.Text 
   placeholders String            @db.Text
   bodyContent  String            @db.Text
   // Who signs letters generated from this template. Nullable so existing
@@ -72,7 +72,7 @@ model TemplateVersion {
   templateId   String   @map("template_id")
   title        String
   category     String?
-  description  String?
+  description  String?  @db.Text
   placeholders String   @db.Text
   bodyContent  String   @db.Text
   signerName   String?

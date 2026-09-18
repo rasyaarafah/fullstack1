@@ -32,25 +32,34 @@ export const EditProfileModal = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    // Show whatever the parent already has immediately, so the modal
+    // doesn't flash empty fields while loading — but this is only a
+    // placeholder. Parent-provided `currentUser` shapes vary across
+    // pages (some don't include `email` or `image` at all), so it is
+    // NOT trustworthy as the source of truth for editing.
     if (currentUser) {
       setName(currentUser.name || "");
       setEmail(currentUser.email || "");
       setImage(currentUser.image);
-    } else {
-      setIsFetching(true);
-      fetch("/api/me")
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to load user data");
-          return res.json();
-        })
-        .then((data) => {
-          setName(data.name || "");
-          setEmail(data.email || "");
-          setImage(data.image);
-        })
-        .catch((err) => setError(err.message))
-        .finally(() => setIsFetching(false));
     }
+
+    // Always fetch the authoritative record from the server. This is
+    // what the form actually submits from, so a parent page missing
+    // `email`/`image` on its currentUser object can no longer cause
+    // the modal to submit blank/stale values for those fields.
+    setIsFetching(true);
+    fetch("/api/me")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load user data");
+        return res.json();
+      })
+      .then((data) => {
+        setName(data.name || "");
+        setEmail(data.email || "");
+        setImage(data.image);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setIsFetching(false));
   }, [isOpen, currentUser]);
 
   if (!isOpen) return null;

@@ -1,91 +1,320 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/templates/DashboardLayout";
-import { LetterFormEditor } from "@/components/organisms/LetterFormEditor";
-import { TemplateCard } from "@/components/molecules/TemplateCard";
+import { Avatar } from "@/components/atoms/Avatar";
+import { AdminLetterPreview } from "@/components/organisms/AdminLetterPreview";
+import { MiniPaperThumbnail } from "@/components/molecules/MiniPaperThumbnail";
+import {
+  LEFT_LOGO_OPTIONS,
+  RIGHT_LOGO_OPTIONS,
+  DEFAULT_LEFT_LOGO,
+  DEFAULT_RIGHT_LOGO,
+} from "@/lib/logoOptions";
 
-const LOGO_OPTIONS_LEFT = [
-  { label: "SMK Letris Indonesia 2", value: "/logo_letris.png" },
-  { label: "SMK Letris Kesehatan", value: "/logo_letris_kesehatan.png" },
-  { label: "Tanpa Logo Kiri", value: "" },
-];
-
-const LOGO_OPTIONS_RIGHT = [
-  { label: "Provinsi Banten", value: "/logo_banten.png" },
-  { label: "Tanpa Logo Kanan", value: "" },
-];
-
-const TEMPLATE_PRESETS: Record<string, { letterNumber: string; recipient: string; body: string }> = {
-  "Surat Undangan": {
-    letterNumber: "001/UND/SMK-2/2026",
-    recipient: "Orang Tua / Wali Murid Kelas X",
-    body: "Dengan hormat,\n\nSehubungan dengan pelaksanaan evaluasi pembelajaran semester, kami mengundang Bapak/Ibu Wali Murid untuk dapat hadir pada rapat koordinasi yang akan dilaksanakan pada:\n\nHari/Tanggal : Sabtu, 22 Agustus 2026\nWaktu : 09.00 WIB - Selesai\nTempat : Aula Utama SMK Letris Indonesia 2\n\nDemikian surat undangan ini kami sampaikan. Atas perhatian dan kehadiran Bapak/Ibu, kami ucapkan terima kasih.",
-  },
-  "Surat Tugas": {
-    letterNumber: "002/ST/SMK-2/2026",
-    recipient: "Bapak/Ibu Guru Pendamping",
-    body: "Yang bertanda tangan di bawah ini Kepala SMK Letris Indonesia 2 memberikan tugas kepada nama terlampir untuk melaksanakan pendampingan kegiatan Lomba Keterampilan Siswa (LKS) Tingkat Kota Tangsel.",
-  },
-  "Surat Keterangan": {
-    letterNumber: "003/SK/SMK-2/2026",
-    recipient: "Siswa / Siswi Terlampir",
-    body: "Kepala SMK Letris Indonesia 2 menerangkan bahwa nama yang tercantum di bawah ini adalah benar tercatat sebagai siswa aktif SMK Letris Indonesia 2 Tahun Ajaran 2026/2027.",
-  },
-  "Surat Keputusan": {
-    letterNumber: "004/SKep/SMK-2/2026",
-    recipient: "Seluruh Dewan Guru & Staf",
-    body: "MEMUTUSKAN:\n1. Menetapkan susunan panitia Ujian Akhir Semester.\n2. Keputusan ini berlaku sejak tanggal ditetapkan.",
-  },
-  "Surat Pemberitahuan": {
-    letterNumber: "005/PEMT/SMK-2/2026",
-    recipient: "Seluruh Orang Tua Murid",
-    body: "Diberitahukan kepada seluruh Orang Tua/Wali Murid bahwa kegiatan Pembelajaran Jarak Jauh (PJJ) akan dilaksanakan pada tanggal terlampir.",
-  },
-};
-
-async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
-  if (!imageUrl) return "";
-  try {
-    const fullUrl = imageUrl.startsWith("http")
-      ? imageUrl
-      : `${window.location.origin}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
-
-    const res = await fetch(fullUrl);
-    if (!res.ok) throw new Error("Image fetch failed");
-    const blob = await res.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve("");
-      reader.readAsDataURL(blob);
-    });
-  } catch (err) {
-    console.warn("Could not encode image to Base64:", imageUrl, err);
-    return "";
-  }
+interface DynamicTemplate {
+  id: string;
+  title: string;
+  category?: string;
+  description?: string;
+  placeholders?: string;
+  bodyContent?: string;
+  defaultNumber?: string;
+  defaultRecipient?: string;
+  defaultBody?: string;
+  signerName?: string;
+  signerRole?: string;
 }
 
-function NewLetterContent() {
+const FALLBACK_TEMPLATES: DynamicTemplate[] = [
+  {
+    id: "1",
+    title: "SURAT KETERANGAN AKTIF SISWA",
+    category: "Surat Keterangan",
+    defaultNumber: "135/SKet/421.5/SMK.LI2/VIII/2026",
+    defaultRecipient: "Siswa / Siswi Terlampir",
+    defaultBody:
+      "Yang bertanda tangan di bawah ini kepala Sekolah SMK Letris Indonesia 2 Pamulang Kota Tangerang Selatan - Prov. Banten menerangkan bahwa:\n\n" +
+      "Nama | {{nama}}\n" +
+      "Tempat Tanggal Lahir | {{tempat_tanggal_lahir}}\n" +
+      "Jenis kelamin | {{jenis_kelamin}}\n" +
+      "NISN | {{nisn}}\n" +
+      "NPSN | 69894185\n" +
+      "Kelas | {{kelas}}\n" +
+      "Kompetensi Keahlian | {{kompetensi_keahlian}}\n\n" +
+      "Benar nama yang tersebut di atas terdaftar sebagai peserta didik kelas {{kelas}} di SMK Letris Indonesia 2 Tahun Ajaran 2026/2027. Demikian surat keterangan ini kami berikan untuk digunakan sebagaimana mestinya.",
+  },
+  {
+    id: "2",
+    title: "SURAT UNDANGAN",
+    category: "Surat Undangan",
+    defaultNumber: "001/UND/SMK-2/2026",
+    defaultRecipient: "Orang Tua / Wali Murid",
+    defaultBody:
+      "Sehubungan dengan pelaksanaan evaluasi pembelajaran semester, kami mengundang Bapak/Ibu Wali Murid untuk dapat hadir pada rapat koordinasi yang akan dilaksanakan pada:\n\nHari / Tanggal : Sabtu, 22 Agustus 2026\nWaktu : 09.00 WIB - Selesai\nTempat : Aula Utama SMK Letris Indonesia 2\n\nDemikian surat undangan ini kami sampaikan.",
+  },
+];
+
+function extractPlaceholders(text: string): string[] {
+  const matches = text.match(/\{\{([^}]+)\}\}/g);
+  if (!matches) return [];
+  const keys = matches.map((m) => m.replace(/[\{\}]/g, "").trim());
+  return Array.from(new Set(keys));
+}
+
+function TeacherNewLetterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const templateQuery = searchParams.get("template");
 
-  const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
+  const [templatesList, setTemplatesList] =
+    useState<DynamicTemplate[]>(FALLBACK_TEMPLATES);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [leftLogo, setLeftLogo] = useState<string>(LOGO_OPTIONS_LEFT[0].value);
-  const [rightLogo, setRightLogo] = useState<string>(LOGO_OPTIONS_RIGHT[0].value);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Semua");
 
-  const [letterData, setLetterData] = useState({
-    institutionName: "",
-    letterNumber: TEMPLATE_PRESETS["Surat Undangan"].letterNumber,
-    recipient: TEMPLATE_PRESETS["Surat Undangan"].recipient,
-    subject: "Surat Undangan",
-    date: new Date().toISOString().split("T")[0],
-    body: TEMPLATE_PRESETS["Surat Undangan"].body,
+  const [currentUser, setCurrentUser] = useState({
+    name: "Teacher",
+    username: "teacher",
+    email: "teacher@smkletris2.sch.id",
+    image: "",
+    role: "teacher",
   });
+
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<DynamicTemplate | null>(null);
+
+  const [letterNumber, setLetterNumber] = useState("");
+  const [date, setDate] = useState("");
+  const [recipient, setRecipient] = useState("");
+  const [rawBodyTemplate, setRawBodyTemplate] = useState("");
+  const [placeholderValues, setPlaceholderValues] = useState<
+    Record<string, string>
+  >({});
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
+
+  const [leftLogo, setLeftLogo] = useState<string>(DEFAULT_LEFT_LOGO);
+  const [rightLogo, setRightLogo] = useState<string>(DEFAULT_RIGHT_LOGO);
+
+  useEffect(() => {
+    async function fetchDatabaseTemplates() {
+      try {
+        const res = await fetch("/api/templates");
+        if (res.ok) {
+          const dbTemplates: DynamicTemplate[] = await res.json();
+          if (dbTemplates.length > 0) {
+            setTemplatesList(dbTemplates);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch templates:", err);
+      } finally {
+        setIsLoadingTemplates(false);
+      }
+    }
+    fetchDatabaseTemplates();
+  }, []);
+
+  useEffect(() => {
+    async function loadUserSession() {
+      try {
+        // Attempt to fetch from API session first
+        const res = await fetch("/api/me");
+        if (res.ok) {
+          const user = await res.json();
+          if (user && user.email) {
+            setCurrentUser({
+              name: user.name || "Teacher",
+              username: user.email ? user.email.split("@")[0] : "teacher",
+              email: user.email,
+              image: user.image || user.avatarUrl || "",
+              role: user.role ? user.role.toLowerCase() : "teacher",
+            });
+            return;
+          }
+        }
+
+        // Fallback to localStorage session if /api/me isn't present
+        const storedUserStr =
+          typeof window !== "undefined"
+            ? localStorage.getItem("user")
+            : null;
+        if (storedUserStr) {
+          const storedUser = JSON.parse(storedUserStr);
+          if (storedUser?.email) {
+            setCurrentUser({
+              name: storedUser.name || "Teacher",
+              username: storedUser.email.split("@")[0],
+              email: storedUser.email,
+              image: storedUser.avatarUrl || "",
+              role: "teacher",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load active session:", error);
+      }
+    }
+    loadUserSession();
+  }, []);
+
+  useEffect(() => {
+    setDate("07 Agustus 2026");
+  }, []);
+
+  const handleSelectTemplate = useCallback(
+    (templateObj: DynamicTemplate | null) => {
+      setSelectedTemplate(templateObj);
+      if (templateObj) {
+        const templateText =
+          templateObj.bodyContent || templateObj.defaultBody || "";
+        setRawBodyTemplate(templateText);
+        setLetterNumber(
+          templateObj.defaultNumber || "135/SKet/421.5/SMK.LI2/VIII/2026"
+        );
+        setRecipient(templateObj.defaultRecipient || "Siswa / Siswi Terlampir");
+
+        const detectedKeys = extractPlaceholders(templateText);
+        const initialValues: Record<string, string> = {};
+        detectedKeys.forEach((key) => {
+          if (key === "nama" || key === "nama_siswa")
+            initialValues[key] = "Gilby Maleeq Jibrani";
+          else if (key === "tempat_tanggal_lahir" || key === "ttl")
+            initialValues[key] = "Jakarta, 17 Mei 2009";
+          else if (key === "jenis_kelamin") initialValues[key] = "Laki-laki";
+          else if (key === "nisn") initialValues[key] = "0092877072";
+          else if (key === "npsn") initialValues[key] = "69894185";
+          else if (key === "kelas") initialValues[key] = "XII DKVB 4";
+          else if (key === "kompetensi_keahlian")
+            initialValues[key] = "Desain Komunikasi Visual";
+          else if (key === "tahun_ajaran") initialValues[key] = "2026/2027";
+          else initialValues[key] = "";
+        });
+        setPlaceholderValues(initialValues);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!templateQuery || isLoadingTemplates) return;
+
+    const matched = templatesList.find(
+      (t) => t.title.toLowerCase() === templateQuery.toLowerCase()
+    );
+
+    if (matched) {
+      handleSelectTemplate(matched);
+    } else {
+      setSelectedTemplate({ id: "custom", title: templateQuery });
+    }
+  }, [templateQuery, templatesList, isLoadingTemplates, handleSelectTemplate]);
+
+  const handlePlaceholderChange = (key: string, value: string) => {
+    setPlaceholderValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const categories = [
+    "Semua",
+    ...Array.from(
+      new Set(
+        templatesList
+          .map((tpl) => tpl.category)
+          .filter((cat): cat is string => Boolean(cat))
+      )
+    ),
+  ];
+
+  const filteredTemplates = templatesList.filter((tpl) => {
+    const title = tpl.title || "";
+    const description = tpl.description || "";
+    const category = tpl.category || "Uncategorized";
+
+    const matchesSearch =
+      title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "Semua" || category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const getRenderedBody = () => {
+    let rendered = rawBodyTemplate;
+    Object.keys(placeholderValues).forEach((key) => {
+      const val = placeholderValues[key];
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
+      rendered = rendered.replace(regex, val || `{{${key}}}`);
+    });
+    return rendered;
+  };
+
+  const detectedPlaceholders = extractPlaceholders(rawBodyTemplate);
+
+  const handleSaveLetter = async (status: "PENDING" | "DRAFT") => {
+    const finalTitle = selectedTemplate?.title || "SURAT KETERANGAN AKTIF SISWA";
+    const finalRecipient =
+      recipient.trim() || placeholderValues["nama"] || "Siswa Terlampir";
+    const finalBody = getRenderedBody();
+    const finalNumber = letterNumber.trim() || "135/SKet/421.5/SMK.LI2/VIII/2026";
+
+    const payload = {
+      title: finalTitle,
+      letterNumber: finalNumber,
+      recipient: finalRecipient,
+      subject: finalTitle,
+      body: finalBody,
+      attachmentUrl: attachmentUrl || null,
+      leftLogo,
+      rightLogo,
+      templateId:
+        selectedTemplate?.id && selectedTemplate.id !== "custom"
+          ? selectedTemplate.id
+          : null,
+      userEmail: currentUser.email,
+      createdByRole: "TEACHER",
+      status,
+      type: selectedTemplate?.category || "Surat Keterangan",
+      signerName: selectedTemplate?.signerName,
+      signerRole: selectedTemplate?.signerRole,
+    };
+
+    try {
+      setIsSubmitting(true);
+      const res = await fetch("/api/letters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const responseData = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        if (status === "PENDING") {
+          alert("Surat berhasil dikirim ke Admin untuk diperiksa dan ditandatangani!");
+          router.push("/teacher/pending");
+        } else {
+          alert("Draf surat berhasil disimpan!");
+          router.push("/teacher/history");
+        }
+      } else {
+        console.error("API Error Response Data:", responseData);
+        alert(
+          `Gagal membuat surat: ${
+            responseData.error || responseData.message || "Internal Server Error"
+          }`
+        );
+      }
+    } catch (err) {
+      console.error("Error submitting letter:", err);
+      alert("Terjadi kesalahan koneksi saat mengajukan surat.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const navItems = [
     { label: "Overview", href: "/teacher", isActive: false },
@@ -94,358 +323,173 @@ function NewLetterContent() {
     { label: "Pending", href: "/teacher/pending", isActive: false },
   ];
 
-  const mockUser = {
-    name: "Teacher",
-    username: "teacher",
-    email: "teacher@gmail.com",
-    avatarUrl: "",
-    role: "teacher",
-  };
-
-  const templates = [
-    { id: "1", title: "Surat Undangan" },
-    { id: "2", title: "Surat Tugas" },
-    { id: "3", title: "Surat Keterangan" },
-    { id: "4", title: "Surat Keputusan" },
-    { id: "5", title: "Surat Pemberitahuan" },
-  ];
-
-  const applyTemplatePreset = (title: string) => {
-    const matched = templates.find(
-      (t) => t.title.toLowerCase() === title.toLowerCase()
-    ) || { id: "custom", title };
-
-    setSelectedTemplate(matched);
-
-    const preset = TEMPLATE_PRESETS[matched.title];
-    if (preset) {
-      setLetterData((prev) => ({
-        ...prev,
-        subject: matched.title,
-        letterNumber: preset.letterNumber,
-        recipient: preset.recipient,
-        body: preset.body,
-      }));
-    } else {
-      setLetterData((prev) => ({
-        ...prev,
-        subject: matched.title,
-      }));
-    }
-  };
-
-  useEffect(() => {
-    if (templateQuery) {
-      applyTemplatePreset(templateQuery);
-    }
-  }, [templateQuery]);
-
-  const handleSaveLetter = async (status: "PENDING" | "DRAFT") => {
-    try {
-      setIsSubmitting(true);
-      
-      // Fetch active logged-in user from localStorage
-      const storedUserStr = typeof window !== "undefined" ? localStorage.getItem("user") : null;
-      const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
-      const activeEmail = storedUser?.email;
-
-      if (!activeEmail) {
-        alert("Session invalid or user not found. Please log in again.");
-        return;
-      }
-
-      const res = await fetch("/api/letters", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: selectedTemplate?.title || letterData.subject || "Surat",
-          letterNumber: letterData.letterNumber,
-          recipient: letterData.recipient,
-          subject: letterData.subject,
-          body: letterData.body,
-          status: status,
-          createdByRole: "TEACHER",
-          userEmail: activeEmail, // Sends exact logged-in user email
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Gagal menyimpan surat.");
-      }
-
-      if (status === "PENDING") {
-        alert("Surat berhasil dikirim ke Admin untuk diperiksa dan ditandatangani!");
-        router.push("/teacher/pending");
-      } else {
-        alert("Draf surat berhasil disimpan!");
-        router.push("/teacher/history");
-      }
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || "Terjadi kesalahan saat menyimpan surat.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleExportDocx = async () => {
-    const formattedBody = letterData.body ? letterData.body.replace(/\n/g, "<br/>") : "";
-    const leftLogoBase64 = leftLogo ? await getBase64ImageFromUrl(leftLogo) : "";
-    const rightLogoBase64 = rightLogo ? await getBase64ImageFromUrl(rightLogo) : "";
-
-    const htmlString = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <meta charset='utf-8'>
-        <title>${letterData.subject || "Surat"}</title>
-        <style>
-          @page { size: A4; margin: 2.5cm 2cm; }
-          body { font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: #000; }
-          p { margin: 0 0 6pt 0; }
-          table { border-collapse: collapse; }
-          .kop-table { width: 100%; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 20px; }
-          .logo-cell { width: 80px; text-align: center; vertical-align: middle; }
-          .logo-img { max-width: 70px; max-height: 70px; height: auto; }
-          .header-text { text-align: center; }
-          .meta-table { width: 100%; margin-bottom: 20px; font-size: 10pt; }
-          .body-text { font-size: 10.5pt; text-align: left; line-height: 1.6; margin-bottom: 30px; word-wrap: break-word; }
-          .sig-table { width: 100%; font-size: 10pt; margin-top: 30px; }
-        </style>
-      </head>
-      <body>
-        <table class="kop-table" border="0" cellpadding="0" cellspacing="0">
-          <tr>
-            <td class="logo-cell">
-              ${leftLogoBase64 ? `<img src="${leftLogoBase64}" class="logo-img" alt="Logo Kiri" />` : ""}
-            </td>
-            <td class="header-text">
-              <div style="font-size: 10pt; font-weight: bold;">YAYASAN LEO SUTRISNO</div>
-              <div style="font-size: 14pt; font-weight: bold;">SMK LETRIS INDONESIA 2</div>
-              <div style="font-size: 8pt;">NPSN : 69894185 &nbsp;&nbsp; NSS : 402286303080</div>
-              <div style="font-size: 8pt; font-weight: bold;">( AKREDITASI " A " )</div>
-              <div style="font-size: 7.5pt;">Kompetensi Keahlian : DKV, TJKT, PPLG, MPLB, PM, Akuntansi</div>
-              <div style="font-size: 7.5pt;">Jl. Raya Siliwangi No. 55 Pamulang, Kota Tangerang Selatan</div>
-              <div style="font-size: 7.5pt; color: #0000FF; text-decoration: underline;">www.smkletrisdua.sch.id</div>
-            </td>
-            <td class="logo-cell">
-              ${rightLogoBase64 ? `<img src="${rightLogoBase64}" class="logo-img" alt="Logo Kanan" />` : ""}
-            </td>
-          </tr>
-        </table>
-
-        <table class="meta-table" border="0" cellpadding="0" cellspacing="0">
-          <tr>
-            <td valign="top" width="60%">
-              <b>Nomor:</b> ${letterData.letterNumber || "-"}<br/>
-              <b>Hal:</b> ${letterData.subject || "Surat"}
-            </td>
-            <td align="right" valign="top" width="40%">
-              Tangerang Selatan, ${letterData.date}
-            </td>
-          </tr>
-        </table>
-
-        <div style="font-size: 10pt; margin-bottom: 20px;">
-          <b>Kepada Yth.</b><br/>
-          ${letterData.recipient || "Penerima"}<br/>
-          Di Tempat
+  return (
+    <DashboardLayout navItems={navItems} currentUser={currentUser}>
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-serif text-stone-900">
+            Welcome, <span className="italic">{currentUser.name}</span>
+          </h1>
+          <div className="w-10 h-10 rounded-full border border-stone-300 overflow-hidden flex items-center justify-center shrink-0 bg-stone-200">
+            {currentUser.image ? (
+              <img
+                src={currentUser.image}
+                alt={currentUser.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Avatar src={undefined} alt={currentUser.name} />
+            )}
+          </div>
         </div>
 
-        ${letterData.institutionName ? `<p style="font-size: 10pt;"><b>Pengirim:</b> ${letterData.institutionName}</p>` : ""}
-
-        <div class="body-text">${formattedBody}</div>
-
-        <table class="sig-table" border="0" cellpadding="0" cellspacing="0">
-          <tr>
-            <td width="60%"></td>
-            <td width="40%" align="center">
-              <p>Mengetahui,</p>
-              <p><b>Kepala Sekolah / Admin</b></p>
-              <br/><br/><br/>
-              <p><u><b>NIP. ....................</b></u></p>
-            </td>
-          </tr>
-        </table>
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob(["\ufeff", htmlString], { type: "application/msword" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${letterData.subject || "Surat"}_${letterData.letterNumber || "Draft"}.doc`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const handlePrintPdf = () => {
-    const printElement = document.getElementById("printable-letter");
-    if (!printElement) return;
-
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) return;
-
-    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map((style) => style.outerHTML)
-      .join("");
-
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Print Letter</title>
-          ${styles}
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 0;
-            }
-            body {
-              background: #ffffff !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              display: flex;
-              justify-content: center;
-            }
-            #print-root {
-              width: 210mm !important;
-              min-height: 297mm !important;
-              max-height: 297mm !important;
-              padding: 20mm 25mm !important;
-              box-sizing: border-box !important;
-              background: white !important;
-              display: flex !important;
-              flex-direction: column !important;
-              justify-content: space-between !important;
-              overflow: hidden !important;
-            }
-            #print-root h3 { font-size: 13pt !important; }
-            #print-root h4 { font-size: 10.5pt !important; }
-            #print-root p, #print-root span, #print-root div { font-size: 10pt !important; line-height: 1.5 !important; }
-            #print-root img { max-height: 50px !important; object-fit: contain !important; }
-          </style>
-        </head>
-        <body>
-          <div id="print-root">${printElement.innerHTML}</div>
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      document.body.removeChild(iframe);
-    }, 300);
-  };
-
-  return (
-    <DashboardLayout navItems={navItems} currentUser={mockUser}>
-      <div className="flex flex-col gap-6">
         {!selectedTemplate ? (
-          <>
-            <h1 className="text-3xl font-serif text-stone-900">
-              Welcome, <span className="italic">{mockUser.name}</span>
-            </h1>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {templates.map((template) => (
-                <TemplateCard
-                  key={template.id}
-                  title={template.title}
-                  isSelected={selectedTemplate?.id === template.id}
-                  onClick={() => applyTemplatePreset(template.title)}
-                />
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold uppercase text-stone-500 tracking-wider">
-                  Pengajuan Surat Guru
-                </span>
-                <h1 className="text-3xl font-serif font-bold text-stone-900 mt-0.5">
-                  {selectedTemplate.title}
-                </h1>
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-stone-200 pb-4">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 font-serif text-xs border rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                      selectedCategory === cat
+                        ? "border-stone-900 bg-stone-900 text-white font-medium"
+                        : "border-stone-300 bg-white text-stone-700 hover:bg-stone-100"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
 
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Cari template..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full sm:w-64 py-1.5 pl-3 pr-8 bg-white border border-stone-300 rounded-lg font-serif text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-stone-900"
+                />
+                <svg
+                  className="w-4 h-4 text-stone-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            {isLoadingTemplates ? (
+              <div className="p-8 text-stone-500 font-sans text-sm">
+                Loading templates...
+              </div>
+            ) : filteredTemplates.length === 0 ? (
+              <div className="col-span-full text-center py-16 text-stone-500 font-serif border border-dashed border-stone-300 rounded-xl">
+                Tidak ada template yang cocok dengan kriteria pencarian Anda.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {filteredTemplates.map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => handleSelectTemplate(template)}
+                    className="group flex flex-col items-center gap-3 text-center transition-transform hover:-translate-y-1 cursor-pointer"
+                  >
+                    <MiniPaperThumbnail template={template} />
+                    <span className="font-serif text-base text-stone-900 font-medium group-hover:underline">
+                      {template.title}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            <div>
               <button
                 type="button"
                 onClick={() => setSelectedTemplate(null)}
-                className="px-4 py-1.5 rounded-full bg-black text-white text-xs font-medium hover:bg-stone-800 transition-colors shadow-sm"
+                className="px-4 py-1.5 rounded-full bg-black text-white text-xs font-medium hover:bg-stone-800 transition-colors cursor-pointer"
               >
                 ← Change Template
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-              <div className="space-y-4">
-                <div className="bg-stone-50 p-3 rounded-xl border border-stone-200">
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
+            <div>
+              <span className="text-xs font-semibold uppercase text-stone-500 tracking-wider">
+                PENGAJUAN SURAT GURU
+              </span>
+              <h1 className="text-3xl font-serif font-bold text-stone-900 mt-1">
+                {selectedTemplate.title}
+              </h1>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-8 items-start">
+              {/* Form Side */}
+              <div className="bg-stone-50/50 p-6 rounded-2xl border border-stone-200 space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-stone-700">
                     Ganti Template Cepat (Isi Otomatis)
                   </label>
                   <select
-                    value={selectedTemplate.title}
-                    onChange={(e) => applyTemplatePreset(e.target.value)}
-                    className="w-full p-2 border border-stone-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-stone-800 font-serif"
+                    value={selectedTemplate.id}
+                    onChange={(e) => {
+                      const found = templatesList.find(
+                        (t) => t.id === e.target.value
+                      );
+                      if (found) handleSelectTemplate(found);
+                    }}
+                    className="w-full bg-white border border-stone-300 rounded-lg p-2.5 text-xs text-stone-800 focus:outline-none"
                   >
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.title}>
+                    {templatesList.map((t) => (
+                      <option key={t.id} value={t.id}>
                         {t.title}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 space-y-2">
-                  <label className="block text-xs font-bold text-stone-700">
+                <div className="bg-white p-4 rounded-xl border border-stone-200 space-y-2">
+                  <label className="text-xs font-bold text-stone-700 block">
                     Pilih Logo Kop Surat
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <span className="block text-[11px] text-stone-500 mb-1">
+                      <span className="text-[10px] text-stone-500 block mb-1">
                         Logo Kiri
                       </span>
                       <select
                         value={leftLogo}
                         onChange={(e) => setLeftLogo(e.target.value)}
-                        className="w-full p-2 border border-stone-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-stone-800"
+                        className="w-full bg-stone-50 border border-stone-300 rounded-lg p-2 text-xs"
                       >
-                        {LOGO_OPTIONS_LEFT.map((opt) => (
-                          <option key={opt.label} value={opt.value}>
+                        {LEFT_LOGO_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
                             {opt.label}
                           </option>
                         ))}
                       </select>
                     </div>
-
                     <div>
-                      <span className="block text-[11px] text-stone-500 mb-1">
+                      <span className="text-[10px] text-stone-500 block mb-1">
                         Logo Kanan
                       </span>
                       <select
                         value={rightLogo}
                         onChange={(e) => setRightLogo(e.target.value)}
-                        className="w-full p-2 border border-stone-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-stone-800"
+                        className="w-full bg-stone-50 border border-stone-300 rounded-lg p-2 text-xs"
                       >
-                        {LOGO_OPTIONS_RIGHT.map((opt) => (
-                          <option key={opt.label} value={opt.value}>
+                        {RIGHT_LOGO_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
                             {opt.label}
                           </option>
                         ))}
@@ -454,135 +498,172 @@ function NewLetterContent() {
                   </div>
                 </div>
 
-                <LetterFormEditor
-                  formData={letterData}
-                  onChange={(updatedData) =>
-                    setLetterData((prev) => ({ ...prev, ...updatedData }))
-                  }
-                  onSubmitForApproval={() => handleSaveLetter("PENDING")}
-                  onSaveDraft={() => handleSaveLetter("DRAFT")}
-                  isSubmitting={isSubmitting}
-                />
-              </div>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-stone-700">
+                        Judul / Hal Surat
+                      </label>
+                      <span className="text-[10px] text-stone-400">
+                        Wajib diisi
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="e.g. SURAT KETERANGAN AKTIF SISWA"
+                      value={selectedTemplate.title}
+                      onChange={(e) =>
+                        setSelectedTemplate({
+                          ...selectedTemplate,
+                          title: e.target.value,
+                        })
+                      }
+                      className="w-full bg-white border border-stone-300 rounded-lg p-2.5 text-xs focus:outline-none uppercase"
+                    />
+                  </div>
 
-              <div className="sticky top-6 w-full max-w-md mx-auto space-y-3">
-                <div className="bg-[#1c1917] text-white px-5 py-3 rounded-2xl flex justify-between items-center text-xs font-sans shadow-md">
-                  <span className="font-semibold text-sm tracking-tight">
-                    A4 Live Document Export
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleExportDocx}
-                      className="px-3 py-1.5 bg-[#292524] hover:bg-[#383331] text-stone-200 rounded-lg border border-stone-700 transition-colors text-xs font-medium flex items-center gap-1"
-                    >
-                      ↓ DOCX
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handlePrintPdf}
-                      className="px-3.5 py-1.5 bg-[#059669] hover:bg-[#047857] text-white rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5"
-                    >
-                      🖨 Print / PDF
-                    </button>
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-stone-700">
+                        Usulan Nomor Surat
+                      </label>
+                      <span className="text-[10px] text-stone-400">
+                        Wajib diisi
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="e.g. 135/SKet/421.5/SMK.LI2/VIII/2026"
+                      value={letterNumber}
+                      onChange={(e) => setLetterNumber(e.target.value)}
+                      className="w-full bg-white border border-stone-300 rounded-lg p-2.5 text-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">
+                      Penerima Surat / Tujuan
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Siswa / Siswi Terlampir"
+                      value={recipient}
+                      onChange={(e) => setRecipient(e.target.value)}
+                      className="w-full bg-white border border-stone-300 rounded-lg p-2.5 text-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">
+                      Tanggal Surat
+                    </label>
+                    <input
+                      type="text"
+                      value={date}
+                      placeholder="e.g. 07 Agustus 2026"
+                      onChange={(e) => setDate(e.target.value)}
+                      className="w-full bg-white border border-stone-300 rounded-lg p-2.5 text-xs focus:outline-none"
+                    />
                   </div>
                 </div>
 
-                <div
-                  id="printable-letter"
-                  className="w-full min-h-145 bg-white rounded-3xl shadow-sm border border-stone-200 p-8 flex flex-col justify-between text-stone-900 font-serif text-[11px] leading-relaxed overflow-hidden"
-                >
-                  <div className="flex flex-col flex-1 min-h-0">
-                    <div className="relative border-b-2 border-stone-900 pb-3 mb-4 text-center shrink-0 min-h-15 flex items-center justify-center">
-                      {leftLogo && (
-                        <img
-                          src={leftLogo}
-                          alt="Logo Kiri"
-                          className="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 object-contain"
+                {/* Dynamic Placeholder Inputs Section */}
+                {detectedPlaceholders.length > 0 && (
+                  <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-xl space-y-3">
+                    <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">
+                      Variabel Isian Surat
+                    </h4>
+                    {detectedPlaceholders.map((key) => (
+                      <div key={key} className="space-y-1">
+                        <label className="text-xs font-semibold text-stone-700 capitalize">
+                          {key.replace(/_/g, " ")}
+                        </label>
+                        <input
+                          type="text"
+                          placeholder={`Isi {{${key}}}`}
+                          value={placeholderValues[key] || ""}
+                          onChange={(e) =>
+                            handlePlaceholderChange(key, e.target.value)
+                          }
+                          className="w-full bg-white border border-stone-300 rounded-lg p-2 text-xs focus:outline-none"
                         />
-                      )}
-                      {rightLogo && (
-                        <img
-                          src={rightLogo}
-                          alt="Logo Kanan"
-                          className="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 object-contain"
-                        />
-                      )}
-
-                      <div className="px-10">
-                        <h4 className="font-bold text-[9px] tracking-tight uppercase leading-tight">
-                          YAYASAN LEO SUTRISNO
-                        </h4>
-                        <h3 className="font-bold text-[11px] tracking-wide uppercase leading-tight">
-                          SMK LETRIS INDONESIA 2
-                        </h3>
-                        <p className="text-[7.5px] font-sans text-stone-700 leading-tight mt-0.5">
-                          NPSN : 69894185 &nbsp;&nbsp; NSS : 402286303080
-                        </p>
-                        <p className="text-[7.5px] font-sans font-semibold text-stone-800 leading-tight">
-                          ( AKREDITASI " A " )
-                        </p>
-                        <p className="text-[6.5px] font-sans text-stone-600 leading-tight mt-0.5">
-                          Kompetensi Keahlian : DKV, TJKT, PPLG, MPLB, PM, Akuntansi
-                        </p>
-                        <p className="text-[6.5px] font-sans text-stone-600 leading-tight">
-                          Jl. Raya Siliwangi No. 55 Pamulang, Kota Tangerang Selatan
-                        </p>
-                        <span className="text-[6.5px] text-blue-700 underline font-sans block mt-0.5">
-                          www.smkletrisdua.sch.id
-                        </span>
                       </div>
-                    </div>
-
-                    <div className="flex justify-between text-[9.5px] mb-4 font-sans shrink-0">
-                      <div className="space-y-0.5">
-                        <p>
-                          <span className="font-semibold">Nomor:</span>{" "}
-                          {letterData.letterNumber || "[Diisi oleh Teacher]"}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Hal:</span>{" "}
-                          {letterData.subject || selectedTemplate?.title || "Surat"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p>Tangerang Selatan, {letterData.date}</p>
-                      </div>
-                    </div>
-
-                    <div className="mb-4 font-sans text-[9.5px] space-y-0.5 shrink-0">
-                      <p className="font-semibold">Kepada Yth.</p>
-                      <p>{letterData.recipient || "Bapak/Ibu Penerima"}</p>
-                      <p className="text-stone-500">Di Tempat</p>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto pr-1 my-1 scrollbar-thin scrollbar-thumb-stone-300 min-h-0">
-                      <p className="leading-relaxed whitespace-pre-wrap text-[9.5px] text-stone-800 font-sans">
-                        {letterData.body || (
-                          <span className="italic text-stone-400">
-                            Isi surat akan langsung muncul di sini...
-                          </span>
-                        )}
-                      </p>
-                    </div>
+                    ))}
                   </div>
+                )}
 
-                  <div className="flex justify-end pt-4 font-sans text-[8.5px] shrink-0">
-                    <div className="text-center w-40 border border-dashed border-stone-200 p-2.5 rounded-xl bg-stone-50/30">
-                      <p className="text-stone-500">Mengetahui,</p>
-                      <p className="font-semibold text-stone-800 mt-0.5">
-                        Kepala Sekolah / Admin
-                      </p>
-                      <div className="h-10 flex items-center justify-center italic text-stone-400 text-[7.5px]">
-                        [Belum Ditandatangani]
-                      </div>
-                      <p className="font-bold underline text-stone-800">
-                        NIP. ....................
-                      </p>
-                    </div>
-                  </div>
+                {/* Raw Body Editor */}
+                <div>
+                  <label className="text-xs font-bold text-stone-700 block mb-1">
+                    Isi Text Surat
+                  </label>
+                  <textarea
+                    rows={8}
+                    value={rawBodyTemplate}
+                    onChange={(e) => setRawBodyTemplate(e.target.value)}
+                    className="w-full bg-white border border-stone-300 rounded-lg p-3 text-xs font-mono focus:outline-none leading-relaxed"
+                  />
+                </div>
+
+                {/* Attachment Upload */}
+                <div className="bg-white p-4 rounded-xl border border-stone-200 space-y-2">
+                  <label className="text-xs font-bold text-stone-700 block">
+                    Upload Lampiran / Stempel / Gambar
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () =>
+                          setAttachmentUrl(reader.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="text-xs text-stone-600 cursor-pointer"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-2 pt-2">
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => handleSaveLetter("PENDING")}
+                    className="w-full py-3 bg-emerald-900 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    {isSubmitting ? "Mengirim..." : "Kirim ke Admin (Pending Approval) →"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => handleSaveLetter("DRAFT")}
+                    className="w-full py-2.5 bg-white border border-stone-300 hover:bg-stone-50 disabled:opacity-50 text-stone-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Simpan Sebagai Draf
+                  </button>
                 </div>
               </div>
+
+              {/* Live Preview Side */}
+              <AdminLetterPreview
+                letterData={{
+                  institutionName: "",
+                  letterNumber,
+                  date,
+                  recipient,
+                  subject: selectedTemplate?.title || "",
+                  body: getRenderedBody(),
+                  attachmentUrl,
+                  leftLogo,
+                  rightLogo,
+                  signerName: selectedTemplate?.signerName,
+                  signerRole: selectedTemplate?.signerRole,
+                }}
+                selectedTemplate={selectedTemplate}
+              />
             </div>
           </div>
         )}
@@ -591,10 +672,12 @@ function NewLetterContent() {
   );
 }
 
-export default function NewLetterPage() {
+export default function TeacherNewLetterPage() {
   return (
-    <Suspense fallback={<div className="p-8 font-sans">Loading...</div>}>
-      <NewLetterContent />
+    <Suspense
+      fallback={<div className="p-8 font-sans text-stone-600">Loading...</div>}
+    >
+      <TeacherNewLetterContent />
     </Suspense>
   );
 }

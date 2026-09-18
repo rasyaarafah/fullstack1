@@ -1,20 +1,44 @@
 // app/api/letters/route.ts
 import { NextResponse, NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { KOP_SURAT_DEFAULTS } from '@/lib/kopSuratDefault';
 
 export async function GET(request: NextRequest) {
   try {
+    // Identify the logged-in user the same way /api/me does, so this
+    // route can't be tricked into returning someone else's letters via
+    // a client-supplied param.
+    const cookieStore = await cookies();
+    const userEmail = cookieStore.get('user_email')?.value;
+
+    if (!userEmail) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { email: userEmail },
+      select: { id: true, role: true },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const statusFilter = searchParams.get('status');
 
-    let whereClause = {};
+    const whereClause: Record<string, any> = {};
 
     if (statusFilter) {
       const statuses = statusFilter.split(',').map((s) => s.trim().toUpperCase());
-      whereClause = {
-        status: { in: statuses },
-      };
+      whereClause.status = { in: statuses };
+    }
+
+    // Admins see every letter (needed for approval/history screens).
+    // Everyone else only ever sees their own.
+    if (currentUser.role !== 'ADMIN') {
+      whereClause.authorId = currentUser.id;
     }
 
     const letters = await prisma.letter.findMany({

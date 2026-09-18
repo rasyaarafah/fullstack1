@@ -147,17 +147,18 @@ export default function HistoryPage() {
                     year: "numeric",
                   })}
                   status={formattedStatus}
+                  // Step 1: Opens the teacher-side full document preview
                   onSee={() =>
-                    (window.location.href = `/admin/templates/preview/${item.id}`)
+                    (window.location.href = `/teacher/preview/${item.id}`)
                   }
-                  // Step 1: Navigates to edit page
+                  // Step 2: Opens the dedicated edit page for this letter
                   onEdit={
                     canModify
                       ? () =>
-                          (window.location.href = `/teacher/templates/edit/${item.id}`)
+                          (window.location.href = `/teacher/edit/${item.id}`)
                       : undefined
                   }
-                  // Step 2: Calls delete API
+                  // Step 3: Calls delete API
                   onCancel={canModify ? () => handleCancel(item.id) : undefined}
                 />
               );

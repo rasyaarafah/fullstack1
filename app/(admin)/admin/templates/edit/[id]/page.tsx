@@ -55,6 +55,7 @@ export default function EditTemplatePage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingNew, setIsSavingNew] = useState(false);
   const [focusedField, setFocusedField] =
     useState<keyof TemplateData>("bodyContent");
 
@@ -123,6 +124,7 @@ export default function EditTemplatePage() {
     }));
   };
 
+  // Overwrites the existing template in place (PUT to the same id).
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -150,6 +152,44 @@ export default function EditTemplatePage() {
       alert("Error saving data.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Creates a brand new template with the edited content, leaving the
+  // original (templateId) untouched. Matches the fields POST /api/templates
+  // persists (title, category, description, placeholders, bodyContent,
+  // signerName, signerRole). Note: nomorSurat, perihal, and penerima still
+  // aren't on the Template model/route, so those don't carry over yet.
+  const handleSaveAsNew = async () => {
+    setIsSavingNew(true);
+    try {
+      const res = await fetch(`/api/templates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `${formData.title} (Copy)`,
+          category: formData.category,
+          description: formData.bodyContent,
+          bodyContent: formData.bodyContent,
+          placeholders: detectedPlaceholders,
+          signerName: formData.namaPenandaTangan,
+          signerRole: formData.jabatanPenandaTangan,
+        }),
+      });
+
+      if (res.ok) {
+        alert(
+          "Saved as a new template. The original was left unchanged. (Note: nomor surat, perihal, and penerima aren't saved on new templates yet — those fields aren't on the Template model.)"
+        );
+        router.push("/admin/templates/edit");
+      } else {
+        alert("Failed to save as a new template.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error saving data.");
+    } finally {
+      setIsSavingNew(false);
     }
   };
 
@@ -204,11 +244,21 @@ export default function EditTemplatePage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={handleSaveAsNew}
+              disabled={isSaving || isSavingNew}
+              title="Creates a new template with these changes and keeps the original untouched"
+              className="px-4 py-1 bg-white border border-stone-300 text-stone-700 text-xs rounded hover:bg-stone-100 disabled:opacity-50 cursor-pointer"
+            >
+              {isSavingNew ? "Saving..." : "Save as New"}
+            </button>
+            <button
+              type="button"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || isSavingNew}
+              title="Overwrites this template with your changes"
               className="px-4 py-1 bg-stone-900 text-white text-xs rounded hover:bg-stone-800 disabled:opacity-50 cursor-pointer"
             >
-              {isSaving ? "Saving..." : "Save"}
+              {isSaving ? "Saving..." : "Save (Overwrite)"}
             </button>
           </div>
         </div>

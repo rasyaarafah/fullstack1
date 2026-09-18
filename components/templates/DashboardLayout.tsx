@@ -35,24 +35,28 @@ export const DashboardLayout = ({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Fetch active session from API on mount if not passed via props
+  // Fetch the authoritative session on every mount. Whatever `currentUser`
+  // a page passes in is shown instantly as a placeholder (some pages build
+  // it with slightly different shapes — e.g. an `avatarUrl` field instead
+  // of `image` — so it can't be trusted as the source of truth here), but
+  // this fetch is what actually determines what the sidebar/avatar show.
   useEffect(() => {
-    if (!initialUser) {
-      fetch("/api/me")
-        .then((res) => res.json())
-        .then((data) => {
-          if (!data.error) {
-            setUser({
-              name: data.name,
-              username: data.email || data.username,
-              image: data.image || data.avatarUrl,
-            });
-          }
-        })
-        .catch((err) => console.error("Failed to load user:", err));
-    } else {
+    if (initialUser) {
       setUser(initialUser);
     }
+
+    fetch("/api/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.error) {
+          setUser({
+            name: data.name,
+            username: data.email || data.username,
+            image: data.image || data.avatarUrl,
+          });
+        }
+      })
+      .catch((err) => console.error("Failed to load user:", err));
   }, [initialUser]);
 
   const handleProfileSuccess = (updatedUser: {
